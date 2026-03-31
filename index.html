@@ -815,6 +815,10 @@
           </optgroup>
         </select>
       </div>
+
+      <!-- PAR GAP INDICATOR -->
+      <div id="ccParGap" style="display:none;border-radius:10px;padding:8px 12px;margin-bottom:8px;font-size:12px;font-weight:700;line-height:1.6;transition:background .2s"></div>
+
       <div style="background:#F0FDF4;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;line-height:1.8">
         <!-- At-par / above-par rows -->
         <div id="ccAtParRows">
@@ -2191,6 +2195,56 @@ function calcComm() {
   document.getElementById('ccRetail').textContent = fmt(retail);
   document.getElementById('ccPar').textContent    = fmt(par);
   document.getElementById('ccTotal').textContent  = fmt(Math.max(0, total));
+
+  // ── PAR GAP INDICATOR ─────────────────────────────────────
+  const parGapEl = document.getElementById('ccParGap');
+  if (soldRaw > 0 && retail > 0) {
+    parGapEl.style.display = '';
+    const gap = effectiveNet - par; // positive = above par, negative = below
+    const absDollar = Math.abs(gap).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+    // Also compute what net would be WITHOUT the finance charge
+    const netNoFin  = soldRaw - 500;
+    const gapNoFin  = netNoFin - par;
+    const finImpact = finCharge > 0 ? (gapNoFin - gap) : 0; // how many $ the fin charge costs
+
+    let html = '';
+    if (gap >= 0) {
+      // Above par
+      parGapEl.style.background = '#F0FDF4';
+      parGapEl.style.border = '1.5px solid #86EFAC';
+      parGapEl.style.color  = '#166534';
+      html = `✅ <span style="font-size:14px">$${absDollar} above par</span>`;
+      if (finCharge > 0) {
+        const noFinDollar = Math.abs(gapNoFin).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+        html += `<br><span style="font-size:10px;font-weight:600;opacity:.75">Without financing: $${noFinDollar} above par — fin. charge costs $${finCharge.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+      }
+    } else {
+      const dollarBelow = Math.abs(gap);
+      if (dollarBelow <= 99.99) {
+        // Close — amber warning
+        parGapEl.style.background = '#FFFBEB';
+        parGapEl.style.border = '1.5px solid #FCD34D';
+        parGapEl.style.color  = '#92400E';
+        html = `⚠️ <span style="font-size:14px">$${absDollar} below par</span>`;
+      } else {
+        // Significantly under — red
+        parGapEl.style.background = '#FEF2F2';
+        parGapEl.style.border = '1.5px solid #FCA5A5';
+        parGapEl.style.color  = '#991B1B';
+        html = `🔴 <span style="font-size:14px">$${absDollar} below par</span>`;
+      }
+      if (finCharge > 0) {
+        const noFinLabel = gapNoFin >= 0
+          ? `$${Math.abs(gapNoFin).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} above par`
+          : `$${Math.abs(gapNoFin).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} below par`;
+        html += `<br><span style="font-size:10px;font-weight:700">Without financing: ${noFinLabel} — fin. charge costs $${finCharge.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+      }
+    }
+    parGapEl.innerHTML = html;
+  } else {
+    parGapEl.style.display = 'none';
+  }
 }
 
 function applyCommCalc() {
