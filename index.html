@@ -1292,7 +1292,7 @@ function closeFu() { document.getElementById('fuOverlay').classList.remove('open
 function refreshFuMsg() {
   const name = document.getElementById('fuName').value.trim() || 'there';
   document.getElementById('fuMsg').value =
-    `Hi ${name}! This is Steve from LeafFilter. I wanted to follow up on our previous conversation about gutter protection. Would you be open to a quick chat? I have some options that might be a perfect fit for your home! 😊`;
+    `Hi ${name}! This is Steve from LeafFilter. I wanted to follow up on our previous conversation about gutter protection. Just wanted to follow up to see if you wanted to move forward 😊`;
 }
 
 async function saveFu() {
@@ -1366,7 +1366,7 @@ async function loadFollowUps() {
 function fuQuickSMS(phone, name) {
   if (!phone) { toast('No phone number saved', 'err'); return; }
   const clean = phone.replace(/\D/g,'');
-  const msg = `Hi ${name}! This is Steve from LeafFilter. I wanted to follow up on our previous conversation about gutter protection. Would you be open to a quick chat? 😊`;
+  const msg = `Hi ${name}! This is Steve from LeafFilter. I wanted to follow up on our previous conversation about gutter protection. Just wanted to follow up to see if you wanted to move forward 😊`;
   window.open(`sms:+1${clean}?&body=${encodeURIComponent(msg)}`);
 }
 
