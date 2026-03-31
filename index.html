@@ -800,7 +800,7 @@ function calcM(leads) {
     selfgen: leads.filter(l=>l.lead_type==='self_gen').length,
     btd: leads.filter(l=>l.is_btd).length,
     cancelled: leads.filter(l=>l.is_cancelled).length,
-    commission: leads.filter(l=>l.commission_paid).reduce((s,l)=>s+(parseFloat(l.commission_amount)||0),0)
+    commission: leads.filter(l=>l.commission_paid && !l.is_cancelled).reduce((s,l)=>s+(parseFloat(l.commission_amount)||0),0)
   };
 }
 
@@ -854,7 +854,7 @@ async function loadDash() {
     sb.from('leads').select('*, not_sold_reasons(label)').is('sales_date',null).gte('created_at', cs).lte('created_at', ce),
     sb.from('leads').select('*, not_sold_reasons(label)').not('sales_date','is',null).gte('sales_date', psDate).lte('sales_date', peDate),
     sb.from('leads').select('*, not_sold_reasons(label)').is('sales_date',null).gte('created_at', ps).lte('created_at', pe),
-    sb.from('leads').select('commission_amount,commission_paid').eq('status','sold').not('sales_date','is',null).gte('sales_date', ytdStartDate)
+    sb.from('leads').select('commission_amount,commission_paid,is_cancelled').eq('status','sold').eq('is_cancelled',false).not('sales_date','is',null).gte('sales_date', ytdStartDate)
   ]);
   const cur = [...(curDated||[]), ...(curUndated||[])];
   const prv = [...(prvDated||[]), ...(prvUndated||[])];
@@ -1073,7 +1073,7 @@ function renderHist(leads) {
     const sub = [];
     if (l.job_number) sub.push('Job #' + l.job_number);
     if (l.install_date) sub.push('Install ' + new Date(l.install_date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}));
-    if (l.commission_amount) sub.push('$' + parseFloat(l.commission_amount).toLocaleString('en-US',{maximumFractionDigits:0}) + ' comm');
+    if (l.commission_amount && !l.is_cancelled) sub.push('$' + parseFloat(l.commission_amount).toLocaleString('en-US',{maximumFractionDigits:0}) + ' comm');
     return `
     <div class="hcard ${sold?'sold':'ns'}">
       <div class="hcard-ico" onclick="openLeadEdit('${l.id}')" style="cursor:pointer">${sold ? '✅' : '❌'}</div>
@@ -1322,11 +1322,12 @@ async function loadComm() {
   const el = document.getElementById('commList');
   el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
-  // Fetch all sold leads that have an install date (unpaid AND paid, user sees full list)
+  // Fetch all unpaid sold leads with install dates — exclude cancelled
   const { data: leads, error } = await sb
     .from('leads')
     .select('id,job_number,install_date,commission_amount,commission_paid,sale_amount,is_cancelled,is_btd')
     .eq('status','sold')
+    .eq('is_cancelled', false)
     .not('install_date','is',null)
     .eq('commission_paid', false)
     .order('install_date', { ascending: true });
