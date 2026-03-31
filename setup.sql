@@ -62,12 +62,12 @@ do $$ begin
   end if;
 end $$;
 
--- 4. BACKFILL: set sales_date = created_at date for any sold leads missing a sales_date
--- (run this once after adding the column so old data appears in the correct period)
+-- 4. BACKFILL: set sales_date = created_at date for ALL leads missing a sales_date
+-- (run this once after adding the column so old data is not orphaned)
+-- NOTE: After this runs, edit old leads in the History tab to set their correct dates.
 update public.leads
 set    sales_date = created_at::date
-where  status = 'sold'
-  and  sales_date is null;
+where  sales_date is null;
 
 -- 5. INDEXES for fast queries
 create index if not exists leads_created_at_idx  on public.leads (created_at desc);

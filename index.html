@@ -379,6 +379,13 @@
             <label class="fl">Reason</label>
             <div class="rl" id="reasonList"><div class="loading"><div class="spinner"></div></div></div>
           </div>
+          <div class="fg2">
+            <div>
+              <label class="fl">Visit Date</label>
+              <input type="date" class="fi" id="notSoldDate" style="font-size:13px;padding:11px 13px">
+            </div>
+            <div></div>
+          </div>
           <div class="fg" style="margin-bottom:0">
             <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
             <textarea class="fi" id="notNotes" placeholder="e.g. Call back in spring, left card..."></textarea>
@@ -813,20 +820,26 @@ async function loadDash() {
   document.getElementById('mgrid').innerHTML = '<div class="loading" style="grid-column:1/-1"><div class="spinner"></div></div>';
   const { cs, ce, ps, pe } = getPeriodRanges(curPeriod);
   const ytdStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
-  // For sold leads: filter by sales_date (actual date of sale)
-  // For not-sold leads: filter by created_at (no sales_date recorded)
+  // Filter by sales_date (actual appointment/sale date) for all leads.
+  // Fallback: leads with no sales_date use created_at date instead (covers old entries).
   const csDate = cs.split('T')[0]; const ceDate = ce.split('T')[0];
   const psDate = ps.split('T')[0]; const peDate = pe.split('T')[0];
   const ytdStartDate = ytdStart.split('T')[0];
-  const [{ data: curSold }, { data: prvSold }, { data: curNs }, { data: prvNs }, { data: ytd }] = await Promise.all([
-    sb.from('leads').select('*, not_sold_reasons(label)').eq('status','sold').gte('sales_date', csDate).lte('sales_date', ceDate),
-    sb.from('leads').select('*, not_sold_reasons(label)').eq('status','sold').gte('sales_date', psDate).lte('sales_date', peDate),
-    sb.from('leads').select('*, not_sold_reasons(label)').eq('status','not_sold').gte('created_at', cs).lte('created_at', ce),
-    sb.from('leads').select('*, not_sold_reasons(label)').eq('status','not_sold').gte('created_at', ps).lte('created_at', pe),
-    sb.from('leads').select('commission_amount,commission_paid').eq('status','sold').gte('sales_date', ytdStartDate)
+  const [
+    { data: curDated },   // leads with sales_date in current period
+    { data: curUndated }, // leads with no sales_date, created_at in current period
+    { data: prvDated },
+    { data: prvUndated },
+    { data: ytd }
+  ] = await Promise.all([
+    sb.from('leads').select('*, not_sold_reasons(label)').not('sales_date','is',null).gte('sales_date', csDate).lte('sales_date', ceDate),
+    sb.from('leads').select('*, not_sold_reasons(label)').is('sales_date',null).gte('created_at', cs).lte('created_at', ce),
+    sb.from('leads').select('*, not_sold_reasons(label)').not('sales_date','is',null).gte('sales_date', psDate).lte('sales_date', peDate),
+    sb.from('leads').select('*, not_sold_reasons(label)').is('sales_date',null).gte('created_at', ps).lte('created_at', pe),
+    sb.from('leads').select('commission_amount,commission_paid').eq('status','sold').not('sales_date','is',null).gte('sales_date', ytdStartDate)
   ]);
-  const cur = [...(curSold||[]), ...(curNs||[])];
-  const prv = [...(prvSold||[]), ...(prvNs||[])];
+  const cur = [...(curDated||[]), ...(curUndated||[])];
+  const prv = [...(prvDated||[]), ...(prvUndated||[])];
   const c = calcM(cur||[]), p = calcM(prv||[]);
   const ytdComm = (ytd||[]).filter(l=>l.commission_paid).reduce((s,l)=>s+(parseFloat(l.commission_amount)||0),0);
   // Load baselines
@@ -877,6 +890,7 @@ function resetLog() {
   // default dates to today
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('salesDate').value = today;
+  document.getElementById('notSoldDate').value = today;
   document.getElementById('installDate').value = '';
   isPaid = false;
   document.getElementById('paidChk').classList.remove('on');
@@ -939,7 +953,8 @@ async function submitLead(type) {
   } else {
     if (!selReason) { toast('Please select a reason', 'err'); return; }
     const notes = document.getElementById('notNotes').value.trim();
-    const { data, error } = await sb.from('leads').insert({ status: 'not_sold', reason_id: selReason, notes: notes || null }).select().single();
+    const nsDate = document.getElementById('notSoldDate').value || null;
+    const { data, error } = await sb.from('leads').insert({ status: 'not_sold', reason_id: selReason, notes: notes || null, sales_date: nsDate }).select().single();
     if (error) { toast('Error saving lead', 'err'); return; }
     lastId = data.id;
     showUndo('Not sold lead logged');
