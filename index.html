@@ -816,10 +816,19 @@
         </select>
       </div>
       <div style="background:#F0FDF4;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;line-height:1.8">
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Par Commission (8% of par)</span><span id="ccParComm" style="font-weight:700">$0.00</span></div>
-        <div id="ccFinRow" style="display:none;flex-direction:row;justify-content:space-between"><span style="color:#B45309" id="ccFinLabel">Finance Charge (plan — 0%)</span><span id="ccFinCharge" style="font-weight:700;color:#B45309">−$0.00</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Overage (sold − admin − fin. − par)</span><span id="ccOverage" style="font-weight:700">$0.00</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Overage Commission (40%)</span><span id="ccOverComm" style="font-weight:700">$0.00</span></div>
+        <!-- At-par / above-par rows -->
+        <div id="ccAtParRows">
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Par Commission (8% of par)</span><span id="ccParComm" style="font-weight:700">$0.00</span></div>
+          <div id="ccFinRow" style="display:none;flex-direction:row;justify-content:space-between"><span style="color:#B45309" id="ccFinLabel">Finance Charge (plan — 0%)</span><span id="ccFinCharge" style="font-weight:700;color:#B45309">−$0.00</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Overage (sold − admin − fin. − par)</span><span id="ccOverage" style="font-weight:700">$0.00</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Overage Commission (40%)</span><span id="ccOverComm" style="font-weight:700">$0.00</span></div>
+        </div>
+        <!-- Under-par rows -->
+        <div id="ccUnderParRows" style="display:none">
+          <div id="ccFinRow2" style="display:none;flex-direction:row;justify-content:space-between"><span style="color:#B45309" id="ccFinLabel2">Finance Charge (plan — 0%)</span><span id="ccFinCharge2" style="font-weight:700;color:#B45309">−$0.00</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Net (sold − $500 admin − fin.)</span><span id="ccUnderNet" style="font-weight:700">$0.00</span></div>
+          <div style="display:flex;justify-content:space-between"><span id="ccTierLabel" style="color:#92400E;font-weight:700">Under-Par Tier</span><span id="ccTierPct" style="font-weight:700;color:#92400E"></span></div>
+        </div>
         <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid #BBF7D0;margin-top:4px"><span style="font-weight:800;color:var(--green-dark)">TOTAL COMMISSION</span><span id="ccTotal" style="font-weight:900;font-size:15px;color:var(--green-dark)">$0.00</span></div>
       </div>
       <button onclick="applyCommCalc()" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:11px;font-family:'Inter',sans-serif;font-size:14px;font-weight:800;cursor:pointer">✅ Apply to Sale</button>
@@ -2107,29 +2116,81 @@ function calcComm() {
     finCharge = soldRaw * (planRate / 100);
   }
 
-  // Show/hide finance charge row
-  const finRow = document.getElementById('ccFinRow');
-  if (planVal && soldRaw > 0) {
-    finRow.style.display = 'flex';
-    document.getElementById('ccFinLabel').textContent  = `Finance Charge — Plan ${planNum} (${planRate}%)`;
-    document.getElementById('ccFinCharge').textContent = '−$' + finCharge.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmt = v => '$' + v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Net after admin fee + finance charge — this is what determines tier
+  const effectiveNet = soldRaw - 500 - finCharge;
+  // Percentage of retail that the effective net represents
+  const netPct = retail > 0 ? (effectiveNet / retail) * 100 : 0;
+
+  // Determine if at/above par or under par
+  const isUnderPar = soldRaw > 0 && netPct < 65;
+
+  const atParRows    = document.getElementById('ccAtParRows');
+  const underParRows = document.getElementById('ccUnderParRows');
+  const finRow       = document.getElementById('ccFinRow');
+  const finRow2      = document.getElementById('ccFinRow2');
+
+  let total = 0;
+
+  if (!isUnderPar) {
+    // ── AT / ABOVE PAR ──────────────────────────────────────
+    atParRows.style.display    = '';
+    underParRows.style.display = 'none';
+
+    if (planVal && soldRaw > 0) {
+      finRow.style.display = 'flex';
+      document.getElementById('ccFinLabel').textContent  = `Finance Charge — Plan ${planNum} (${planRate}%)`;
+      document.getElementById('ccFinCharge').textContent = '−$' + finCharge.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    } else {
+      finRow.style.display = 'none';
+    }
+
+    const overage  = Math.max(0, effectiveNet - par);
+    const overComm = overage * 0.40;
+    total = parComm + overComm;
+
+    document.getElementById('ccParComm').textContent  = fmt(parComm);
+    document.getElementById('ccOverage').textContent  = fmt(overage);
+    document.getElementById('ccOverComm').textContent = fmt(overComm);
+
   } else {
-    finRow.style.display = 'none';
+    // ── UNDER PAR ────────────────────────────────────────────
+    // No par commission, no overage — flat % of effective net
+    atParRows.style.display    = 'none';
+    underParRows.style.display = '';
+
+    if (planVal && soldRaw > 0) {
+      finRow2.style.display = 'flex';
+      document.getElementById('ccFinLabel2').textContent  = `Finance Charge — Plan ${planNum} (${planRate}%)`;
+      document.getElementById('ccFinCharge2').textContent = '−$' + finCharge.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    } else {
+      finRow2.style.display = 'none';
+    }
+
+    // Determine tier based on netPct
+    let tierRate, tierLabel;
+    if (netPct >= 60) {
+      tierRate  = 0.05;
+      tierLabel = `Tier 1: 60–64.99% of retail (5%)`;
+    } else if (netPct >= 55) {
+      tierRate  = 0.02;
+      tierLabel = `Tier 2: 55–59.99% of retail (2%)`;
+    } else {
+      tierRate  = 0.01;
+      tierLabel = `Tier 3: Below 55% of retail (1%)`;
+    }
+
+    total = effectiveNet * tierRate;
+
+    document.getElementById('ccUnderNet').textContent  = fmt(effectiveNet);
+    document.getElementById('ccTierLabel').textContent = tierLabel;
+    document.getElementById('ccTierPct').textContent   = `Net ${netPct.toFixed(1)}% → ${fmt(total)}`;
   }
 
-  // Commission math — finance charge deducted same as admin fee
-  const effectiveNet = soldRaw - 500 - finCharge;
-  const overage  = Math.max(0, effectiveNet - par);
-  const overComm = overage * 0.40;
-  const total    = parComm + overComm;
-
-  const fmt = v => '$' + v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  document.getElementById('ccRetail').textContent  = fmt(retail);
-  document.getElementById('ccPar').textContent     = fmt(par);
-  document.getElementById('ccParComm').textContent = fmt(parComm);
-  document.getElementById('ccOverage').textContent = fmt(Math.max(0, effectiveNet - par));
-  document.getElementById('ccOverComm').textContent= fmt(overComm);
-  document.getElementById('ccTotal').textContent   = fmt(total);
+  document.getElementById('ccRetail').textContent = fmt(retail);
+  document.getElementById('ccPar').textContent    = fmt(par);
+  document.getElementById('ccTotal').textContent  = fmt(Math.max(0, total));
 }
 
 function applyCommCalc() {
