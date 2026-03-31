@@ -1196,6 +1196,12 @@ async function saveLeadEdit() {
     payload.is_cancelled = esCancelled;
     payload.is_btd = esBtd;
     payload.reason_id = null;
+    // If cancelled, wipe install date & commission so it drops off the commissions page
+    if (esCancelled) {
+      payload.install_date = null;
+      payload.commission_amount = null;
+      payload.commission_paid = false;
+    }
   } else {
     if (!esSelReason) { toast('Select a reason', 'err'); return; }
     payload.reason_id = esSelReason;
