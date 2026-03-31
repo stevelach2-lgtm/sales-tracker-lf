@@ -1006,9 +1006,10 @@ function renderHist(leads) {
   if (!leads.length) { el.innerHTML = '<div class="empty"><div class="ei">📋</div><p>No leads in this range yet</p></div>'; return; }
   el.innerHTML = leads.map(l => {
     const sold = l.status === 'sold';
-    const dt = new Date(l.created_at);
-    const time = dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-    const date = dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    // Top-right: show sold date for sold leads, visit date for not-sold, fallback to logged time
+    const displayDate = l.sales_date
+      ? new Date(l.sales_date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})
+      : new Date(l.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
     const main = sold ? '$' + (parseFloat(l.sale_amount)||0).toLocaleString('en-US',{minimumFractionDigits:0}) : (l.not_sold_reasons?.label || 'No reason');
     const tags = [];
     if (l.sale_type === 'combo') tags.push('<span style="font-size:9px;font-weight:700;background:#E0F4FF;color:#0077A8;border-radius:4px;padding:1px 5px">COMBO</span>');
@@ -1019,7 +1020,7 @@ function renderHist(leads) {
     if (l.is_btd) tags.push('<span style="font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 5px">BANK TURN DOWN</span>');
     const sub = [];
     if (l.job_number) sub.push('Job #' + l.job_number);
-    if (l.sales_date) sub.push('Sold ' + new Date(l.sales_date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}));
+    if (l.install_date) sub.push('Install ' + new Date(l.install_date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}));
     if (l.commission_amount) sub.push('$' + parseFloat(l.commission_amount).toLocaleString('en-US',{maximumFractionDigits:0}) + ' comm');
     return `
     <div class="hcard ${sold?'sold':'ns'}">
@@ -1027,7 +1028,7 @@ function renderHist(leads) {
       <div class="hcard-body" onclick="this.closest('.hcard').classList.toggle('expanded')" style="cursor:pointer">
         <div class="hcard-top">
           <span class="hbadge ${sold?'sold':'ns'}">${sold ? 'SOLD' : 'NOT SOLD'}</span>
-          <span class="hcard-time">${date} · ${time}</span>
+          <span class="hcard-time">${displayDate}</span>
         </div>
         <div class="hcard-main ${sold?'g':''}">${main}</div>
         ${tags.length ? '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">' + tags.join('') + '</div>' : ''}
