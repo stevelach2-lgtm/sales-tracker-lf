@@ -755,9 +755,44 @@
         <label style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap">Sold At $</label>
         <input type="number" id="ccSoldAt" inputmode="decimal" placeholder="Enter sale price" style="flex:1;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;color:var(--text);outline:none" oninput="calcComm()">
       </div>
+      <div style="margin-bottom:8px">
+        <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">🏦 Financing Plan (Wells Fargo)</label>
+        <select id="ccFinPlan" class="fi" style="font-size:12px;padding:9px 11px" onchange="calcComm()">
+          <option value="">— No Financing / Cash / Own Financing —</option>
+          <optgroup label="Plan C — Min payment 3.5% or $35">
+            <option value="1148|1.75">1148 — 6 Mo, no interest, reg payments (1.75%)</option>
+            <option value="1019|3.75">1019 — 12 Mo, no interest, reg payments (3.75%)</option>
+          </optgroup>
+          <optgroup label="Plan A">
+            <option value="1157|6.75">1157 — 6.9% APR, custom 1/50th monthly (6.75%)</option>
+            <option value="1197|5.25">1197 — 9.99% APR, 3.5% monthly payment (5.25%)</option>
+            <option value="2225|4.00">2225 — 12.9% APR, custom 1/50th monthly (4.00%)</option>
+          </optgroup>
+          <optgroup label="Plan B — Equal Payments (0% interest)">
+            <option value="4073|9.50">4073 — 18 Mo, 0% interest, equal payments (9.50%)</option>
+            <option value="4079|11.00">4079 — 24 Mo, 0% interest, equal payments (11.00%)</option>
+            <option value="4091|13.00">4091 — 36 Mo, 0% interest, equal payments (13.00%)</option>
+            <option value="4103|16.25">4103 — 48 Mo, 0% interest, equal payments (16.25%)</option>
+            <option value="4115|18.75">4115 — 60 Mo, 0% interest, equal payments (18.75%)</option>
+          </optgroup>
+          <optgroup label="Plan B — Special Rate / Min $2,500">
+            <option value="3198|11.00">3198 — 5.99% APR, 60 equal payments (11.00%)</option>
+            <option value="1529|4.95">1529 — 8.99% APR, 84 equal payments (4.95%)</option>
+          </optgroup>
+          <optgroup label="Plan B — Min $7,500">
+            <option value="3672|7.80">3672 — 7.99% APR, 96 equal payments (7.80%)</option>
+            <option value="3667|8.30">3667 — 7.99% APR, 108 equal payments (8.30%)</option>
+            <option value="3668|8.80">3668 — 7.99% APR, 120 equal payments (8.80%)</option>
+            <option value="3669|5.70">3669 — 9.99% APR, 96 equal payments (5.70%)</option>
+            <option value="3670|6.20">3670 — 9.99% APR, 108 equal payments (6.20%)</option>
+            <option value="3671|6.70">3671 — 9.99% APR, 120 equal payments (6.70%)</option>
+          </optgroup>
+        </select>
+      </div>
       <div style="background:#F0FDF4;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;line-height:1.8">
         <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Par Commission (8% of par)</span><span id="ccParComm" style="font-weight:700">$0.00</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Overage (sold − $500 − par)</span><span id="ccOverage" style="font-weight:700">$0.00</span></div>
+        <div id="ccFinRow" style="display:none;flex-direction:row;justify-content:space-between"><span style="color:#B45309" id="ccFinLabel">Finance Charge (plan — 0%)</span><span id="ccFinCharge" style="font-weight:700;color:#B45309">−$0.00</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Overage (sold − admin − fin. − par)</span><span id="ccOverage" style="font-weight:700">$0.00</span></div>
         <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Overage Commission (40%)</span><span id="ccOverComm" style="font-weight:700">$0.00</span></div>
         <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid #BBF7D0;margin-top:4px"><span style="font-weight:800;color:var(--green-dark)">TOTAL COMMISSION</span><span id="ccTotal" style="font-weight:900;font-size:15px;color:var(--green-dark)">$0.00</span></div>
       </div>
@@ -2027,26 +2062,48 @@ function calcComm() {
   PRICE_LIST.forEach((item, i) => {
     const input = document.getElementById('cc_' + i);
     const qty = parseFloat(input?.value) || 0;
-    const ext = item.u === '$mat' ? qty * item.p : qty * item.p;
+    const ext = qty * item.p;
     retail += ext;
     const extEl = document.getElementById('cc_ext_' + i);
     if (extEl) extEl.textContent = ext > 0 ? '$' + ext.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '$0';
   });
-  const par = retail * 0.65;
+  const par     = retail * 0.65;
   const parComm = par * 0.08;
   const soldRaw = parseFloat(document.getElementById('ccSoldAt').value) || 0;
-  const commSold = soldRaw - 500; // deduct admin fee
-  const overage = Math.max(0, commSold - par);
+
+  // Finance plan
+  const planVal = document.getElementById('ccFinPlan').value;
+  let finCharge = 0, planNum = '', planRate = 0;
+  if (planVal) {
+    const parts = planVal.split('|');
+    planNum  = parts[0];
+    planRate = parseFloat(parts[1]) || 0;
+    finCharge = soldRaw * (planRate / 100);
+  }
+
+  // Show/hide finance charge row
+  const finRow = document.getElementById('ccFinRow');
+  if (planVal && soldRaw > 0) {
+    finRow.style.display = 'flex';
+    document.getElementById('ccFinLabel').textContent  = `Finance Charge — Plan ${planNum} (${planRate}%)`;
+    document.getElementById('ccFinCharge').textContent = '−$' + finCharge.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  } else {
+    finRow.style.display = 'none';
+  }
+
+  // Commission math — finance charge deducted same as admin fee
+  const effectiveNet = soldRaw - 500 - finCharge;
+  const overage  = Math.max(0, effectiveNet - par);
   const overComm = overage * 0.40;
-  const total = parComm + overComm;
+  const total    = parComm + overComm;
 
   const fmt = v => '$' + v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  document.getElementById('ccRetail').textContent = fmt(retail);
-  document.getElementById('ccPar').textContent = fmt(par);
+  document.getElementById('ccRetail').textContent  = fmt(retail);
+  document.getElementById('ccPar').textContent     = fmt(par);
   document.getElementById('ccParComm').textContent = fmt(parComm);
-  document.getElementById('ccOverage').textContent = fmt(Math.max(0, commSold - par));
-  document.getElementById('ccOverComm').textContent = fmt(overComm);
-  document.getElementById('ccTotal').textContent = fmt(total);
+  document.getElementById('ccOverage').textContent = fmt(Math.max(0, effectiveNet - par));
+  document.getElementById('ccOverComm').textContent= fmt(overComm);
+  document.getElementById('ccTotal').textContent   = fmt(total);
 }
 
 function applyCommCalc() {
