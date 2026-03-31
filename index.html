@@ -282,7 +282,10 @@
         <div class="hdr-sub">Sales Tracker</div>
       </div>
     </div>
-    <div class="hdr-date" id="hdrDate"></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="hdr-date" id="hdrDate"></div>
+      <button onclick="window.location.href=window.location.pathname+'?v='+Date.now()" title="Refresh app" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;padding:5px 8px;cursor:pointer;color:#fff;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center">↺</button>
+    </div>
   </header>
 
   <div class="main">
