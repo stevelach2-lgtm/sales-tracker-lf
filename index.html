@@ -700,6 +700,18 @@
       </div>
       <div class="fg">
         <label class="fl" style="margin-bottom:6px">📝 Message to Send</label>
+        <select id="fuMsgAngle" class="fi" style="font-size:13px;padding:11px 13px;margin-bottom:8px" onchange="refreshFuMsg()">
+          <option value="default">💬 General Follow-Up</option>
+          <option value="price">💰 Price was a concern</option>
+          <option value="think">🤔 Needs to think about it</option>
+          <option value="quotes">🔍 Shopping other quotes</option>
+          <option value="spouse">👫 Needs to discuss with spouse</option>
+          <option value="financing">🏦 Financing / Bank Turn Down</option>
+          <option value="reschedule">📅 Asked me to call back</option>
+          <option value="nothome">🏠 No one was home</option>
+          <option value="notinterested">🚫 Not interested</option>
+          <option value="existing">🛡️ Already has gutter protection</option>
+        </select>
         <textarea class="fi" id="fuMsg" rows="5" style="font-size:13px;line-height:1.5;resize:none"></textarea>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:14px">
@@ -1282,41 +1294,47 @@ function openFu(leadId, reasonLabel) {
   document.getElementById('fuName').value   = '';
   document.getElementById('fuPhone').value  = '';
   document.getElementById('fuDate').value   = '';
-  refreshFuMsg();
+
+  // Auto-detect best message angle from reason and pre-select dropdown
+  const r = (reasonLabel || '').toLowerCase();
+  let autoAngle = 'default';
+  if      (r.includes('price') || r.includes('too high') || r.includes('expensive'))                        autoAngle = 'price';
+  else if (r.includes('think') || r.includes('decide') || r.includes('consider'))                           autoAngle = 'think';
+  else if (r.includes('quote') || r.includes('other') || r.includes('shop'))                                autoAngle = 'quotes';
+  else if (r.includes('spouse') || r.includes('discuss') || r.includes('partner') || r.includes('husband') || r.includes('wife')) autoAngle = 'spouse';
+  else if (r.includes('financ') || r.includes('bank') || r.includes('credit') || r.includes('denied'))     autoAngle = 'financing';
+  else if (r.includes('reschedule') || r.includes('call back') || r.includes('call me'))                    autoAngle = 'reschedule';
+  else if (r.includes('not home') || r.includes('no one') || r.includes('missed'))                         autoAngle = 'nothome';
+  else if (r.includes('not interested'))                                                                      autoAngle = 'notinterested';
+  else if (r.includes('already has') || r.includes('has gutter') || r.includes('existing'))                 autoAngle = 'existing';
+  document.getElementById('fuMsgAngle').value = autoAngle;
+
   _fuLead = { id: leadId, reason: reasonLabel };
+  refreshFuMsg();
   document.getElementById('fuOverlay').classList.add('open');
 }
 
 function closeFu() { document.getElementById('fuOverlay').classList.remove('open'); }
 
+// Message templates keyed by dropdown value
+const FU_MSGS = {
+  price:         name => `Hi ${name}! This is Steve from LeafFilter. I know price was a concern when we last spoke — I wanted to reach out to see if we could work something out. We have some flexible financing options that might make it a lot more comfortable. Would you be open to a quick chat? 😊`,
+  think:         name => `Hi ${name}! This is Steve from LeafFilter. I know you wanted some time to think things over after our last visit. Just checking in to see if you had any questions I could help answer. No pressure at all! 😊`,
+  quotes:        name => `Hi ${name}! This is Steve from LeafFilter. I know you were shopping around when we last spoke — just wanted to check in. LeafFilter is the only product with a lifetime no-clog guarantee. Happy to chat and compare if it would help! 😊`,
+  spouse:        name => `Hi ${name}! This is Steve from LeafFilter. I know you wanted to chat with your spouse before making a decision. Just checking in to see if you've had a chance to discuss it and if you'd like to move forward! 😊`,
+  financing:     name => `Hi ${name}! This is Steve from LeafFilter. I know financing was a challenge last time. I wanted to reach out because we may have some other options available that could work better for you. Would you be open to a quick chat? 😊`,
+  reschedule:    name => `Hi ${name}! This is Steve from LeafFilter. You asked me to follow up, so here I am! 😄 Would you be open to connecting to go over our gutter protection options? 😊`,
+  nothome:       name => `Hi ${name}! This is Steve from LeafFilter — I stopped by recently about gutter protection and missed you. I'd love to connect when it's a good time! Would you be open to a quick chat? 😊`,
+  notinterested: name => `Hi ${name}! This is Steve from LeafFilter. I know the timing might not have been right when we last spoke. Just wanted to check in — happy to answer any questions if anything has changed! 😊`,
+  existing:      name => `Hi ${name}! This is Steve from LeafFilter. Just wanted to follow up — if you're ever not 100% satisfied with your current gutter protection, we're here. Our lifetime no-clog guarantee really sets us apart! 😊`,
+  default:       name => `Hi ${name}! This is Steve from LeafFilter. I wanted to follow up on our previous conversation about gutter protection. Just wanted to check in and see if you wanted to move forward 😊`,
+};
+
 function refreshFuMsg() {
-  const name   = document.getElementById('fuName').value.trim() || 'there';
-  const reason = (_fuLead?.reason || '').toLowerCase();
-
-  let msg;
-  if (reason.includes('price') || reason.includes('too high') || reason.includes('expensive')) {
-    msg = `Hi ${name}! This is Steve from LeafFilter. I know price was a concern when we last spoke — I wanted to reach out to see if we could work something out. We have some flexible financing options that might make it a lot more comfortable. Would you be open to a quick chat? 😊`;
-  } else if (reason.includes('think') || reason.includes('decide') || reason.includes('consider')) {
-    msg = `Hi ${name}! This is Steve from LeafFilter. I know you wanted some time to think things over after our last visit. Just checking in to see if you had any questions I could help answer. No pressure at all! 😊`;
-  } else if (reason.includes('quote') || reason.includes('other') || reason.includes('shop')) {
-    msg = `Hi ${name}! This is Steve from LeafFilter. I know you were shopping around when we last spoke — just wanted to check in. LeafFilter is the only product with a lifetime no-clog guarantee. Happy to chat and compare if it would help! 😊`;
-  } else if (reason.includes('spouse') || reason.includes('discuss') || reason.includes('partner') || reason.includes('husband') || reason.includes('wife')) {
-    msg = `Hi ${name}! This is Steve from LeafFilter. I know you wanted to chat with your spouse before making a decision. Just checking in to see if you've had a chance to discuss it and if you'd like to move forward! 😊`;
-  } else if (reason.includes('financ') || reason.includes('bank') || reason.includes('credit') || reason.includes('denied')) {
-    msg = `Hi ${name}! This is Steve from LeafFilter. I know financing was a challenge last time. I wanted to reach out because we may have some other options available that could work better for you. Would you be open to a quick chat? 😊`;
-  } else if (reason.includes('reschedule') || reason.includes('call back') || reason.includes('call me')) {
-    msg = `Hi ${name}! This is Steve from LeafFilter. You asked me to follow up, so here I am! 😄 Would you be open to connecting to go over our gutter protection options? 😊`;
-  } else if (reason.includes('not home') || reason.includes('no one') || reason.includes('missed')) {
-    msg = `Hi ${name}! This is Steve from LeafFilter — I stopped by recently about gutter protection and missed you. I'd love to connect when it's a good time! Would you be open to a quick chat? 😊`;
-  } else if (reason.includes('not interested')) {
-    msg = `Hi ${name}! This is Steve from LeafFilter. I know the timing might not have been right when we last spoke. Just wanted to check in — happy to answer any questions if anything has changed! 😊`;
-  } else if (reason.includes('already has') || reason.includes('has gutter') || reason.includes('existing')) {
-    msg = `Hi ${name}! This is Steve from LeafFilter. Just wanted to follow up — if you're ever not 100% satisfied with your current gutter protection, we're here. Our lifetime no-clog guarantee really sets us apart! 😊`;
-  } else {
-    msg = `Hi ${name}! This is Steve from LeafFilter. I wanted to follow up on our previous conversation about gutter protection. Just wanted to check in and see if you wanted to move forward 😊`;
-  }
-
-  document.getElementById('fuMsg').value = msg;
+  const name  = document.getElementById('fuName').value.trim() || 'there';
+  const angle = document.getElementById('fuMsgAngle').value || 'default';
+  const fn    = FU_MSGS[angle] || FU_MSGS.default;
+  document.getElementById('fuMsg').value = fn(name);
 }
 
 async function saveFu() {
