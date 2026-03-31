@@ -1348,7 +1348,7 @@ async function toggleCommPaid(id, newVal) {
   loadComm(); // refresh
 }
 
-function exportCommCSV() {
+async function exportCommCSV() {
   const rows = [['Install Date','Job #','Commission','Paid','Cancelled','BTD']];
   document.querySelectorAll('#commList [id^="cr-"]').forEach(row => {
     const cells = row.querySelectorAll('span');
@@ -1361,11 +1361,23 @@ function exportCommCSV() {
     ]);
   });
   const csv = rows.map(r => r.map(c => '"' + (c||'').replace(/"/g,'""') + '"').join(',')).join('\n');
+  const fileName = 'commissions_' + new Date().toISOString().split('T')[0] + '.csv';
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const file = new File([blob], fileName, { type: 'text/csv' });
+  // Use iOS Share Sheet — tap Google Sheets in the share menu
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: 'LeafFilter Commissions' });
+      return;
+    } catch (e) { /* user cancelled or share failed — fall through */ }
+  }
+  // Desktop fallback: direct download
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-  a.download = 'commissions_' + new Date().toISOString().split('T')[0] + '.csv';
-  a.click();
+  a.href = url; a.download = fileName; a.click();
+  URL.revokeObjectURL(url);
 }
+
 
 // ─────────────────────────────────────────
 // COMMISSION CALCULATOR
