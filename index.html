@@ -79,7 +79,6 @@
     .mc-cmp{font-size:9px;color:#9CA3AF}
     .mc-note{font-size:8.5px;color:#9CA3AF;margin-top:3px;line-height:1.4}
 
-    /* ── NOT SOLD BREAKDOWN ── */
     .ns-section{padding:0 10px 16px}
     .ns-title{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;padding:0 2px}
     .ns-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
@@ -90,6 +89,70 @@
     .ns-count{font-size:11px;font-weight:800;color:var(--text);width:28px;text-align:right;flex-shrink:0}
     .ns-pct{font-size:10px;font-weight:600;color:var(--muted);width:34px;text-align:right;flex-shrink:0}
     .ns-empty{text-align:center;padding:16px 0;color:var(--muted);font-size:13px}
+
+    /* ── STREAK ── */
+    .streak-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.18);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;color:#fff;margin-top:6px}
+    .streak-badge.cold{opacity:.6}
+
+    /* ── GOAL PROGRESS BARS ── */
+    .goal-section{padding:8px 10px 4px}
+    .goal-row{margin-bottom:8px}
+    .goal-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+    .goal-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+    .goal-val{font-size:11px;font-weight:800;color:var(--text)}
+    .goal-track{height:8px;background:#E5E7EB;border-radius:10px;overflow:hidden}
+    .goal-fill{height:100%;border-radius:10px;transition:width .5s ease;background:linear-gradient(90deg,var(--green),#00a84f)}
+    .goal-fill.hit{background:linear-gradient(90deg,#00a84f,#00d46a)}
+    .goal-fill.warn{background:linear-gradient(90deg,#F59E0B,#D97706)}
+
+    /* ── RECAP CARD ── */
+    .recap-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:none;align-items:center;justify-content:center;padding:16px}
+    .recap-overlay.open{display:flex}
+    .recap-card{background:linear-gradient(160deg,#00853E 0%,#004d25 100%);border-radius:20px;padding:22px;width:100%;max-width:400px;color:#fff;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+    .rc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+    .rc-logo{font-size:13px;font-weight:900;opacity:.9}
+    .rc-week{font-size:11px;opacity:.7;margin-top:2px}
+    .rc-close{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:13px;font-weight:700;font-family:'Inter',sans-serif}
+    .rc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+    .rc-stat{background:rgba(255,255,255,.12);border-radius:12px;padding:11px 12px}
+    .rc-stat-v{font-size:22px;font-weight:900;line-height:1}
+    .rc-stat-l{font-size:9px;font-weight:700;opacity:.7;text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+    .rc-actions{display:flex;gap:8px}
+    .rc-btn{flex:1;padding:12px;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
+    .rc-btn.share{background:#fff;color:var(--green-dark)}
+    .rc-btn.copy{background:rgba(255,255,255,.18);color:#fff}
+
+    /* ── FOLLOW-UP MODAL ── */
+    .fu-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:350;display:none;align-items:flex-end;justify-content:center}
+    .fu-overlay.open{display:flex}
+    .fu-sheet{background:#fff;border-radius:22px 22px 0 0;width:100%;max-width:430px;max-height:88vh;overflow-y:auto;padding:0 0 calc(24px + env(safe-area-inset-bottom));animation:sm .3s ease}
+    .fu-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:1}
+    .fu-body{padding:14px 16px 0}
+    /* ── FOLLOW-UP HISTORY CARDS ── */
+    .fup-card{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:13px 14px;margin-bottom:8px}
+    .fup-card.overdue{border-color:#FECDD3;background:#FFF8F8}
+    .fup-card.today{border-color:#FDE68A;background:#FFFBEB}
+    .fup-card.upcoming{border-color:#BBF7D0;background:#F0FDF4}
+    .fup-card.done{opacity:.5}
+    .fup-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+    .fup-name{font-size:15px;font-weight:800;color:var(--text)}
+    .fup-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px}
+    .fup-badge.overdue{background:#FEE2E2;color:#DC2626}
+    .fup-badge.today{background:#FEF3C7;color:#92400E}
+    .fup-badge.upcoming{background:#D1FAE5;color:#065F46}
+    .fup-badge.done{background:#F3F4F6;color:var(--muted)}
+    .fup-reason{font-size:11px;color:var(--muted);margin-bottom:6px}
+    .fup-date{font-size:11px;font-weight:600;color:var(--text)}
+    .fup-actions{display:flex;gap:6px;margin-top:8px}
+    .fup-btn{flex:1;padding:8px;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;cursor:pointer}
+    .fup-btn.sms{background:var(--green-light);color:var(--green-dark)}
+    .fup-btn.done-btn{background:#F3F4F6;color:var(--muted)}
+    .fup-btn.done-btn.active{background:#D1FAE5;color:#065F46}
+    .hist-tabs{display:flex;gap:6px;padding:10px 12px 6px;background:var(--bg)}
+    .htab{flex:1;padding:7px 0;border:1.5px solid var(--border);border-radius:18px;font-size:11px;font-weight:700;cursor:pointer;background:#fff;color:var(--muted);transition:.15s;font-family:'Inter',sans-serif;text-align:center}
+    .htab.active{background:var(--green);border-color:var(--green);color:#fff}
+
+
 
     /* ── LOG LEAD ── */
     .log-hero{padding:22px 20px 16px;text-align:center}
@@ -293,14 +356,39 @@
     <!-- DASHBOARD -->
     <div id="p-dash" class="page active">
       <div class="dash-header">
-        <div class="dash-date" id="heroDate"></div>
-        <div class="dash-title">LeafFilter Performance Dashboard</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="dash-date" id="heroDate"></div>
+            <div class="dash-title">LeafFilter Performance Dashboard</div>
+            <div id="streakBadge" class="streak-badge cold" style="display:none"></div>
+          </div>
+          <button onclick="openRecap()" style="background:rgba(255,255,255,.18);border:none;border-radius:10px;padding:7px 11px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:5px;flex-shrink:0;margin-top:2px">
+            📤 Share Week
+          </button>
+        </div>
       </div>
       <div class="period-bar">
         <button class="ptab" onclick="setPeriod('today',this)">Today</button>
         <button class="ptab active" onclick="setPeriod('week',this)">Week</button>
         <button class="ptab" onclick="setPeriod('month',this)">Month</button>
         <button class="ptab" onclick="setPeriod('ytd',this)">YTD</button>
+      </div>
+      <!-- Goal Progress Bars -->
+      <div class="goal-section" id="goalSection">
+        <div class="goal-row">
+          <div class="goal-header">
+            <span class="goal-lbl">Daily Sales Goal</span>
+            <span class="goal-val" id="goalDailyVal">— / —</span>
+          </div>
+          <div class="goal-track"><div class="goal-fill" id="goalDailyBar" style="width:0%"></div></div>
+        </div>
+        <div class="goal-row">
+          <div class="goal-header">
+            <span class="goal-lbl">Weekly Revenue Goal</span>
+            <span class="goal-val" id="goalWeeklyVal">— / —</span>
+          </div>
+          <div class="goal-track"><div class="goal-fill" id="goalWeeklyBar" style="width:0%"></div></div>
+        </div>
       </div>
       <div class="mgrid" id="mgrid"><div class="loading" style="grid-column:1/-1"><div class="spinner"></div></div></div>
       <div id="nsBrkSection" style="display:none">
@@ -310,6 +398,27 @@
         </div>
       </div>
     </div>
+
+    <!-- RECAP CARD OVERLAY -->
+    <div class="recap-overlay" id="recapOverlay" onclick="if(event.target===this)closeRecap()">
+      <div class="recap-card" id="recapCard">
+        <div class="rc-header">
+          <div>
+            <div class="rc-logo">🍃 LeafFilter Sales</div>
+            <div class="rc-week" id="rcWeek"></div>
+            <div id="rcStreak" style="margin-top:4px;font-size:11px;opacity:.8"></div>
+          </div>
+          <button class="rc-close" onclick="closeRecap()">✕ Close</button>
+        </div>
+        <div class="rc-grid" id="rcGrid"></div>
+        <div class="rc-actions">
+          <button class="rc-btn share" onclick="shareRecap()">📤 Share</button>
+          <button class="rc-btn copy" onclick="copyRecap()">📋 Copy</button>
+        </div>
+      </div>
+    </div>
+
+
 
     <!-- LOG LEAD -->
     <div id="p-log" class="page">
@@ -419,13 +528,30 @@
 
     <!-- HISTORY -->
     <div id="p-hist" class="page">
-      <div class="ftabs">
-        <button class="ftab active" onclick="filterHist('today',this)">Today</button>
-        <button class="ftab" onclick="filterHist('week',this)">This Week</button>
-        <button class="ftab" onclick="filterHist('month',this)">This Month</button>
-        <button class="ftab" onclick="filterHist('all',this)">All Time</button>
+      <div class="hist-tabs">
+        <button class="htab active" onclick="switchHistTab('leads',this)">📋 All Leads</button>
+        <button class="htab" onclick="switchHistTab('followups',this)">📞 Follow-Ups</button>
       </div>
-      <div id="histList" class="hlist"><div class="loading"><div class="spinner"></div></div></div>
+      <!-- All Leads sub-section -->
+      <div id="histLeadsSection">
+        <div class="ftabs">
+          <button class="ftab active" onclick="filterHist('today',this)">Today</button>
+          <button class="ftab" onclick="filterHist('week',this)">This Week</button>
+          <button class="ftab" onclick="filterHist('month',this)">This Month</button>
+          <button class="ftab" onclick="filterHist('all',this)">All Time</button>
+        </div>
+        <div id="histList" class="hlist"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+      <!-- Follow-Ups sub-section -->
+      <div id="histFuSection" style="display:none">
+        <div style="padding:10px 12px 6px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Reach-Out Reminders</span>
+          <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer">
+            <input type="checkbox" id="fuShowDone" onchange="loadFollowUps()" style="accent-color:var(--green)"> Show done
+          </label>
+        </div>
+        <div id="fuList" style="padding:0 12px 100px"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
     </div>
 
     <!-- COMMISSIONS -->
@@ -459,8 +585,24 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add New Reason
       </button>
-      <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
-      <!-- Grading Baselines -->
+        <!-- Goal Settings -->
+        <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
+        <div class="settings-wrap" style="padding-top:0">
+          <div class="s-title">🎯 Daily &amp; Weekly Goals</div>
+          <div class="s-sub" style="margin-bottom:12px">Set your targets for the dashboard progress bars.</div>
+          <div style="margin-bottom:12px">
+            <label class="fl">Daily Sales Goal (# of sales)</label>
+            <input type="number" class="fi" id="blDailySales" placeholder="2" inputmode="numeric" onchange="saveBaseline('dailySales',this.value)">
+            <div style="font-size:11px;color:var(--muted);margin-top:3px">Sales per day target</div>
+          </div>
+          <div style="margin-bottom:12px">
+            <label class="fl">Weekly Revenue Goal ($)</label>
+            <input type="number" class="fi" id="blWeeklyRev" placeholder="5000" inputmode="decimal" onchange="saveBaseline('weeklyRev',this.value)">
+            <div style="font-size:11px;color:var(--muted);margin-top:3px">Revenue target per week</div>
+          </div>
+        </div>
+        <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
+        <!-- Grading Baselines -->
       <div class="settings-wrap" style="padding-top:0">
         <div class="s-title">📊 Grading Baselines</div>
         <div class="s-sub" style="margin-bottom:12px">Cards turn <strong style="color:var(--green)">green</strong> when at or above threshold, <strong style="color:var(--red)">red</strong> when below.</div>
@@ -531,6 +673,40 @@
     <div class="macts">
       <button class="mbtn cancel" onclick="closeModal()">Cancel</button>
       <button class="mbtn ok" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Follow-Up Modal -->
+<div class="fu-overlay" id="fuOverlay" onclick="if(event.target===this)closeFu()">
+  <div class="fu-sheet">
+    <div class="fu-hdr">
+      <span style="font-size:16px;font-weight:800">📞 Set Follow-Up</span>
+      <button onclick="closeFu()" style="width:30px;height:30px;border-radius:50%;border:none;background:#F3F4F6;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+    <div class="fu-body">
+      <input type="hidden" id="fuLeadId">
+      <div class="fg">
+        <label class="fl">Customer First Name</label>
+        <input type="text" class="fi" id="fuName" placeholder="e.g. Michael" oninput="refreshFuMsg()">
+      </div>
+      <div class="fg">
+        <label class="fl">Phone Number</label>
+        <input type="tel" class="fi" id="fuPhone" placeholder="(555) 000-0000" inputmode="tel">
+      </div>
+      <div class="fg">
+        <label class="fl">Reach-Out Date</label>
+        <input type="date" class="fi" id="fuDate" style="font-size:14px">
+      </div>
+      <div class="fg">
+        <label class="fl" style="margin-bottom:6px">📝 Message to Send</label>
+        <textarea class="fi" id="fuMsg" rows="5" style="font-size:13px;line-height:1.5;resize:none"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button onclick="sendFuSMS()" style="flex:1;padding:11px;background:var(--green-light);color:var(--green-dark);border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">📱 Open in Messages</button>
+        <button onclick="copyFuMsg()" style="flex:1;padding:11px;background:#F3F4F6;color:var(--text);border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">📋 Copy Message</button>
+      </div>
+      <button onclick="saveFu()" style="width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:6px">💾 Save Follow-Up</button>
     </div>
   </div>
 </div>
@@ -887,6 +1063,8 @@ async function loadDash() {
     card('Cancelled (Sales)', c.cancelled, fmtNum, p.cancelled, null, 'Won sales later cancelled', true)
   ].join('');
   renderNsBreakdown(cur);
+  renderGoalBars(c);
+  calcStreak();
 }
 
 function renderNsBreakdown(leads) {
@@ -920,6 +1098,281 @@ function renderNsBreakdown(leads) {
     </div>`;
   }).join('');
   section.style.display = 'block';
+}
+
+// ─────────────────────────────────────────
+// STREAK COUNTER
+// ─────────────────────────────────────────
+let _lastStreakData = null; // cache for recap card
+
+async function calcStreak() {
+  const badge = document.getElementById('streakBadge');
+  try {
+    // Grab last 90 days of sold leads grouped by sales_date
+    const since = new Date(); since.setDate(since.getDate() - 90);
+    const { data } = await sb.from('leads').select('sales_date,status,is_cancelled')
+      .eq('status','sold').neq('is_cancelled',true)
+      .gte('sales_date', since.toISOString().split('T')[0]);
+    if (!data || !data.length) { badge.style.display='none'; _lastStreakData={streak:0}; return; }
+    const days = new Set(data.map(l => l.sales_date));
+    let streak = 0;
+    const today = new Date();
+    for (let i = 0; i <= 90; i++) {
+      const d = new Date(today); d.setDate(today.getDate() - i);
+      const key = d.toISOString().split('T')[0];
+      if (days.has(key)) { streak++; }
+      else if (i === 0) { /* today might not have a sale yet; skip */ }
+      else { break; }
+    }
+    _lastStreakData = { streak };
+    if (streak === 0) { badge.style.display='none'; return; }
+    badge.style.display = 'inline-flex';
+    badge.className = 'streak-badge' + (streak >= 3 ? '' : ' cold');
+    const fire = streak >= 7 ? '🔥🔥' : streak >= 3 ? '🔥' : '⚡';
+    badge.textContent = `${fire} ${streak}-day selling streak!`;
+  } catch(e) { badge.style.display='none'; }
+}
+
+// ─────────────────────────────────────────
+// GOAL PROGRESS BARS
+// ─────────────────────────────────────────
+let _lastGoalData = null; // cache for recap card
+
+function renderGoalBars(c) {
+  const dailyGoal  = parseFloat(localStorage.getItem('bl_dailySales')) || 2;
+  const weeklyGoal = parseFloat(localStorage.getItem('bl_weeklyRev'))  || 5000;
+  // Daily (only show if period = today)
+  const isToday = curPeriod === 'today';
+  const dailySales = isToday ? c.sales : null;
+  const weeklySales = ['week'].includes(curPeriod) ? c.sales : null;
+  const weeklyRev  = ['week','month','ytd'].includes(curPeriod) ? c.rev : null;
+
+  // Daily bar: today-period only
+  const dailyVal = document.getElementById('goalDailyVal');
+  const dailyBar = document.getElementById('goalDailyBar');
+  if (isToday) {
+    const pct = Math.min(100, (c.sales / dailyGoal) * 100);
+    dailyVal.textContent = `${c.sales} / ${dailyGoal} sales`;
+    dailyBar.style.width = pct + '%';
+    dailyBar.className = 'goal-fill' + (pct >= 100 ? ' hit' : pct >= 60 ? '' : ' warn');
+  } else {
+    dailyVal.textContent = `${c.sales} sales`;
+    dailyBar.style.width = Math.min(100, (c.sales / (dailyGoal * 5)) * 100) + '%';
+    dailyBar.className = 'goal-fill';
+  }
+
+  // Weekly revenue bar
+  const weeklyVal = document.getElementById('goalWeeklyVal');
+  const weeklyBar = document.getElementById('goalWeeklyBar');
+  const pctW = Math.min(100, (c.rev / weeklyGoal) * 100);
+  weeklyVal.textContent = `$${Math.round(c.rev).toLocaleString()} / $${Math.round(weeklyGoal).toLocaleString()}`;
+  weeklyBar.style.width = pctW + '%';
+  weeklyBar.className = 'goal-fill' + (pctW >= 100 ? ' hit' : pctW >= 60 ? '' : ' warn');
+
+  _lastGoalData = { dailyGoal, weeklyGoal, dailySales: c.sales, weeklyRev: c.rev };
+}
+
+// ─────────────────────────────────────────
+// WEEKLY RECAP CARD
+// ─────────────────────────────────────────
+let _recapMetrics = null;
+
+function openRecap() {
+  // Always use week data for recap
+  buildRecap().then(() => {
+    document.getElementById('recapOverlay').classList.add('open');
+  });
+}
+function closeRecap() {
+  document.getElementById('recapOverlay').classList.remove('open');
+}
+
+async function buildRecap() {
+  const now = new Date();
+  const dow = now.getDay()||7;
+  const mon = new Date(now); mon.setDate(now.getDate()-dow+1);
+  const sun = new Date(mon); sun.setDate(mon.getDate()+6);
+  const fmt = d => d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  document.getElementById('rcWeek').textContent = `Week of ${fmt(mon)} – ${fmt(sun)}`;
+
+  // Streak
+  const streak = _lastStreakData?.streak || 0;
+  document.getElementById('rcStreak').textContent = streak >= 1
+    ? (streak >= 7 ? '🔥🔥' : streak >= 3 ? '🔥' : '⚡') + ` ${streak}-day streak`
+    : '';
+
+  // Fetch week data
+  const csDate = mon.toISOString().split('T')[0];
+  const ceDate = now.toISOString().split('T')[0];
+  const { data } = await sb.from('leads').select('*, not_sold_reasons(label)')
+    .not('sales_date','is',null).gte('sales_date', csDate).lte('sales_date', ceDate);
+  const leads = data || [];
+  const m = calcM(leads);
+
+  // Top not-sold reason
+  const nsLeads = leads.filter(l => l.status==='not_sold');
+  let topReason = '—';
+  if (nsLeads.length) {
+    const tally = {};
+    nsLeads.forEach(l => { const lab = l.not_sold_reasons?.label||'Unknown'; tally[lab]=(tally[lab]||0)+1; });
+    topReason = Object.entries(tally).sort((a,b)=>b[1]-a[1])[0][0];
+  }
+
+  _recapMetrics = { m, topReason, streak, weekStr: `${fmt(mon)} – ${fmt(sun)}` };
+
+  document.getElementById('rcGrid').innerHTML = [
+    { v: m.leads,  l: 'Total Appointments', fmt: v => v },
+    { v: m.sales,  l: 'Total Sales',        fmt: v => v },
+    { v: m.slg,    l: 'SLG%',               fmt: v => v.toFixed(1)+'%' },
+    { v: m.rev,    l: 'Revenue',            fmt: v => '$'+Math.round(v).toLocaleString() },
+    { v: m.nvpil,  l: 'NVPIL',              fmt: v => '$'+Math.round(v).toLocaleString() },
+    { v: topReason,l: 'Top Not-Sold Reason',fmt: v => v },
+  ].map(({v,l,fmt}) => `<div class="rc-stat"><div class="rc-stat-v">${fmt(v)}</div><div class="rc-stat-l">${l}</div></div>`).join('');
+}
+
+function shareRecap() {
+  if (!_recapMetrics) return;
+  const { m, topReason, streak, weekStr } = _recapMetrics;
+  const fire = streak >= 7 ? '🔥🔥' : streak >= 3 ? '🔥' : '';
+  const txt = `🍃 LeafFilter Weekly Recap — ${weekStr}\n` +
+    `${fire}${streak>0?' '+streak+'-day streak!':''}\n\n` +
+    `📋 Appointments: ${m.leads}\n` +
+    `✅ Sales: ${m.sales}\n` +
+    `📊 SLG%: ${m.slg.toFixed(1)}%\n` +
+    `💰 Revenue: $${Math.round(m.rev).toLocaleString()}\n` +
+    `📈 NVPIL: $${Math.round(m.nvpil).toLocaleString()}\n` +
+    `❌ Top Not-Sold: ${topReason}`;
+  if (navigator.share) {
+    navigator.share({ title: 'LeafFilter Weekly Recap', text: txt }).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(txt).then(()=>toast('Copied to clipboard!','ok'));
+  }
+}
+
+function copyRecap() {
+  if (!_recapMetrics) return;
+  const { m, topReason, streak, weekStr } = _recapMetrics;
+  const fire = streak >= 7 ? '🔥🔥' : streak >= 3 ? '🔥' : '';
+  const txt = `🍃 LeafFilter Weekly Recap — ${weekStr}\n` +
+    `${fire}${streak>0?' '+streak+'-day streak!':''}\n\n` +
+    `📋 Appointments: ${m.leads}\n✅ Sales: ${m.sales}\n📊 SLG%: ${m.slg.toFixed(1)}%\n` +
+    `💰 Revenue: $${Math.round(m.rev).toLocaleString()}\n📈 NVPIL: $${Math.round(m.nvpil).toLocaleString()}\n❌ Top Not-Sold: ${topReason}`;
+  navigator.clipboard.writeText(txt).then(()=>toast('Recap copied!','ok')).catch(()=>toast('Copy failed','err'));
+}
+
+// ─────────────────────────────────────────
+// HISTORY TAB SWITCHING
+// ─────────────────────────────────────────
+function switchHistTab(tab, btn) {
+  document.querySelectorAll('.htab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const leads = document.getElementById('histLeadsSection');
+  const fups  = document.getElementById('histFuSection');
+  if (tab === 'leads') { leads.style.display='block'; fups.style.display='none'; }
+  else                 { leads.style.display='none'; fups.style.display='block'; loadFollowUps(); }
+}
+
+// ─────────────────────────────────────────
+// FOLLOW-UP SYSTEM
+// ─────────────────────────────────────────
+let _fuLead = null;
+
+function openFu(leadId, reasonLabel) {
+  document.getElementById('fuLeadId').value = leadId;
+  document.getElementById('fuName').value   = '';
+  document.getElementById('fuPhone').value  = '';
+  document.getElementById('fuDate').value   = '';
+  refreshFuMsg();
+  _fuLead = { id: leadId, reason: reasonLabel };
+  document.getElementById('fuOverlay').classList.add('open');
+}
+
+function closeFu() { document.getElementById('fuOverlay').classList.remove('open'); }
+
+function refreshFuMsg() {
+  const name = document.getElementById('fuName').value.trim() || 'there';
+  document.getElementById('fuMsg').value =
+    `Hi ${name}! This is Steve from LeafFilter. I wanted to follow up on our previous conversation about gutter protection. Would you be open to a quick chat? I have some options that might be a perfect fit for your home! 😊`;
+}
+
+async function saveFu() {
+  const leadId = document.getElementById('fuLeadId').value;
+  const name   = document.getElementById('fuName').value.trim();
+  const phone  = document.getElementById('fuPhone').value.trim().replace(/\D/g,'');
+  const date   = document.getElementById('fuDate').value;
+  if (!date) { toast('Pick a reach-out date', 'err'); return; }
+  const { error } = await sb.from('leads').update({
+    followup_name: name || null,
+    followup_phone: phone || null,
+    followup_date: date,
+    followup_done: false
+  }).eq('id', leadId);
+  if (error) { toast('Save failed', 'err'); return; }
+  toast('Follow-up saved! 📞', 'ok');
+  closeFu();
+}
+
+function sendFuSMS() {
+  const phone = document.getElementById('fuPhone').value.trim().replace(/\D/g,'');
+  const msg   = document.getElementById('fuMsg').value;
+  if (!phone) { toast('Enter a phone number first', 'err'); return; }
+  window.open(`sms:+1${phone}?&body=${encodeURIComponent(msg)}`);
+}
+
+function copyFuMsg() {
+  const msg = document.getElementById('fuMsg').value;
+  navigator.clipboard.writeText(msg).then(()=>toast('Message copied!','ok')).catch(()=>toast('Copy failed','err'));
+}
+
+async function loadFollowUps() {
+  const list = document.getElementById('fuList');
+  list.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const showDone = document.getElementById('fuShowDone')?.checked;
+  let q = sb.from('leads').select('id,followup_name,followup_phone,followup_date,followup_done,status,is_cancelled,not_sold_reasons(label)')
+    .not('followup_date','is',null).order('followup_date', {ascending:true});
+  if (!showDone) q = q.neq('followup_done', true);
+  const { data, error } = await q;
+  if (error || !data?.length) {
+    list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">No follow-ups yet.<br><span style="font-size:11px;opacity:.7">Tap 📞 Follow Up on any not-sold lead.</span></div>';
+    return;
+  }
+  const today = new Date().toISOString().split('T')[0];
+  list.innerHTML = data.map(l => {
+    const done   = l.followup_done;
+    const d      = l.followup_date;
+    const status = done ? 'done' : d < today ? 'overdue' : d === today ? 'today' : 'upcoming';
+    const badge  = done ? '✅ Done' : d < today ? '🔴 Overdue' : d === today ? '🟡 Today' : '🟢 Upcoming';
+    const dateLabel = new Date(d + 'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    const reason = l.not_sold_reasons?.label || '—';
+    const phone  = l.followup_phone ? `<a href="tel:+1${l.followup_phone}" style="color:var(--green-dark);font-size:11px;font-weight:700;text-decoration:none">📲 ${l.followup_phone.replace(/(\d{3})(\d{3})(\d{4})/,'($1) $2-$3')}</a>` : '';
+    return `<div class="fup-card ${status}${done?' done':''}">
+      <div class="fup-top">
+        <div class="fup-name">${l.followup_name || 'Customer'}</div>
+        <span class="fup-badge ${status}">${badge}</span>
+      </div>
+      <div class="fup-reason">Not Sold: ${reason}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="fup-date">📅 ${dateLabel}</div>
+        ${phone}
+      </div>
+      <div class="fup-actions">
+        <button class="fup-btn sms" onclick="fuQuickSMS('${l.followup_phone||''}','${(l.followup_name||'there').replace(/'/g,"\\'")}')">📱 SMS</button>
+        <button class="fup-btn done-btn${done?' active':''}" onclick="toggleFuDone('${l.id}',${!done})">${done ? '↩ Reopen':'✅ Mark Done'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function fuQuickSMS(phone, name) {
+  if (!phone) { toast('No phone number saved', 'err'); return; }
+  const clean = phone.replace(/\D/g,'');
+  const msg = `Hi ${name}! This is Steve from LeafFilter. I wanted to follow up on our previous conversation about gutter protection. Would you be open to a quick chat? 😊`;
+  window.open(`sms:+1${clean}?&body=${encodeURIComponent(msg)}`);
+}
+
+async function toggleFuDone(id, done) {
+  await sb.from('leads').update({ followup_done: done }).eq('id', id);
+  loadFollowUps();
 }
 
 // ─────────────────────────────────────────
@@ -1088,6 +1541,7 @@ function renderHist(leads) {
         </div>
         <div class="hcard-main ${sold?'g':''}">${main}</div>
         ${tags.length ? '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">' + tags.join('') + '</div>' : ''}
+        ${l.followup_date ? `<div style="font-size:9px;font-weight:700;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 6px;display:inline-block;margin-top:3px">📞 Follow-up: ${new Date(l.followup_date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>` : ''}
         ${sub.length ? `<div class="hcard-note">${sub.join(' · ')}</div>` : (l.notes ? `<div class="hcard-note">${l.notes}</div>` : '')}
         <div class="hcard-detail">
           ${sub.length ? sub.join(' &nbsp;·&nbsp; ') + '<br>' : ''}
@@ -1095,8 +1549,12 @@ function renderHist(leads) {
           Tap to collapse
         </div>
       </div>
-      <button class="edit-btn" onclick="openLeadEdit('${l.id}')">✏️</button>
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:center">
+        <button class="edit-btn" onclick="openLeadEdit('${l.id}')">✏️</button>
+        ${!sold ? `<button class="edit-btn" onclick="openFu('${l.id}','${(l.not_sold_reasons?.label||'').replace(/'/g,"\\'")}'); event.stopPropagation()" style="font-size:12px" title="Set Follow-Up">📞</button>` : ''}
+      </div>
     </div>`;
+
   }).join('');
 }
 
@@ -1570,8 +2028,8 @@ function saveBaseline(key, val) {
 }
 
 function loadBaselines() {
-  const defaults = { nvpil: 2000, slg: 55, ntg: 80, cr: 50 };
-  const ids = { nvpil: 'blNvpil', slg: 'blSlg', ntg: 'blNtg', cr: 'blCr' };
+  const defaults = { nvpil: 2000, slg: 55, ntg: 80, cr: 50, dailySales: 2, weeklyRev: 5000 };
+  const ids = { nvpil: 'blNvpil', slg: 'blSlg', ntg: 'blNtg', cr: 'blCr', dailySales: 'blDailySales', weeklyRev: 'blWeeklyRev' };
   Object.keys(defaults).forEach(k => {
     const v = localStorage.getItem('bl_' + k);
     const el = document.getElementById(ids[k]);

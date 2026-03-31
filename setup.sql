@@ -23,12 +23,16 @@ create table if not exists public.leads (
   sale_type         text        check (sale_type in ('single','combo')),
   lead_type         text        check (lead_type in ('company','rehash','self_gen')),
   job_number        text,
-  sales_date        date,          -- actual date the sale was made (used for all dashboard figures)
-  install_date      date,          -- scheduled install date (used for commission week grouping)
+  sales_date        date,
+  install_date      date,
   commission_amount numeric(10,2),
   commission_paid   boolean     default false,
   is_cancelled      boolean     default false,
-  is_btd            boolean     default false
+  is_btd            boolean     default false,
+  followup_name     text,
+  followup_phone    text,
+  followup_date     date,
+  followup_done     boolean     default false
 );
 
 -- 3. MIGRATION: add missing columns to existing leads table (safe to re-run)
@@ -60,7 +64,20 @@ do $$ begin
   if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='is_btd') then
     alter table public.leads add column is_btd boolean default false;
   end if;
+  if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='followup_name') then
+    alter table public.leads add column followup_name text;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='followup_phone') then
+    alter table public.leads add column followup_phone text;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='followup_date') then
+    alter table public.leads add column followup_date date;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='followup_done') then
+    alter table public.leads add column followup_done boolean default false;
+  end if;
 end $$;
+
 
 -- 4. BACKFILL: set sales_date = created_at date for ALL leads missing a sales_date
 -- (run this once after adding the column so old data is not orphaned)
