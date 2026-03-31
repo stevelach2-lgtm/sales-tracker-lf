@@ -1327,7 +1327,7 @@ async function loadComm() {
     .from('leads')
     .select('id,job_number,install_date,commission_amount,commission_paid,sale_amount,is_cancelled,is_btd')
     .eq('status','sold')
-    .eq('is_cancelled', false)
+    .neq('is_cancelled', true)
     .not('install_date','is',null)
     .eq('commission_paid', false)
     .order('install_date', { ascending: true });
@@ -1373,7 +1373,7 @@ async function loadComm() {
       </div>
       <!-- Jobs -->
       ${w.jobs.map(j => `
-      <div style="display:grid;grid-template-columns:100px 1fr 90px 44px;padding:10px 12px;border-bottom:1px solid #F9FAFB;align-items:center${j.is_cancelled||j.is_btd?';opacity:.45':''}" id="cr-${j.id}">
+      <div style="display:grid;grid-template-columns:100px 1fr 90px 44px;padding:10px 12px;border-bottom:1px solid #F9FAFB;align-items:center" id="cr-${j.id}">
         <span style="font-size:13px;color:var(--muted)">${fmtInstall(j.install_date)}</span>
         <span onclick="openLeadEdit('${j.id}')" style="font-size:13px;font-weight:700;color:var(--green-dark);text-decoration:underline;text-underline-offset:2px;cursor:pointer">${j.job_number || '<span style="color:var(--muted);font-weight:400;text-decoration:none">tap to edit</span>'}</span>
         <span style="font-size:13px;font-weight:700;text-align:right;color:${j.commission_amount?'var(--text)':'var(--muted)'}">${fmtMoney(j.commission_amount)}</span>
