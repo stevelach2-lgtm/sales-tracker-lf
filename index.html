@@ -331,6 +331,13 @@
       <div class="lform" id="fSold">
         <div class="fhdr"><span class="fbadge sold">✅ Sold</span></div>
         <div class="card" style="padding:15px">
+          <!-- Calculate Commission button at top -->
+          <div style="margin-bottom:12px">
+            <button type="button" onclick="openCommCalc('log')" style="width:100%;padding:12px;background:linear-gradient(135deg,#00853E,#005a2e);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>
+              Calculate Commission
+            </button>
+          </div>
           <div class="fg">
             <label class="fl">Sale Amount</label>
             <div class="amt-wrap"><span class="amt-pre">$</span><input type="number" class="fi" id="saleAmt" placeholder="0.00" inputmode="decimal" step="0.01"></div>
@@ -369,12 +376,6 @@
             <div>
               <label class="fl">Commission ($)</label>
               <input type="number" class="fi" id="commAmt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px">
-            </div>
-            <div style="grid-column:1/-1;margin-top:-4px">
-              <button type="button" onclick="openCommCalc('log')" style="width:100%;padding:11px;background:linear-gradient(135deg,#00853E,#005a2e);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>
-                Calculate Commission
-              </button>
             </div>
           </div>
           <div class="paid-row" onclick="togglePaid()">
