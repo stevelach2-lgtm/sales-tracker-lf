@@ -79,6 +79,18 @@
     .mc-cmp{font-size:9px;color:#9CA3AF}
     .mc-note{font-size:8.5px;color:#9CA3AF;margin-top:3px;line-height:1.4}
 
+    /* ── NOT SOLD BREAKDOWN ── */
+    .ns-section{padding:0 10px 16px}
+    .ns-title{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;padding:0 2px}
+    .ns-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+    .ns-rank{font-size:10px;font-weight:800;color:var(--muted);width:14px;text-align:right;flex-shrink:0}
+    .ns-bar-wrap{flex:1;background:#F3F4F6;border-radius:6px;height:22px;overflow:hidden;position:relative}
+    .ns-bar{height:100%;background:linear-gradient(90deg,#E53935,#B71C1C);border-radius:6px;transition:width .4s ease;min-width:2px}
+    .ns-label{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100% - 40px)}
+    .ns-count{font-size:11px;font-weight:800;color:var(--text);width:28px;text-align:right;flex-shrink:0}
+    .ns-pct{font-size:10px;font-weight:600;color:var(--muted);width:34px;text-align:right;flex-shrink:0}
+    .ns-empty{text-align:center;padding:16px 0;color:var(--muted);font-size:13px}
+
     /* ── LOG LEAD ── */
     .log-hero{padding:22px 20px 16px;text-align:center}
     .log-hero h2{font-size:22px;font-weight:800;margin-bottom:5px}
@@ -288,6 +300,12 @@
         <button class="ptab" onclick="setPeriod('ytd',this)">YTD</button>
       </div>
       <div class="mgrid" id="mgrid"><div class="loading" style="grid-column:1/-1"><div class="spinner"></div></div></div>
+      <div id="nsBrkSection" style="display:none">
+        <div class="ns-section">
+          <div class="ns-title">❌ Not Sold — Reason Breakdown</div>
+          <div id="nsBrkList"></div>
+        </div>
+      </div>
     </div>
 
     <!-- LOG LEAD -->
@@ -864,6 +882,40 @@ async function loadDash() {
     card('Bank Turn Downs', c.btd, fmtNum, p.btd, null, 'Lower is better', true),
     card('Cancelled (Sales)', c.cancelled, fmtNum, p.cancelled, null, 'Won sales later cancelled', true)
   ].join('');
+  renderNsBreakdown(cur);
+}
+
+function renderNsBreakdown(leads) {
+  const section = document.getElementById('nsBrkSection');
+  const list    = document.getElementById('nsBrkList');
+  const nsLeads = leads.filter(l => l.status === 'not_sold');
+  if (!nsLeads.length) { section.style.display = 'none'; return; }
+  // Tally by reason label
+  const tally = {};
+  nsLeads.forEach(l => {
+    const label = l.not_sold_reasons?.label || 'Unknown';
+    tally[label] = (tally[label] || 0) + 1;
+  });
+  const sorted = Object.entries(tally).sort((a,b) => b[1]-a[1]);
+  const max = sorted[0][1];
+  const total = nsLeads.length;
+  list.innerHTML = sorted.map(([label, count], i) => {
+    const pct = Math.round(count/total*100);
+    const barW = Math.round(count/max*100);
+    // Color shifts from deep red → orange as rank drops
+    const hue = Math.round(0 + (i / Math.max(sorted.length-1,1)) * 30);
+    const barColor = `hsl(${hue},85%,38%)`;
+    return `<div class="ns-row">
+      <span class="ns-rank">${i+1}</span>
+      <div class="ns-bar-wrap">
+        <div class="ns-bar" style="width:${barW}%;background:${barColor}"></div>
+        <span class="ns-label">${label}</span>
+      </div>
+      <span class="ns-count">${count}</span>
+      <span class="ns-pct">${pct}%</span>
+    </div>`;
+  }).join('');
+  section.style.display = 'block';
 }
 
 // ─────────────────────────────────────────
