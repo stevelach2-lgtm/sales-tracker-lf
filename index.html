@@ -813,11 +813,20 @@ async function loadDash() {
   document.getElementById('mgrid').innerHTML = '<div class="loading" style="grid-column:1/-1"><div class="spinner"></div></div>';
   const { cs, ce, ps, pe } = getPeriodRanges(curPeriod);
   const ytdStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
-  const [{ data: cur }, { data: prv }, { data: ytd }] = await Promise.all([
-    sb.from('leads').select('*, not_sold_reasons(label)').gte('created_at', cs).lte('created_at', ce),
-    sb.from('leads').select('*, not_sold_reasons(label)').gte('created_at', ps).lte('created_at', pe),
-    sb.from('leads').select('commission_amount,commission_paid').gte('created_at', ytdStart)
+  // For sold leads: filter by sales_date (actual date of sale)
+  // For not-sold leads: filter by created_at (no sales_date recorded)
+  const csDate = cs.split('T')[0]; const ceDate = ce.split('T')[0];
+  const psDate = ps.split('T')[0]; const peDate = pe.split('T')[0];
+  const ytdStartDate = ytdStart.split('T')[0];
+  const [{ data: curSold }, { data: prvSold }, { data: curNs }, { data: prvNs }, { data: ytd }] = await Promise.all([
+    sb.from('leads').select('*, not_sold_reasons(label)').eq('status','sold').gte('sales_date', csDate).lte('sales_date', ceDate),
+    sb.from('leads').select('*, not_sold_reasons(label)').eq('status','sold').gte('sales_date', psDate).lte('sales_date', peDate),
+    sb.from('leads').select('*, not_sold_reasons(label)').eq('status','not_sold').gte('created_at', cs).lte('created_at', ce),
+    sb.from('leads').select('*, not_sold_reasons(label)').eq('status','not_sold').gte('created_at', ps).lte('created_at', pe),
+    sb.from('leads').select('commission_amount,commission_paid').eq('status','sold').gte('sales_date', ytdStartDate)
   ]);
+  const cur = [...(curSold||[]), ...(curNs||[])];
+  const prv = [...(prvSold||[]), ...(prvNs||[])];
   const c = calcM(cur||[]), p = calcM(prv||[]);
   const ytdComm = (ytd||[]).filter(l=>l.commission_paid).reduce((s,l)=>s+(parseFloat(l.commission_amount)||0),0);
   // Load baselines
