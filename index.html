@@ -1472,17 +1472,30 @@ async function loadFollowUps() {
         ${phone}
       </div>
       <div class="fup-actions">
-        <button class="fup-btn sms" onclick="fuQuickSMS('${l.followup_phone||''}','${(l.followup_name||'there').replace(/'/g,"\\'")}')">📱 SMS</button>
+        <button class="fup-btn sms" onclick="fuQuickSMS('${l.followup_phone||''}','${(l.followup_name||'there').replace(/'/g,"\\'")}',' ${reason.replace(/'/g,"\\'")}')">📱 SMS</button>
         <button class="fup-btn done-btn${done?' active':''}" onclick="toggleFuDone('${l.id}',${!done})">${done ? '↩ Reopen':'✅ Mark Done'}</button>
       </div>
     </div>`;
   }).join('');
 }
 
-function fuQuickSMS(phone, name) {
+function fuQuickSMS(phone, name, reasonLabel) {
   if (!phone) { toast('No phone number saved', 'err'); return; }
   const clean = phone.replace(/\D/g,'');
-  const msg = `Hi ${name}! This is Steve from LeafFilter. I wanted to follow up on our previous conversation about gutter protection. Just wanted to follow up to see if you wanted to move forward 😊`;
+  // Determine the right message angle from the not-sold reason
+  const r = (reasonLabel || '').toLowerCase();
+  let angle = 'default';
+  if      (r.includes('price') || r.includes('too high') || r.includes('expensive'))                        angle = 'price';
+  else if (r.includes('think') || r.includes('decide') || r.includes('consider'))                           angle = 'think';
+  else if (r.includes('quote') || r.includes('other') || r.includes('shop'))                                angle = 'quotes';
+  else if (r.includes('spouse') || r.includes('discuss') || r.includes('partner') || r.includes('husband') || r.includes('wife')) angle = 'spouse';
+  else if (r.includes('financ') || r.includes('bank') || r.includes('credit') || r.includes('denied'))     angle = 'financing';
+  else if (r.includes('reschedule') || r.includes('call back') || r.includes('call me'))                    angle = 'reschedule';
+  else if (r.includes('not home') || r.includes('no one') || r.includes('missed'))                         angle = 'nothome';
+  else if (r.includes('not interested'))                                                                      angle = 'notinterested';
+  else if (r.includes('already has') || r.includes('has gutter') || r.includes('existing'))                 angle = 'existing';
+  const fn  = FU_MSGS[angle] || FU_MSGS.default;
+  const msg = fn(name && name.trim() ? name.trim() : 'there');
   window.open(`sms:+1${clean}?&body=${encodeURIComponent(msg)}`);
 }
 
