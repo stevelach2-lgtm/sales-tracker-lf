@@ -1194,28 +1194,48 @@ let _lastStreakData = null; // cache for recap card
 async function calcStreak() {
   const badge = document.getElementById('streakBadge');
   try {
-    // Grab last 90 days of sold leads grouped by sales_date
-    const since = new Date(); since.setDate(since.getDate() - 90);
-    const { data } = await sb.from('leads').select('sales_date,status,is_cancelled')
-      .eq('status','sold').neq('is_cancelled',true)
-      .gte('sales_date', since.toISOString().split('T')[0]);
-    if (!data || !data.length) { badge.style.display='none'; _lastStreakData={streak:0}; return; }
-    const days = new Set(data.map(l => l.sales_date));
+    // Local date helper — avoids UTC-shift bug (e.g. 10 PM ET = next day in UTC)
+    const pad = n => String(n).padStart(2,'0');
+    const localDateStr = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+    const now = new Date();
+    const since = new Date(now); since.setDate(since.getDate() - 90);
+    const sinceDate = localDateStr(since);
+    const sinceISO  = new Date(since.getFullYear(), since.getMonth(), since.getDate()).toISOString();
+
+    // Grab last 90 days of sold (non-cancelled, non-BTD) leads via both paths
+    const [{ data: dated }, { data: undated }] = await Promise.all([
+      sb.from('leads').select('sales_date,created_at')
+        .eq('status','sold').neq('is_cancelled',true).neq('is_btd',true)
+        .not('sales_date','is',null).gte('sales_date', sinceDate),
+      sb.from('leads').select('sales_date,created_at')
+        .eq('status','sold').neq('is_cancelled',true).neq('is_btd',true)
+        .is('sales_date',null).gte('created_at', sinceISO)
+    ]);
+
+    // Build a Set of local date strings that had at least 1 sale
+    const days = new Set();
+    (dated  || []).forEach(l => days.add(l.sales_date));
+    (undated|| []).forEach(l => days.add(localDateStr(new Date(l.created_at))));
+
+    if (!days.size) { badge.style.display='none'; _lastStreakData={streak:0}; return; }
+
+    // Count consecutive days backwards from today (skip today if no sale yet)
     let streak = 0;
-    const today = new Date();
     for (let i = 0; i <= 90; i++) {
-      const d = new Date(today); d.setDate(today.getDate() - i);
-      const key = d.toISOString().split('T')[0];
+      const d = new Date(now); d.setDate(now.getDate() - i);
+      const key = localDateStr(d);
       if (days.has(key)) { streak++; }
-      else if (i === 0) { /* today might not have a sale yet; skip */ }
-      else { break; }
+      else if (i === 0)  { /* today may not have a sale yet — don't break */ }
+      else               { break; }
     }
+
     _lastStreakData = { streak };
     if (streak === 0) { badge.style.display='none'; return; }
     badge.style.display = 'inline-flex';
     badge.className = 'streak-badge' + (streak >= 3 ? '' : ' cold');
     const fire = streak >= 7 ? '🔥🔥' : streak >= 3 ? '🔥' : '⚡';
-    badge.textContent = `${fire} ${streak}-day selling streak!`;
+    badge.textContent = `${fire} ${streak}-day sales streak!`;
   } catch(e) { badge.style.display='none'; }
 }
 
