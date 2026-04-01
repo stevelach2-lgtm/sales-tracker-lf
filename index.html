@@ -1651,29 +1651,30 @@ async function filterHist(range, btn) {
     fromISO  = s.toISOString();
   }
 
+  // Sort helper: sort by sales_date desc, fall back to created_at (so list order matches displayed date)
+  const sortByDate = arr => arr.sort((a, b) => {
+    const da = a.sales_date ? new Date(a.sales_date + 'T12:00:00') : new Date(a.created_at);
+    const db = b.sales_date ? new Date(b.sales_date + 'T12:00:00') : new Date(b.created_at);
+    return db - da;
+  });
+
   let data;
   if (!fromDate) {
     // All time — single query, no date filter
     const { data: d } = await sb.from('leads')
-      .select('*, not_sold_reasons(label)')
-      .order('created_at', { ascending: false });
-    data = d || [];
+      .select('*, not_sold_reasons(label)');
+    data = sortByDate(d || []);
   } else {
     // Dual query: leads whose sales_date is in range, plus leads with no sales_date whose created_at is in range
     const [{ data: dated }, { data: undated }] = await Promise.all([
       sb.from('leads').select('*, not_sold_reasons(label)')
         .not('sales_date', 'is', null)
-        .gte('sales_date', fromDate)
-        .order('created_at', { ascending: false }),
+        .gte('sales_date', fromDate),
       sb.from('leads').select('*, not_sold_reasons(label)')
         .is('sales_date', null)
         .gte('created_at', fromISO)
-        .order('created_at', { ascending: false })
     ]);
-    // Merge and sort newest first
-    data = [...(dated || []), ...(undated || [])].sort((a, b) =>
-      new Date(b.created_at) - new Date(a.created_at)
-    );
+    data = sortByDate([...(dated || []), ...(undated || [])]);
   }
   renderHist(data);
 }
