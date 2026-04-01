@@ -1629,14 +1629,48 @@ async function filterHist(range, btn) {
   const el = document.getElementById('histList');
   el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   const now = new Date();
-  let from;
-  if (range === 'today') { from = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString(); }
-  else if (range === 'week') { const d = now.getDay()||7; const s = new Date(now); s.setDate(now.getDate()-d+1); s.setHours(0,0,0,0); from = s.toISOString(); }
-  else if (range === 'month') { from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString(); }
-  let q = sb.from('leads').select('*, not_sold_reasons(label)').order('created_at', { ascending: false });
-  if (from) q = q.gte('created_at', from);
-  const { data } = await q;
-  renderHist(data || []);
+  let fromDate = null; // YYYY-MM-DD for sales_date filter
+  let fromISO  = null; // ISO string for created_at filter
+
+  if (range === 'today') {
+    fromDate = now.toISOString().split('T')[0];
+    fromISO  = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+  } else if (range === 'week') {
+    const dow = now.getDay() || 7;
+    const s = new Date(now); s.setDate(now.getDate() - dow + 1); s.setHours(0,0,0,0);
+    fromDate = s.toISOString().split('T')[0];
+    fromISO  = s.toISOString();
+  } else if (range === 'month') {
+    const s = new Date(now.getFullYear(), now.getMonth(), 1);
+    fromDate = s.toISOString().split('T')[0];
+    fromISO  = s.toISOString();
+  }
+
+  let data;
+  if (!fromDate) {
+    // All time — single query, no date filter
+    const { data: d } = await sb.from('leads')
+      .select('*, not_sold_reasons(label)')
+      .order('created_at', { ascending: false });
+    data = d || [];
+  } else {
+    // Dual query: leads whose sales_date is in range, plus leads with no sales_date whose created_at is in range
+    const [{ data: dated }, { data: undated }] = await Promise.all([
+      sb.from('leads').select('*, not_sold_reasons(label)')
+        .not('sales_date', 'is', null)
+        .gte('sales_date', fromDate)
+        .order('created_at', { ascending: false }),
+      sb.from('leads').select('*, not_sold_reasons(label)')
+        .is('sales_date', null)
+        .gte('created_at', fromISO)
+        .order('created_at', { ascending: false })
+    ]);
+    // Merge and sort newest first
+    data = [...(dated || []), ...(undated || [])].sort((a, b) =>
+      new Date(b.created_at) - new Date(a.created_at)
+    );
+  }
+  renderHist(data);
 }
 
 function renderHist(leads) {
