@@ -1629,20 +1629,25 @@ async function filterHist(range, btn) {
   const el = document.getElementById('histList');
   el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   const now = new Date();
-  let fromDate = null; // YYYY-MM-DD for sales_date filter
+  // Helper: build a local YYYY-MM-DD string (avoids UTC-shift bug when toISOString() returns next day)
+  const localDate = d => {
+    const pad = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  };
+  let fromDate = null; // YYYY-MM-DD for sales_date filter (local date)
   let fromISO  = null; // ISO string for created_at filter
 
   if (range === 'today') {
-    fromDate = now.toISOString().split('T')[0];
+    fromDate = localDate(now);
     fromISO  = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
   } else if (range === 'week') {
     const dow = now.getDay() || 7;
     const s = new Date(now); s.setDate(now.getDate() - dow + 1); s.setHours(0,0,0,0);
-    fromDate = s.toISOString().split('T')[0];
+    fromDate = localDate(s);
     fromISO  = s.toISOString();
   } else if (range === 'month') {
     const s = new Date(now.getFullYear(), now.getMonth(), 1);
-    fromDate = s.toISOString().split('T')[0];
+    fromDate = localDate(s);
     fromISO  = s.toISOString();
   }
 
