@@ -105,11 +105,29 @@ insert into public.not_sold_reasons (label, sort_order) values
   ('No one home',                          10)
 on conflict do nothing;
 
--- 7. ROW LEVEL SECURITY (optional but recommended)
+-- 7. APP SETTINGS TABLE (single row — stores goals & grading baselines)
+create table if not exists public.app_settings (
+  id          integer primary key default 1,
+  nvpil       numeric default 2000,
+  slg         numeric default 55,
+  ntg         numeric default 80,
+  cr          numeric default 50,
+  daily_sales numeric default 2,
+  weekly_rev  numeric default 5000,
+  comm_goal   numeric default 5000,
+  updated_at  timestamptz default now(),
+  constraint single_row check (id = 1)
+);
+-- Seed the one row (safe to re-run)
+insert into public.app_settings (id) values (1) on conflict do nothing;
+
+-- 8. ROW LEVEL SECURITY (optional but recommended)
 -- alter table public.leads enable row level security;
 -- alter table public.not_sold_reasons enable row level security;
+-- alter table public.app_settings enable row level security;
 -- create policy "Allow all" on public.leads for all using (true);
 -- create policy "Allow all" on public.not_sold_reasons for all using (true);
+-- create policy "Allow all" on public.app_settings for all using (true);
 
 -- ============================================================
 -- Done! Your tables are ready.
