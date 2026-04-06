@@ -1177,9 +1177,11 @@ function renderNsBreakdown(leads) {
     const barColor = `hsl(${hue},85%,38%)`;
     return `<div class="ns-row">
       <span class="ns-rank">${i+1}</span>
-      <div class="ns-bar-wrap">
-        <div class="ns-bar" style="width:${barW}%;background:${barColor}"></div>
+      <div class="ns-bar-col">
         <span class="ns-label">${label}</span>
+        <div class="ns-bar-wrap">
+          <div class="ns-bar" style="width:${barW}%;background:${barColor}"></div>
+        </div>
       </div>
       <span class="ns-count">${count}</span>
       <span class="ns-pct">${pct}%</span>
