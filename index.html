@@ -543,7 +543,15 @@
           <button class="ftab active" onclick="filterHist('today',this)">Today</button>
           <button class="ftab" onclick="filterHist('week',this)">This Week</button>
           <button class="ftab" onclick="filterHist('month',this)">This Month</button>
-          <button class="ftab" onclick="filterHist('all',this)">All Time</button>
+          <button class="ftab" onclick="filterHist('custom',this)">Custom</button>
+        </div>
+        <!-- History Custom Date Inputs -->
+        <div id="histCustomPicker" style="display:none; padding:10px 14px; background:#F9FAFB; border:1px solid var(--border); border-top:none; border-bottom-left-radius:14px; border-bottom-right-radius:14px; gap:8px; align-items:center; justify-content:space-between; margin-bottom:12px">
+          <div style="display:flex; align-items:center; gap:6px; flex:1">
+            <input type="date" id="histCustS" onchange="filterHist('custom', document.querySelector('.ftab.active'))" style="flex:1; border:1.5px solid var(--border); border-radius:8px; padding:6px 10px; font-family:'Inter',sans-serif; font-size:12px; outline:none">
+            <span style="font-size:11px; font-weight:700; color:var(--muted)">to</span>
+            <input type="date" id="histCustE" onchange="filterHist('custom', document.querySelector('.ftab.active'))" style="flex:1; border:1.5px solid var(--border); border-radius:8px; padding:6px 10px; font-family:'Inter',sans-serif; font-size:12px; outline:none">
+          </div>
         </div>
         <div id="histList" class="hlist"><div class="loading"><div class="spinner"></div></div></div>
       </div>
@@ -1677,8 +1685,23 @@ async function filterHist(range, btn) {
     const pad = n => String(n).padStart(2,'0');
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   };
-  let fromDate = null; // YYYY-MM-DD for sales_date filter (local date)
-  let fromISO  = null; // ISO string for created_at filter
+  let fromDate = null; 
+  let toDate   = null;
+  let fromISO  = null;
+
+  // Show/Hide custom picker
+  const picker = document.getElementById('histCustomPicker');
+  if (range === 'custom') {
+    picker.style.display = 'flex';
+    if (!document.getElementById('histCustS').value) {
+      const d = new Date();
+      document.getElementById('histCustE').value = localDate(d);
+      d.setDate(d.getDate() - 30);
+      document.getElementById('histCustS').value = localDate(d);
+    }
+  } else {
+    picker.style.display = 'none';
+  }
 
   if (range === 'today') {
     fromDate = localDate(now);
@@ -1692,6 +1715,9 @@ async function filterHist(range, btn) {
     const s = new Date(now.getFullYear(), now.getMonth(), 1);
     fromDate = localDate(s);
     fromISO  = s.toISOString();
+  } else if (range === 'custom') {
+    fromDate = document.getElementById('histCustS').value;
+    toDate   = document.getElementById('histCustE').value;
   }
 
   // Sort helper: sort by sales_date desc, fall back to created_at (so list order matches displayed date)
@@ -1701,24 +1727,19 @@ async function filterHist(range, btn) {
     return db - da;
   });
 
-  let data;
-  if (!fromDate) {
-    // All time — single query, no date filter
-    const { data: d } = await sb.from('leads')
-      .select('*, not_sold_reasons(label)');
-    data = sortByDate(d || []);
-  } else {
-    // Dual query: leads whose sales_date is in range, plus leads with no sales_date whose created_at is in range
-    const [{ data: dated }, { data: undated }] = await Promise.all([
-      sb.from('leads').select('*, not_sold_reasons(label)')
-        .not('sales_date', 'is', null)
-        .gte('sales_date', fromDate),
-      sb.from('leads').select('*, not_sold_reasons(label)')
-        .is('sales_date', null)
-        .gte('created_at', fromISO)
-    ]);
-    data = sortByDate([...(dated || []), ...(undated || [])]);
+  let query = sb.from('leads').select('*, not_sold_reasons(label)');
+  
+  if (range === 'custom') {
+    if (fromDate) query = query.gte('sales_date', fromDate);
+    if (toDate)   query = query.lte('sales_date', toDate);
+  } else if (fromDate) {
+    // Filtered range — try sales_date first, fall back to created_at if null
+    query = query.or(`sales_date.gte.${fromDate},and(sales_date.is.null,created_at.gte.${fromISO})`);
   }
+
+  const { data: d, error } = await query;
+  if (error) { el.innerHTML = '<p style="color:var(--red);padding:12px">Error loading</p>'; return; }
+  data = sortByDate(d || []);
   renderHist(data);
 }
 
