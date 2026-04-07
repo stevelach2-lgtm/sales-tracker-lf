@@ -1010,8 +1010,20 @@ function goTo(id) {
 }
 
 // ─────────────────────────────────────────
-// REASONS
-// ─────────────────────────────────────────
+// Helper to count work days (Mon-Sat) in a range
+function countWorkDays(start, end) {
+  let count = 0;
+  let cur = new Date(start);
+  const finish = new Date(end);
+  // Set times to midnight to avoid partial day issues
+  cur.setHours(0,0,0,0);
+  finish.setHours(0,0,0,0);
+  while (cur <= finish) {
+    if (cur.getDay() !== 0) count++; // 0 = Sunday
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count || 1; // Default to 1 to avoid div-by-zero
+}// ─────────────────────────────────────────
 async function loadReasons() {
   const { data } = await sb.from('not_sold_reasons').select('*').order('sort_order');
   reasons = data || [];
@@ -1276,37 +1288,51 @@ async function calcStreak() {
 let _lastGoalData = null; // cache for recap card
 
 function renderGoalBars(c) {
-  const dailyGoal  = parseFloat(localStorage.getItem('bl_dailySales')) || 2;
-  const weeklyGoal = parseFloat(localStorage.getItem('bl_weeklyRev'))  || 5000;
-  // Daily (only show if period = today)
-  const isToday = curPeriod === 'today';
-  const dailySales = isToday ? c.sales : null;
-  const weeklySales = ['week'].includes(curPeriod) ? c.sales : null;
-  const weeklyRev  = ['week','month','ytd'].includes(curPeriod) ? c.rev : null;
+  const { cs, ce } = getPeriodRanges(curPeriod);
+  const workDays = countWorkDays(cs, ce);
+  
+  const dailyBase  = parseFloat(localStorage.getItem('bl_dailySales')) || 2;
+  const weeklyBase = parseFloat(localStorage.getItem('bl_weeklyRev'))  || 5000;
+  
+  // Scale goals
+  const scaledSalesGoal = dailyBase * workDays;
+  const scaledRevGoal   = (weeklyBase / 6) * workDays;
 
-  // Daily bar: today-period only
-  const dailyVal = document.getElementById('goalDailyVal');
-  const dailyBar = document.getElementById('goalDailyBar');
-  if (isToday) {
-    const pct = Math.min(100, (c.sales / dailyGoal) * 100);
-    dailyVal.textContent = `${c.sales} / ${dailyGoal} sales`;
-    dailyBar.style.width = pct + '%';
-    dailyBar.className = 'goal-fill' + (pct >= 100 ? ' hit' : pct >= 60 ? '' : ' warn');
+  // Update Labels to reflect period
+  const dailyLbl  = document.getElementById('goalSection').querySelector('.goal-row:first-child .goal-lbl');
+  const weeklyLbl = document.getElementById('goalSection').querySelector('.goal-row:last-child .goal-lbl');
+  
+  if (curPeriod === 'today') {
+    dailyLbl.textContent = 'Daily Sales Goal';
+    weeklyLbl.textContent = 'Daily Revenue Goal';
+  } else if (curPeriod === 'week') {
+    dailyLbl.textContent = 'Weekly Sales Goal';
+    weeklyLbl.textContent = 'Weekly Revenue Goal';
+  } else if (curPeriod === 'month') {
+    dailyLbl.textContent = 'Monthly Sales Goal';
+    weeklyLbl.textContent = 'Monthly Revenue Goal';
   } else {
-    dailyVal.textContent = `${c.sales} sales`;
-    dailyBar.style.width = Math.min(100, (c.sales / (dailyGoal * 5)) * 100) + '%';
-    dailyBar.className = 'goal-fill';
+    dailyLbl.textContent = 'Period Sales Goal';
+    weeklyLbl.textContent = 'Period Revenue Goal';
   }
 
-  // Weekly revenue bar
+  // Sales Progress
+  const dailyVal = document.getElementById('goalDailyVal');
+  const dailyBar = document.getElementById('goalDailyBar');
+  const pctS = Math.min(100, (c.sales / scaledSalesGoal) * 100);
+  dailyVal.textContent = `${c.sales} / ${fmtNum(scaledSalesGoal)} sales`;
+  dailyBar.style.width = pctS + '%';
+  dailyBar.className = 'goal-fill' + (pctS >= 100 ? ' hit' : pctS >= 60 ? '' : ' warn');
+
+  // Revenue Progress
   const weeklyVal = document.getElementById('goalWeeklyVal');
   const weeklyBar = document.getElementById('goalWeeklyBar');
-  const pctW = Math.min(100, (c.rev / weeklyGoal) * 100);
-  weeklyVal.textContent = `$${Math.round(c.rev).toLocaleString()} / $${Math.round(weeklyGoal).toLocaleString()}`;
-  weeklyBar.style.width = pctW + '%';
-  weeklyBar.className = 'goal-fill' + (pctW >= 100 ? ' hit' : pctW >= 60 ? '' : ' warn');
+  const pctR = Math.min(100, (c.rev / scaledRevGoal) * 100);
+  weeklyVal.textContent = `$${Math.round(c.rev).toLocaleString()} / $${Math.round(scaledRevGoal).toLocaleString()}`;
+  weeklyBar.style.width = pctR + '%';
+  weeklyBar.className = 'goal-fill' + (pctR >= 100 ? ' hit' : pctR >= 60 ? '' : ' warn');
 
-  _lastGoalData = { dailyGoal, weeklyGoal, dailySales: c.sales, weeklyRev: c.rev };
+  _lastGoalData = { dailyGoal: scaledSalesGoal, weeklyGoal: scaledRevGoal, dailySales: c.sales, weeklyRev: c.rev };
 }
 
 // ─────────────────────────────────────────
