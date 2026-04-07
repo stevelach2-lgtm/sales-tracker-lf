@@ -1288,11 +1288,18 @@ async function calcStreak() {
 let _lastGoalData = null; // cache for recap card
 
 function renderGoalBars(c) {
-  const { cs, ce } = getPeriodRanges(curPeriod);
-  const workDays = countWorkDays(cs, ce);
-  
   const dailyBase  = parseFloat(localStorage.getItem('bl_dailySales')) || 2;
   const weeklyBase = parseFloat(localStorage.getItem('bl_weeklyRev'))  || 5000;
+
+  let workDays = 1;
+  if (curPeriod === 'today') workDays = 1;
+  else if (curPeriod === 'week') workDays = 6;
+  else if (curPeriod === 'month') workDays = 24; // User requested weekly x 4
+  else if (curPeriod === 'rolling60') workDays = 52; // 60 days - roughly 8 weeks (~48-52 days)
+  else if (curPeriod === 'custom') {
+    const { cs, ce } = getPeriodRanges(curPeriod);
+    workDays = countWorkDays(cs, ce);
+  }
   
   // Scale goals
   const scaledSalesGoal = dailyBase * workDays;
