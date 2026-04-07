@@ -367,7 +367,16 @@
         <button class="ptab active" onclick="setPeriod('week',this)">Week</button>
         <button class="ptab" onclick="setPeriod('month',this)">Month</button>
         <button class="ptab" onclick="setPeriod('rolling60',this)">60 Days</button>
-        <button class="ptab" onclick="setPeriod('ytd',this)">YTD</button>
+        <button class="ptab" onclick="setPeriod('custom',this)">Custom</button>
+      </div>
+
+      <!-- Custom Date Inputs (Hidden by default) -->
+      <div id="customRangePicker" style="display:none; padding:10px 14px; background:#F9FAFB; border:1px solid var(--border); border-top:none; border-bottom-left-radius:14px; border-bottom-right-radius:14px; gap:8px; align-items:center; justify-content:space-between">
+        <div style="display:flex; align-items:center; gap:6px; flex:1">
+          <input type="date" id="custS" onchange="loadDash()" style="flex:1; border:1.5px solid var(--border); border-radius:8px; padding:6px 10px; font-family:'Inter',sans-serif; font-size:12px; outline:none">
+          <span style="font-size:11px; font-weight:700; color:var(--muted)">to</span>
+          <input type="date" id="custE" onchange="loadDash()" style="flex:1; border:1.5px solid var(--border); border-radius:8px; padding:6px 10px; font-family:'Inter',sans-serif; font-size:12px; outline:none">
+        </div>
       </div>
       <!-- Goal Progress Bars -->
       <div class="goal-section" id="goalSection">
@@ -1009,6 +1018,22 @@ function setPeriod(p, btn) {
   curPeriod = p;
   document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
+  
+  // Show/Hide custom picker
+  const picker = document.getElementById('customRangePicker');
+  if (p === 'custom') {
+    picker.style.display = 'flex';
+    // Default to last 30 days if empty
+    if (!document.getElementById('custS').value) {
+      const d = new Date();
+      document.getElementById('custE').value = d.toISOString().split('T')[0];
+      d.setDate(d.getDate() - 30);
+      document.getElementById('custS').value = d.toISOString().split('T')[0];
+    }
+  } else {
+    picker.style.display = 'none';
+  }
+  
   loadDash();
 }
 
@@ -1036,11 +1061,20 @@ function getPeriodRanges(p) {
     ce = now;
     ps = new Date(cs); ps.setDate(ps.getDate() - 60);
     pe = new Date(cs); // Start of current becomes end of previous
-  } else { // ytd
-    cs = new Date(now.getFullYear(), 0, 1);
-    ce = now;
-    ps = new Date(now.getFullYear()-1, 0, 1);
-    pe = new Date(now.getFullYear()-1, now.getMonth(), now.getDate(), 23,59,59);
+  } else if (p === 'custom') {
+    const sValue = document.getElementById('custS').value;
+    const eValue = document.getElementById('custE').value;
+    cs = sValue ? new Date(sValue + 'T00:00:00') : new Date(now.getFullYear(), now.getMonth(), now.getDate()-30);
+    ce = eValue ? new Date(eValue + 'T23:59:59') : now;
+    
+    // Previous period = same duration before start date
+    const dur = ce.getTime() - cs.getTime();
+    ps = new Date(cs.getTime() - dur);
+    pe = new Date(cs.getTime());
+  } else { // Removed YTD logic
+    cs = sod(now); ce = now;
+    ps = new Date(cs); ps.setDate(ps.getDate()-1);
+    pe = new Date(sod(now)); pe.setDate(pe.getDate()-1); pe.setHours(23,59,59);
   }
   return { cs: cs.toISOString(), ce: ce.toISOString(), ps: ps.toISOString(), pe: pe.toISOString() };
 }
