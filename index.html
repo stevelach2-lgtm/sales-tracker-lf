@@ -636,10 +636,14 @@
           </button>
         </div>
       </div>
-        <!-- Goal Settings -->
-        <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
-        <div class="settings-wrap" style="padding-top:0">
-          <div class="s-title">🎯 Daily &amp; Weekly Goals</div>
+      <!-- Goal Settings -->
+      <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
+      <div class="settings-wrap" style="padding-top:0">
+        <div class="s-title" onclick="toggleSetSec('goalsSection', 'goalsIcon')" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; font-size:14px; color:var(--text)">
+          <span>🎯 Daily &amp; Weekly Goals</span>
+          <span id="goalsIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
+        </div>
+        <div id="goalsSection" style="display:none">
           <div class="s-sub" style="margin-bottom:12px">Set your targets for the dashboard progress bars.</div>
           <div style="margin-bottom:12px">
             <label class="fl">Daily Sales Goal (# of sales)</label>
@@ -652,51 +656,70 @@
             <div style="font-size:11px;color:var(--muted);margin-top:3px">Revenue target per week</div>
           </div>
         </div>
-        <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
-        <!-- Grading Baselines -->
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
+      
+      <!-- Grading Baselines -->
       <div class="settings-wrap" style="padding-top:0">
-        <div class="s-title">📊 Grading Baselines</div>
-        <div class="s-sub" style="margin-bottom:12px">Cards turn <strong style="color:var(--green)">green</strong> when at or above threshold, <strong style="color:var(--red)">red</strong> when below.</div>
-        <div style="margin-bottom:12px">
-          <label class="fl">NVPIL Baseline ($)</label>
-          <input type="number" class="fi" id="blNvpil" placeholder="2000" inputmode="decimal" onchange="saveBaseline('nvpil',this.value)">
-          <div style="font-size:11px;color:var(--muted);margin-top:3px">Green if NVPIL ≥ this amount</div>
+        <div class="s-title" onclick="toggleSetSec('baselinesSection', 'baselinesIcon')" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; font-size:14px; color:var(--text)">
+          <span>📊 Grading Baselines</span>
+          <span id="baselinesIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
         </div>
-        <div style="margin-bottom:12px">
-          <label class="fl">SLG% Baseline (%)</label>
-          <input type="number" class="fi" id="blSlg" placeholder="55" inputmode="decimal" onchange="saveBaseline('slg',this.value)">
-          <div style="font-size:11px;color:var(--muted);margin-top:3px">Green if SLG% ≥ this percentage</div>
-        </div>
-        <div style="margin-bottom:4px">
-          <label class="fl">Net/Gross Baseline (%)</label>
-          <input type="number" class="fi" id="blNtg" placeholder="80" inputmode="decimal" onchange="saveBaseline('ntg',this.value)">
-          <div style="font-size:11px;color:var(--muted);margin-top:3px">Green if Net/Gross ≥ this percentage</div>
-        </div>
-        <div style="margin-bottom:4px">
-          <label class="fl" style="margin-top:12px">Close Rate Baseline (%)</label>
-          <input type="number" class="fi" id="blCr" placeholder="50" inputmode="decimal" onchange="saveBaseline('cr',this.value)">
-          <div style="font-size:11px;color:var(--muted);margin-top:3px">Green if Close Rate ≥ this percentage</div>
+        <div id="baselinesSection" style="display:none">
+          <div class="s-sub" style="margin-bottom:12px">Cards turn <strong style="color:var(--green)">green</strong> when at or above threshold, <strong style="color:var(--red)">red</strong> when below.</div>
+          <div style="margin-bottom:12px">
+            <label class="fl">NVPIL Baseline ($)</label>
+            <input type="number" class="fi" id="blNvpil" placeholder="2000" inputmode="decimal" onchange="saveBaseline('nvpil',this.value)">
+            <div style="font-size:11px;color:var(--muted);margin-top:3px">Green if NVPIL ≥ this amount</div>
+          </div>
+          <div style="margin-bottom:12px">
+            <label class="fl">SLG% Baseline (%)</label>
+            <input type="number" class="fi" id="blSlg" placeholder="55" inputmode="decimal" onchange="saveBaseline('slg',this.value)">
+            <div style="font-size:11px;color:var(--muted);margin-top:3px">Green if SLG% ≥ this percentage</div>
+          </div>
+          <div style="margin-bottom:4px">
+            <label class="fl">Net/Gross Baseline (%)</label>
+            <input type="number" class="fi" id="blNtg" placeholder="80" inputmode="decimal" onchange="saveBaseline('ntg',this.value)">
+            <div style="font-size:11px;color:var(--muted);margin-top:3px">Green if Net/Gross ≥ this percentage</div>
+          </div>
+          <div style="margin-bottom:4px">
+            <label class="fl" style="margin-top:12px">Close Rate Baseline (%)</label>
+            <input type="number" class="fi" id="blCr" placeholder="50" inputmode="decimal" onchange="saveBaseline('cr',this.value)">
+            <div style="font-size:11px;color:var(--muted);margin-top:3px">Green if Close Rate ≥ this percentage</div>
+          </div>
         </div>
       </div>
+
       <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
       
       <div class="settings-wrap" style="padding-top:0;margin-bottom:12px">
-        <div class="s-title" style="font-size:14px;color:var(--muted)">Calculator Configuration</div>
-        <div class="s-sub" style="margin-bottom:10px">Manage your price list and SMS message templates.</div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
-          <button onclick="openPriceListEditor()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-            🏷️ Prices
-          </button>
-          <button onclick="openFuTemplateEditor()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-            📱 SMS
-          </button>
+        <div class="s-title" onclick="toggleSetSec('calcConfigSection', 'calcIcon')" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; font-size:14px; color:var(--muted)">
+          <span>🧩 Calculator Configuration</span>
+          <span id="calcIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
+        </div>
+        <div id="calcConfigSection" style="display:none">
+          <div class="s-sub" style="margin-bottom:10px">Manage your price list and SMS message templates.</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px">
+            <button onclick="openPriceListEditor()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+              🏷️ Prices
+            </button>
+            <button onclick="openFuTemplateEditor()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+              📱 SMS
+            </button>
+          </div>
         </div>
       </div>
 
       <div class="settings-wrap" style="padding-top:0">
-        <div class="s-title" style="font-size:14px;color:var(--muted)">Danger Zone</div>
-        <div class="s-sub" style="margin-bottom:10px">Disconnect and re-enter your Supabase credentials.</div>
-        <button onclick="resetCfg()" style="width:100%;padding:12px;border:2px solid var(--red);border-radius:10px;background:transparent;color:var(--red);font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer">Disconnect Database</button>
+        <div class="s-title" onclick="toggleSetSec('dangerSection', 'dangerIcon')" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; font-size:14px; color:var(--muted)">
+          <span>🚨 Danger Zone</span>
+          <span id="dangerIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
+        </div>
+        <div id="dangerSection" style="display:none">
+          <div class="s-sub" style="margin-bottom:10px">Disconnect and re-enter your Supabase credentials.</div>
+          <button onclick="resetCfg()" style="width:100%;padding:12px;border:2px solid var(--red);border-radius:10px;background:transparent;color:var(--red);font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer">Disconnect Database</button>
+        </div>
       </div>
     </div>
   </div><!-- /main -->
