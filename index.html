@@ -623,14 +623,19 @@
     <!-- SETTINGS -->
     <div id="p-set" class="page">
       <div class="settings-wrap">
-        <div class="s-title">⚙️ Settings</div>
-        <div class="s-sub">Manage your "Not Sold" reasons. Edit or delete anytime.</div>
-        <div id="reasonsSet"><div class="loading"><div class="spinner"></div></div></div>
+        <div class="s-title" onclick="toggleSetSec('reasonsSection', 'reasonsIcon')" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between">
+          <span>⚙️ No Sale Reasons</span>
+          <span id="reasonsIcon" style="font-size:12px; transition:transform .3s; transform:rotate(-180deg)">▲</span>
+        </div>
+        <div id="reasonsSection">
+          <div class="s-sub">Manage your "Not Sold" reasons. Edit or delete anytime.</div>
+          <div id="reasonsSet"><div class="loading"><div class="spinner"></div></div></div>
+          <button class="add-btn" onclick="openAdd()" style="margin-top:10px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add New Reason
+          </button>
+        </div>
       </div>
-      <button class="add-btn" onclick="openAdd()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Add New Reason
-      </button>
         <!-- Goal Settings -->
         <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
         <div class="settings-wrap" style="padding-top:0">
@@ -1753,6 +1758,18 @@ function fuQuickSMS(phone, name, reasonLabel) {
   const fn  = FU_MSGS[angle] || FU_MSGS.default;
   const msg = fn(name && name.trim() ? name.trim() : 'there');
   window.open(`sms:+1${clean}?&body=${encodeURIComponent(msg)}`);
+}
+
+function toggleSetSec(id, iconId) {
+  const el = document.getElementById(id);
+  const icon = document.getElementById(iconId);
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    icon.style.transform = 'rotate(-180deg)';
+  } else {
+    el.style.display = 'none';
+    icon.style.transform = 'rotate(0deg)';
+  }
 }
 
 async function toggleFuDone(id, done) {
