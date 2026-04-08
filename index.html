@@ -81,7 +81,8 @@
 
     .ns-section{padding:0 10px 16px}
     .ns-title{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;padding:0 2px}
-    .ns-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .ns-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;transition:background 0.2s;border-radius:4px}
+    .ns-row:hover{background:rgba(0,0,0,0.03)}
     .ns-rank{font-size:10px;font-weight:800;color:var(--muted);width:14px;text-align:right;flex-shrink:0}
     .ns-bar-col{flex:1;min-width:0}
     .ns-label{display:block;font-size:11px;font-weight:700;color:#1A1A1A;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1370,7 +1371,7 @@ function renderNsBreakdown(leads) {
     const hue = Math.round(0 + (i / Math.max(sorted.length-1,1)) * 30);
     const barColor = `hsl(${hue},85%,38%)`;
     
-    return `<div class="ns-row" onclick="drillIntoReason('${id}', '${label}')" style="cursor:pointer">
+    return `<div class="ns-row" onclick="drillIntoReason('${id}')" style="cursor:pointer">
       <span class="ns-rank">${i+1}</span>
       <div class="ns-bar-col">
         <span class="ns-label">${label}</span>
@@ -1949,7 +1950,7 @@ async function undoLead() {
   toast('Lead removed ✓', 'ok');
 }
 
-function drillIntoReason(reasonId, label) {
+function drillIntoReason(reasonId) {
   // Switch to history tab
   showPage('hist');
   
