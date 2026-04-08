@@ -1783,6 +1783,12 @@ function resetLog() {
   document.getElementById('notNotes').value = '';
   document.getElementById('jobNum').value = '';
   document.getElementById('commAmt').value = '';
+  
+  // Clear integrated follow-up fields
+  document.getElementById('notFuName').value = '';
+  document.getElementById('notFuPhone').value = '';
+  document.getElementById('notFuDate').value = '';
+
   // default dates to today
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('salesDate').value = today;
