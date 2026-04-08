@@ -641,6 +641,15 @@
         </div>
       </div>
       <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
+      
+      <div class="settings-wrap" style="padding-top:0;margin-bottom:12px">
+        <div class="s-title" style="font-size:14px;color:var(--muted)">Calculator Configuration</div>
+        <div class="s-sub" style="margin-bottom:10px">Manage the default prices and units for the commission calculator.</div>
+        <button onclick="openPriceListEditor()" style="width:100%;padding:12px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+          🏷️ Manage Price List
+        </button>
+      </div>
+
       <div class="settings-wrap" style="padding-top:0">
         <div class="s-title" style="font-size:14px;color:var(--muted)">Danger Zone</div>
         <div class="s-sub" style="margin-bottom:10px">Disconnect and re-enter your Supabase credentials.</div>
@@ -832,7 +841,7 @@
       <!-- PAR GAP INDICATOR -->
       <div id="ccParGap" style="display:none;border-radius:10px;padding:8px 12px;margin-bottom:8px;font-size:12px;font-weight:700;line-height:1.6;transition:background .2s"></div>
 
-      <div style="background:#F0FDF4;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;line-height:1.8">
+    <div style="background:#F0FDF4;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;line-height:1.8">
         <!-- At-par / above-par rows -->
         <div id="ccAtParRows">
           <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Par Commission (8% of par)</span><span id="ccParComm" style="font-weight:700">$0.00</span></div>
@@ -848,6 +857,27 @@
         </div>
         <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid #BBF7D0;margin-top:4px"><span style="font-weight:800;color:var(--green-dark)">TOTAL COMMISSION</span><span id="ccTotal" style="font-weight:900;font-size:15px;color:var(--green-dark)">$0.00</span></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Price List Editor Overlay -->
+<div class="edit-overlay" id="priceListOverlay" onclick="if(event.target===this)closePriceListEditor()">
+  <div class="edit-sheet" style="max-height:94vh; padding:0">
+    <div class="es-hdr" style="padding:14px 20px; border-bottom:1.5px solid var(--border)">
+      <span class="es-title">🏷️ Edit Price List</span>
+      <button class="es-close" onclick="closePriceListEditor()">✕</button>
+    </div>
+    <div id="plBody" style="padding:16px 20px 100px; overflow-y:auto; max-height:calc(94vh - 160px)">
+      <!-- Price list items injected here -->
+      <div id="plContent"></div>
+      <button onclick="addPriceRow()" style="width:100%; padding:14px; border:2px dashed var(--border); border-radius:12px; background:transparent; color:var(--muted); font-weight:700; cursor:pointer; margin-top:10px">+ Add New Item</button>
+    </div>
+    <div style="position:absolute; bottom:0; left:0; right:0; background:#fff; border-top:1.5px solid var(--border); padding:16px 20px 24px">
+      <button onclick="savePriceList()" style="width:100%; padding:14px; border:none; border-radius:12px; background:var(--green); color:#fff; font-size:15px; font-weight:800; cursor:pointer; box-shadow:0 4px 14px rgba(34,197,94,0.3)">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
       <button onclick="applyCommCalc()" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:11px;font-family:'Inter',sans-serif;font-size:14px;font-weight:800;cursor:pointer">✅ Apply to Sale</button>
     </div>
   </div>
@@ -2169,7 +2199,7 @@ async function exportCommCSV() {
 // ─────────────────────────────────────────
 // COMMISSION CALCULATOR
 // ─────────────────────────────────────────
-const PRICE_LIST = [
+const DEFAULT_PRICE_LIST = [
   // label, unit, price, section
   { s:'LeafFilter Installation', l:'1st Floor – 5"',            u:'ft',  p:39 },
   { s:'LeafFilter Installation', l:'1st Floor – 6"',            u:'ft',  p:40 },
@@ -2205,6 +2235,8 @@ const PRICE_LIST = [
   { s:'Gutter Extras',            l:'Outside Vendor (materials × 3.5)', u:'$mat', p:3.5 },
 ];
 
+let PRICE_LIST = JSON.parse(localStorage.getItem('cc_price_list')) || DEFAULT_PRICE_LIST;
+
 let ccTarget = 'log'; // 'log' or 'edit'
 
 function openCommCalc(target) {
@@ -2218,6 +2250,121 @@ function openCommCalc(target) {
 function closeCommCalc(e) {
   if (e && e.target !== document.getElementById('commCalcOverlay')) return;
   document.getElementById('commCalcOverlay').classList.remove('open');
+}
+
+// PRICE LIST EDITOR
+// ─────────────────────────────────────────
+function openPriceListEditor() {
+  renderPriceListEditor();
+  document.getElementById('priceListOverlay').classList.add('open');
+}
+
+function closePriceListEditor() {
+  document.getElementById('priceListOverlay').classList.remove('open');
+}
+
+let _localPriceList = [];
+
+function renderPriceListEditor() {
+  _localPriceList = JSON.parse(JSON.stringify(PRICE_LIST));
+  const container = document.getElementById('plContent');
+  container.innerHTML = _localPriceList.map((item, i) => `
+    <div style="background:#F9FAFB;border:1.5px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;position:relative">
+      <button onclick="removePriceRow(${i})" style="position:absolute;top:-8px;right:-8px;width:24px;height:24px;background:var(--red);color:#fff;border:none;border-radius:50%;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.2)">✕</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Section</label>
+          <input type="text" class="fi" style="font-size:12px;padding:8px" value="${item.s}" oninput="_localPriceList[${i}].s=this.value">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Label</label>
+          <input type="text" class="fi" style="font-size:12px;padding:8px" value="${item.l}" oninput="_localPriceList[${i}].l=this.value">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Unit (ft, ea, etc)</label>
+          <input type="text" class="fi" style="font-size:12px;padding:8px" value="${item.u}" oninput="_localPriceList[${i}].u=this.value">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Base Price ($)</label>
+          <input type="number" step="0.01" class="fi" style="font-size:12px;padding:8px" value="${item.p}" oninput="_localPriceList[${i}].p=parseFloat(this.value)||0">
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addPriceRow() {
+  _localPriceList.push({ s:'New Section', l:'New Item', u:'ft', p:0 });
+  const container = document.getElementById('plContent');
+  const i = _localPriceList.length - 1;
+  const div = document.createElement('div');
+  div.style.cssText = "background:#F9FAFB;border:1.5px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;position:relative";
+  div.innerHTML = `
+    <button onclick="removePriceRow(${i})" style="position:absolute;top:-8px;right:-8px;width:24px;height:24px;background:var(--red);color:#fff;border:none;border-radius:50%;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.2)">✕</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Section</label>
+        <input type="text" class="fi" style="font-size:12px;padding:8px" value="New Section" oninput="_localPriceList[${i}].s=this.value">
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Label</label>
+        <input type="text" class="fi" style="font-size:12px;padding:8px" value="New Item" oninput="_localPriceList[${i}].l=this.value">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Unit (ft, ea, etc)</label>
+        <input type="text" class="fi" style="font-size:12px;padding:8px" value="ft" oninput="_localPriceList[${i}].u=this.value">
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Base Price ($)</label>
+        <input type="number" step="0.01" class="fi" style="font-size:12px;padding:8px" value="0" oninput="_localPriceList[${i}].p=parseFloat(this.value)||0">
+      </div>
+    </div>`;
+  container.appendChild(div);
+}
+
+function removePriceRow(i) {
+  _localPriceList.splice(i, 1);
+  renderPriceListWithCurrentState();
+}
+
+function renderPriceListWithCurrentState() {
+  const container = document.getElementById('plContent');
+  container.innerHTML = _localPriceList.map((item, i) => `
+    <div style="background:#F9FAFB;border:1.5px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;position:relative">
+      <button onclick="removePriceRow(${i})" style="position:absolute;top:-8px;right:-8px;width:24px;height:24px;background:var(--red);color:#fff;border:none;border-radius:50%;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.2)">✕</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Section</label>
+          <input type="text" class="fi" style="font-size:12px;padding:8px" value="${item.s}" oninput="_localPriceList[${i}].s=this.value">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Label</label>
+          <input type="text" class="fi" style="font-size:12px;padding:8px" value="${item.l}" oninput="_localPriceList[${i}].l=this.value">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Unit</label>
+          <input type="text" class="fi" style="font-size:12px;padding:8px" value="${item.u}" oninput="_localPriceList[${i}].u=this.value">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Price ($)</label>
+          <input type="number" step="0.01" class="fi" style="font-size:12px;padding:8px" value="${item.p}" oninput="_localPriceList[${i}].p=parseFloat(this.value)||0">
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function savePriceList() {
+  PRICE_LIST = _localPriceList;
+  localStorage.setItem('cc_price_list', JSON.stringify(PRICE_LIST));
+  toast('Price list updated ✓');
+  closePriceListEditor();
 }
 
 function renderCCItems() {
