@@ -1103,7 +1103,15 @@ function countWorkDays(start, end) {
     cur.setDate(cur.getDate() + 1);
   }
   return count || 1; // Default to 1 to avoid div-by-zero
-}// ─────────────────────────────────────────
+}
+
+// Helper: build a local YYYY-MM-DD string (avoids UTC-shift bug)
+function localDate(d) {
+  if (!d) return '';
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+// ─────────────────────────────────────────
 async function loadReasons() {
   const { data } = await sb.from('not_sold_reasons').select('*').order('sort_order');
   reasons = data || [];
@@ -1294,6 +1302,10 @@ async function loadDash() {
     .select('id')
     .eq('followup_done', false)
     .lte('followup_date', todayStr);
+    
+  if (fuErr) {
+    console.error('Follow-up load error. DB may need update:', fuErr);
+  }
     
   const fuBar = document.getElementById('fuActionCenter');
   if (!fuErr && dueFu && dueFu.length > 0) {
@@ -1643,63 +1655,86 @@ function copyFuMsg() {
 
 async function loadFollowUps() {
   const list = document.getElementById('fuList');
-  list.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  const showDone = document.getElementById('fuShowDone')?.checked;
-  let q = sb.from('leads').select('id,followup_name,followup_phone,followup_date,followup_done,status,notes,is_cancelled,not_sold_reasons(label)')
-    .not('followup_date','is',null).order('followup_date', {ascending:true});
-  if (!showDone) q = q.neq('followup_done', true);
-  const { data, error } = await q;
-  if (error || !data?.length) {
-    list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">No follow-ups yet.<br><span style="font-size:11px;opacity:.7">Tap 📞 Follow Up on any not-sold lead.</span></div>';
-    return;
+  try {
+    list.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    const showDone = document.getElementById('fuShowDone')?.checked;
+    
+    // Select necessary columns
+    let q = sb.from('leads').select('id,followup_name,followup_phone,followup_date,followup_done,status,notes,is_cancelled,not_sold_reasons(label)')
+      .not('followup_date','is',null)
+      .order('followup_date', {ascending:true});
+      
+    if (!showDone) q = q.neq('followup_done', true);
+    
+    const { data, error } = await q;
+    if (error) throw error;
+    
+    if (!data || data.length === 0) {
+      list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">No follow-ups yet.<br><span style="font-size:11px;opacity:.7">Tap 📞 Follow Up on any not-sold lead.</span></div>';
+      return;
+    }
+
+    const todayStr = localDate(new Date());
+    const groups = { overdue: [], today: [], upcoming: [], done: [] };
+    
+    data.forEach(l => {
+      if (l.followup_done) groups.done.push(l);
+      else if (l.followup_date < todayStr) groups.overdue.push(l);
+      else if (l.followup_date === todayStr) groups.today.push(l);
+      else groups.upcoming.push(l);
+    });
+
+    let html = '';
+    const renderGroup = (label, leads, color, icon) => {
+      if (!leads.length) return '';
+      return `
+        <div style="margin-top:16px; margin-bottom:10px; padding:0 4px; display:flex; align-items:center; gap:6px">
+          <span style="font-size:11px; font-weight:800; color:${color}; text-transform:uppercase; letter-spacing:.5px">${icon} ${label}</span>
+          <div style="flex:1; height:1px; background:${color}; opacity:.2"></div>
+        </div>
+        ${leads.map(l => {
+          const d = l.followup_date;
+          // Use UTC-safe date Label
+          const dateLabel = new Date(d + 'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+          const rStr = l.not_sold_reasons?.label || '—';
+          
+          // ESCAPING FOR ONCLICK: critical to prevent JS crashes
+          const esc = (s) => (s || '').replace(/'/g, "\\'").replace(/\n/g, " ");
+          const name      = esc(l.followup_name);
+          const phone     = (l.followup_phone || '').replace(/\D/g,'');
+          const reasonEsc = esc(rStr);
+          const notesEsc  = esc(l.notes);
+          
+          const statusClass = l.followup_done ? 'done' : (l.followup_date < todayStr ? 'overdue' : (l.followup_date === todayStr ? 'today' : 'upcoming'));
+
+          return `<div class="fup-card ${statusClass}">
+            <div class="fup-top">
+              <div class="fup-name">${l.followup_name || 'Customer'}</div>
+              <div style="font-size:11px; font-weight:700; color:var(--muted)">📅 ${dateLabel}</div>
+            </div>
+            <div class="fup-reason" style="margin-bottom:8px">Not Sold: ${rStr}</div>
+            <div class="fup-actions">
+              ${phone ? `<a href="tel:+1${phone}" class="fup-btn" style="background:#F0FDF4; color:#166534; border:1px solid #BBF7D0; text-decoration:none; display:flex; align-items:center; justify-content:center">📞 Call</a>` : ''}
+              <button class="fup-btn sms" onclick="openFu('${l.id}','${reasonEsc}','${name}','${phone}','${notesEsc}')">📱 SMS</button>
+              <button class="fup-btn done-btn" onclick="toggleFuDone('${l.id}',${!l.followup_done})" style="min-width:44px">${l.followup_done ? '↩':'✅'}</button>
+            </div>
+          </div>`;
+        }).join('')}
+      `;
+    };
+
+    html += renderGroup('Overdue', groups.overdue, '#EF4444', '🔴');
+    html += renderGroup('Today', groups.today, '#F59E0B', '🟡');
+    html += renderGroup('Upcoming', groups.upcoming, '#10B981', '🟢');
+    html += renderGroup('Completed', groups.done, 'var(--muted)', '✅');
+    list.innerHTML = html;
+  } catch (err) {
+    console.error('loadFollowUps Error:', err);
+    list.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">
+      ⚠️ Failed to load follow-ups.<br>
+      <span style="font-size:11px;opacity:.7">${err.message || 'Unknown error'}</span>
+    </div>`;
   }
-
-  const todayStr = localDate(new Date());
-  
-  // Categorize
-  const groups = { overdue: [], today: [], upcoming: [], done: [] };
-  data.forEach(l => {
-    if (l.followup_done) groups.done.push(l);
-    else if (l.followup_date < todayStr) groups.overdue.push(l);
-    else if (l.followup_date === todayStr) groups.today.push(l);
-    else groups.upcoming.push(l);
-  });
-
-  let html = '';
-  const renderGroup = (label, leads, color, icon) => {
-    if (!leads.length) return '';
-    return `
-      <div style="margin-top:16px; margin-bottom:10px; padding:0 4px; display:flex; align-items:center; gap:6px">
-        <span style="font-size:11px; font-weight:800; color:${color}; text-transform:uppercase; letter-spacing:.5px">${icon} ${label}</span>
-        <div style="flex:1; height:1px; background:${color}; opacity:.2"></div>
-      </div>
-      ${leads.map(l => {
-        const d = l.followup_date;
-        const dateLabel = new Date(d + 'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-        const reason = l.not_sold_reasons?.label || '—';
-        const phonePretty = l.followup_phone ? l.followup_phone.replace(/(\d{3})(\d{3})(\d{4})/,'($1) $2-$3') : '';
-        return `<div class="fup-card ${l.followup_done?'done':l.followup_date < todayStr?'overdue':l.followup_date === todayStr?'today':'upcoming'}">
-          <div class="fup-top">
-            <div class="fup-name">${l.followup_name || 'Customer'}</div>
-            <div style="font-size:11px; font-weight:700; color:var(--muted)">📅 ${dateLabel}</div>
-          </div>
-          <div class="fup-reason" style="margin-bottom:8px">Not Sold: ${reason}</div>
-          <div class="fup-actions">
-            ${l.followup_phone ? `<a href="tel:+1${l.followup_phone}" class="fup-btn" style="background:#F0FDF4; color:#166534; border:1px solid #BBF7D0; text-decoration:none; display:flex; align-items:center; justify-content:center">📞 Call</a>` : ''}
-            <button class="fup-btn sms" onclick="openFu('${l.id}','${(l.followup_name||'').replace(/'/g,"\\'")}','${l.followup_phone||''}','${reason.replace(/'/g,"\\'")}', '${(l.notes||'').replace(/'/g,"\\'")}')">📱 SMS</button>
-            <button class="fup-btn done-btn" onclick="toggleFuDone('${l.id}',${!l.followup_done})" style="min-width:44px">${l.followup_done ? '↩':'✅'}</button>
-          </div>
-        </div>`;
-      }).join('')}
-    `;
-  };
-
-  html += renderGroup('Overdue', groups.overdue, '#EF4444', '🔴');
-  html += renderGroup('Today', groups.today, '#F59E0B', '🟡');
-  html += renderGroup('Upcoming', groups.upcoming, '#10B981', '🟢');
-  html += renderGroup('Completed', groups.done, 'var(--muted)', '✅');
-
-  list.innerHTML = html;
 }
 
 function fuQuickSMS(phone, name, reasonLabel) {
@@ -1872,16 +1907,9 @@ async function filterHist(range, btn) {
   const el = document.getElementById('histList');
   el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   const now = new Date();
-  // Helper: build a local YYYY-MM-DD string (avoids UTC-shift bug when toISOString() returns next day)
-  const localDate = d => {
-    const pad = n => String(n).padStart(2,'0');
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  };
   let fromDate = null; 
   let toDate   = null;
   let fromISO  = null;
-
-  // Show/Hide custom picker
   const picker = document.getElementById('histCustomPicker');
   if (range === 'custom') {
     picker.style.display = 'flex';
