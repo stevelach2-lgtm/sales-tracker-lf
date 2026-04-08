@@ -378,6 +378,18 @@
           <input type="date" id="custE" onchange="loadDash()" style="flex:1; border:1.5px solid var(--border); border-radius:8px; padding:6px 10px; font-family:'Inter',sans-serif; font-size:12px; outline:none">
         </div>
       </div>
+      <!-- Follow-up Action Center -->
+      <div id="fuActionCenter" style="display:none; background:linear-gradient(135deg, #EFF6FF, #DBEAFE); border:1.5px solid #BFDBFE; border-radius:14px; padding:12px 16px; margin-bottom:14px; align-items:center; justify-content:space-between; cursor:pointer" onclick="goTo('hist'); switchHistTab('followups', document.querySelectorAll('.htab')[1])">
+        <div style="display:flex; align-items:center; gap:10px">
+          <div style="width:40px; height:40px; border-radius:10px; background:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 6px rgba(0,0,0,0.05)">📞</div>
+          <div>
+            <div id="fuActionTitle" style="font-size:13px; font-weight:800; color:#1E40AF">Follow-ups due today</div>
+            <div id="fuActionSub" style="font-size:11px; color:#3B82F6; font-weight:600">Tap to view your task list</div>
+          </div>
+        </div>
+        <div id="fuActionBadge" style="background:#EF4444; color:#fff; font-size:12px; font-weight:900; padding:4px 10px; border-radius:20px; box-shadow:0 2px 4px rgba(239,68,68,0.3)">0</div>
+      </div>
+
       <!-- Goal Progress Bars -->
       <div class="goal-section" id="goalSection">
         <div class="goal-row">
@@ -522,9 +534,30 @@
             </div>
             <div></div>
           </div>
-          <div class="fg" style="margin-bottom:0">
+          <div class="fg" style="margin-bottom:12px">
             <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
             <textarea class="fi" id="notNotes" placeholder="e.g. Call back in spring, left card..."></textarea>
+          </div>
+
+          <!-- Integrated Follow-up Section -->
+          <div style="background:#F9FAFB; border:1.5px dashed var(--border); border-radius:12px; padding:12px; margin-bottom:12px">
+            <div style="font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; margin-bottom:10px; display:flex; align-items:center; gap:5px">
+              📞 Quick Follow-Up <span style="font-weight:400; text-transform:none">(optional)</span>
+            </div>
+            <div class="fg2" style="margin-bottom:8px">
+              <div>
+                <label class="fl" style="font-size:10px">Customer First Name</label>
+                <input type="text" class="fi" id="notFuName" placeholder="Michael" style="padding:8px 10px; font-size:12px">
+              </div>
+              <div>
+                <label class="fl" style="font-size:10px">Phone Number</label>
+                <input type="tel" class="fi" id="notFuPhone" placeholder="555..." style="padding:8px 10px; font-size:12px">
+              </div>
+            </div>
+            <div class="fg" style="margin-bottom:0">
+              <label class="fl" style="font-size:10px">Follow-Up Date</label>
+              <input type="date" class="fi" id="notFuDate" style="padding:8px 10px; font-size:12px">
+            </div>
           </div>
           <button class="sbtn ns" onclick="submitLead('not_sold')">❌ Log Not Sold</button>
         </div>
@@ -644,10 +677,15 @@
       
       <div class="settings-wrap" style="padding-top:0;margin-bottom:12px">
         <div class="s-title" style="font-size:14px;color:var(--muted)">Calculator Configuration</div>
-        <div class="s-sub" style="margin-bottom:10px">Manage the default prices and units for the commission calculator.</div>
-        <button onclick="openPriceListEditor()" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
-          🏷️ Manage Price List
-        </button>
+        <div class="s-sub" style="margin-bottom:10px">Manage your price list and SMS message templates.</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+          <button onclick="openPriceListEditor()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+            🏷️ Prices
+          </button>
+          <button onclick="openFuTemplateEditor()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+            📱 SMS
+          </button>
+        </div>
       </div>
 
       <div class="settings-wrap" style="padding-top:0">
@@ -700,47 +738,59 @@
 </div>
 
 <!-- Follow-Up Modal -->
-<div class="fu-overlay" id="fuOverlay" onclick="if(event.target===this)closeFu()">
-  <div class="fu-sheet">
-    <div class="fu-hdr">
-      <span style="font-size:16px;font-weight:800">📞 Set Follow-Up</span>
-      <button onclick="closeFu()" style="width:30px;height:30px;border-radius:50%;border:none;background:#F3F4F6;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
+<!-- Follow-Up Modal -->
+<div class="edit-overlay" id="fuOverlay" onclick="if(event.target===this)closeFu()">
+  <div class="edit-sheet" style="max-height:94vh; padding:0">
+    <div class="es-hdr" style="padding:14px 20px; border-bottom:1.5px solid var(--border)">
+      <span class="es-title" id="fuTitle">📞 Schedule Follow-Up</span>
+      <button class="es-close" onclick="closeFu()">✕</button>
     </div>
-    <div class="fu-body">
+    
+    <div style="padding:16px 20px 100px; overflow-y:auto; max-height:calc(94vh - 160px)">
+      <!-- Quick Context Box -->
+      <div id="fuContextSection" style="background:#F0F9FF; border:1px solid #BAE6FD; border-radius:12px; padding:12px; margin-bottom:16px; display:none">
+        <div style="font-size:10px; font-weight:800; color:#0369A1; text-transform:uppercase; margin-bottom:4px">Original Lead Context</div>
+        <div id="fuContextReason" style="font-size:13px; font-weight:700; color:#0C4A6E; margin-bottom:2px"></div>
+        <div id="fuContextNotes" style="font-size:11px; color:#0369A1; font-style:italic"></div>
+      </div>
+
       <input type="hidden" id="fuLeadId">
       <div class="fg">
-        <label class="fl">Customer First Name</label>
-        <input type="text" class="fi" id="fuName" placeholder="e.g. Michael" oninput="refreshFuMsg()">
+        <label class="fl">Customer Name</label>
+        <input type="text" class="fi" id="fuName" placeholder="Michael" oninput="refreshFuMsg()">
       </div>
       <div class="fg">
         <label class="fl">Phone Number</label>
-        <input type="tel" class="fi" id="fuPhone" placeholder="(555) 000-0000" inputmode="tel">
+        <input type="tel" class="fi" id="fuPhone" placeholder="555-555-5555" maxlength="14">
       </div>
       <div class="fg">
         <label class="fl">Reach-Out Date</label>
-        <input type="date" class="fi" id="fuDate" style="font-size:14px">
+        <input type="date" class="fi" id="fuDate">
       </div>
       <div class="fg">
-        <label class="fl" style="margin-bottom:6px">📝 Message to Send</label>
-        <select id="fuMsgAngle" class="fi" style="font-size:13px;padding:11px 13px;margin-bottom:8px" onchange="refreshFuMsg()">
-          <option value="default">💬 General Follow-Up</option>
-          <option value="price">💰 Price was a concern</option>
-          <option value="think">🤔 Needs to think about it</option>
-          <option value="quotes">🔍 Shopping other quotes</option>
-          <option value="spouse">👫 Needs to discuss with spouse</option>
-          <option value="financing">🏦 Financing / Bank Turn Down</option>
-          <option value="reschedule">📅 Asked me to call back</option>
-          <option value="nothome">🏠 No one was home</option>
-          <option value="notinterested">🚫 Not interested</option>
-          <option value="existing">🛡️ Already has gutter protection</option>
+        <label class="fl">Message Angle</label>
+        <select class="fi" id="fuMsgAngle" onchange="refreshFuMsg()" style="appearance:none; background:url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394A3B8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E') no-repeat right 12px center; background-size:18px">
+          <option value="warm">Warm Follow-up</option>
+          <option value="price">Price Objection</option>
+          <option value="think">Spouse/Think Over</option>
+          <option value="quotes">Shopping Quotes</option>
+          <option value="financing">Financing Concern</option>
+          <option value="reschedule">Reschedule</option>
+          <option value="nothome">Missed/Not Home</option>
+          <option value="notinterested">Not Interested (Old)</option>
+          <option value="existing">Existing Product</option>
+          <option value="default">Custom/Other</option>
         </select>
-        <textarea class="fi" id="fuMsg" rows="5" style="font-size:13px;line-height:1.5;resize:none"></textarea>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:14px">
-        <button onclick="sendFuSMS()" style="flex:1;padding:11px;background:var(--green-light);color:var(--green-dark);border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">📱 Open in Messages</button>
-        <button onclick="copyFuMsg()" style="flex:1;padding:11px;background:#F3F4F6;color:var(--text);border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">📋 Copy Message</button>
+      <div class="fg">
+        <label class="fl">Suggested Message</label>
+        <textarea class="fi" id="fuMsg" style="height:100px; padding:12px; font-size:13px; line-height:1.5"></textarea>
       </div>
-      <button onclick="saveFu()" style="width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:6px">💾 Save Follow-Up</button>
+    </div>
+
+    <div style="position:absolute; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--border); padding:16px 20px 24px; display:grid; grid-template-columns:1fr 1fr; gap:10px">
+      <button onclick="sendFuSMS()" style="padding:14px; border:none; border-radius:12px; background:var(--blue); color:#fff; font-size:14px; font-weight:800; cursor:pointer">📱 Send SMS</button>
+      <button onclick="saveFu()" style="padding:14px; border:none; border-radius:12px; background:var(--green); color:#fff; font-size:14px; font-weight:800; cursor:pointer">💾 Save Plan</button>
     </div>
   </div>
 </div>
@@ -1237,6 +1287,22 @@ async function loadDash() {
   renderNsBreakdown(cur);
   renderGoalBars(c);
   calcStreak();
+
+  // Follow-up alerts
+  const todayStr = localDate(new Date());
+  const { data: dueFu, error: fuErr } = await sb.from('leads')
+    .select('id')
+    .eq('followup_done', false)
+    .lte('followup_date', todayStr);
+    
+  const fuBar = document.getElementById('fuActionCenter');
+  if (!fuErr && dueFu && dueFu.length > 0) {
+    fuBar.style.display = 'flex';
+    document.getElementById('fuActionBadge').textContent = dueFu.length;
+    document.getElementById('fuActionTitle').textContent = dueFu.length === 1 ? '1 follow-up due today' : `${dueFu.length} follow-ups due today`;
+  } else {
+    fuBar.style.display = 'none';
+  }
 }
 
 function renderNsBreakdown(leads) {
@@ -1477,13 +1543,22 @@ function switchHistTab(tab, btn) {
 // ─────────────────────────────────────────
 let _fuLead = null;
 
-function openFu(leadId, reasonLabel) {
+function openFu(leadId, reasonLabel, name, phone, notes) {
   document.getElementById('fuLeadId').value = leadId;
-  document.getElementById('fuName').value   = '';
-  document.getElementById('fuPhone').value  = '';
-  document.getElementById('fuDate').value   = '';
+  document.getElementById('fuName').value = name || '';
+  document.getElementById('fuPhone').value = phone || '';
+  document.getElementById('fuDate').value = new Date().toISOString().split('T')[0];
+  
+  // Quick Context Display
+  const ctx = document.getElementById('fuContextSection');
+  if (reasonLabel || notes) {
+    ctx.style.display = 'block';
+    document.getElementById('fuContextReason').textContent = reasonLabel || 'No reason recorded';
+    document.getElementById('fuContextNotes').textContent = notes || '';
+  } else {
+    ctx.style.display = 'none';
+  }
 
-  // Auto-detect best message angle from reason and pre-select dropdown
   const r = (reasonLabel || '').toLowerCase();
   let autoAngle = 'default';
   if      (r.includes('price') || r.includes('too high') || r.includes('expensive'))                        autoAngle = 'price';
@@ -1502,27 +1577,39 @@ function openFu(leadId, reasonLabel) {
   document.getElementById('fuOverlay').classList.add('open');
 }
 
+
+
 function closeFu() { document.getElementById('fuOverlay').classList.remove('open'); }
 
 // Message templates keyed by dropdown value
-const FU_MSGS = {
-  price:         name => `Hi ${name}! This is Steve from LeafFilter. I know price was a concern when we last spoke — I actually just spoke with my Install Manager and we have a large commercial job going on in the area, and I think I could save you a bunch of money. Is that something you might be interested in? 😊`,
-  think:         name => `Hi ${name}! This is Steve from LeafFilter. I know you wanted some time to think things over after our last visit. Just checking in to see if you had any questions I could help answer. No pressure at all! 😊`,
-  quotes:        name => `Hi ${name}! This is Steve from LeafFilter. I know you were shopping around when we last spoke — just wanted to check in. LeafFilter is the only product with a lifetime no-clog guarantee. Happy to chat and compare if it would help! 😊`,
-  spouse:        name => `Hi ${name}! This is Steve from LeafFilter. I know you wanted to chat with your spouse before making a decision. Just checking in to see if you've had a chance to discuss it and if you'd like to move forward! 😊`,
-  financing:     name => `Hi ${name}! This is Steve from LeafFilter. I know financing was a challenge last time. I wanted to reach out because we may have some other options available that could work better for you. Would you be open to a quick chat? 😊`,
-  reschedule:    name => `Hi ${name}! This is Steve from LeafFilter. You asked me to follow up, so here I am! 😄 Would you be open to connecting to go over our gutter protection options? 😊`,
-  nothome:       name => `Hi ${name}! This is Steve from LeafFilter — I stopped by recently about gutter protection and missed you. I'd love to connect when it's a good time! Would you be open to a quick chat? 😊`,
-  notinterested: name => `Hi ${name}! This is Steve from LeafFilter. I know the timing might not have been right when we last spoke. Just wanted to check in — happy to answer any questions if anything has changed! 😊`,
-  existing:      name => `Hi ${name}! This is Steve from LeafFilter. Just wanted to follow up — if you're ever not 100% satisfied with your current gutter protection, we're here. Our lifetime no-clog guarantee really sets us apart! 😊`,
-  default:       name => `Hi ${name}! This is Steve from LeafFilter. I wanted to follow up on our previous conversation about gutter protection. Just wanted to check in and see if you wanted to move forward 😊`,
+const DEFAULT_FU_MSGS = {
+  price:         `Hi [Name]! This is Steve from LeafFilter. I know price was a concern when we last spoke — I actually just spoke with my Install Manager and we have a large commercial job going on in the area, and I think I could save you a bunch of money. Is that something you might be interested in? 😊`,
+  think:         `Hi [Name]! This is Steve from LeafFilter. I know you wanted some time to think things over after our last visit. Just checking in to see if you had any questions I could help answer. No pressure at all! 😊`,
+  quotes:        `Hi [Name]! This is Steve from LeafFilter. I know you were shopping around when we last spoke — just wanted to check in. LeafFilter is the only product with a lifetime no-clog guarantee. Happy to chat and compare if it would help! 😊`,
+  spouse:        `Hi [Name]! This is Steve from LeafFilter. I know you wanted to chat with your spouse before making a decision. Just checking in to see if you've had a chance to discuss it and if you'd like to move forward! 😊`,
+  financing:     `Hi [Name]! This is Steve from LeafFilter. I know financing was a challenge last time. I wanted to reach out because we may have some other options available that could work better for you. Would you be open to a quick chat? 😊`,
+  reschedule:    `Hi [Name]! This is Steve from LeafFilter. You asked me to follow up, so here I am! 😄 Would you be open to connecting to go over our gutter protection options? 😊`,
+  nothome:       `Hi [Name]! This is Steve from LeafFilter — I stopped by recently about gutter protection and missed you. I'd love to connect when it's a good time! Would you be open to a quick chat? 😊`,
+  notinterested: `Hi [Name]! This is Steve from LeafFilter. I know the timing might not have been right when we last spoke. Just wanted to check in — happy to answer any questions if anything has changed! 😊`,
+  existing:      `Hi [Name]! This is Steve from LeafFilter. Just wanted to follow up — if you're ever not 100% satisfied with your current gutter protection, we're here. Our lifetime no-clog guarantee really sets us apart! 😊`,
+  default:       `Hi [Name]! This is Steve from LeafFilter. I wanted to follow up on our previous conversation about gutter protection. Just wanted to check in and see if you wanted to move forward 😊`,
 };
+
+let FU_MSGS = JSON.parse(localStorage.getItem('cc_fu_msgs')) || DEFAULT_FU_MSGS;
 
 function refreshFuMsg() {
   const name  = document.getElementById('fuName').value.trim() || 'there';
   const angle = document.getElementById('fuMsgAngle').value || 'default';
-  const fn    = FU_MSGS[angle] || FU_MSGS.default;
-  document.getElementById('fuMsg').value = fn(name);
+  const tpl   = FU_MSGS[angle] || FU_MSGS.default;
+  
+  // If it's a function (old style), call it. If string, replace placeholder.
+  let msg = '';
+  if (typeof tpl === 'function') {
+    msg = tpl(name);
+  } else {
+    msg = tpl.replace('[Name]', name);
+  }
+  document.getElementById('fuMsg').value = msg;
 }
 
 async function saveFu() {
@@ -1558,7 +1645,7 @@ async function loadFollowUps() {
   const list = document.getElementById('fuList');
   list.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   const showDone = document.getElementById('fuShowDone')?.checked;
-  let q = sb.from('leads').select('id,followup_name,followup_phone,followup_date,followup_done,status,is_cancelled,not_sold_reasons(label)')
+  let q = sb.from('leads').select('id,followup_name,followup_phone,followup_date,followup_done,status,notes,is_cancelled,not_sold_reasons(label)')
     .not('followup_date','is',null).order('followup_date', {ascending:true});
   if (!showDone) q = q.neq('followup_done', true);
   const { data, error } = await q;
@@ -1566,31 +1653,53 @@ async function loadFollowUps() {
     list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">No follow-ups yet.<br><span style="font-size:11px;opacity:.7">Tap 📞 Follow Up on any not-sold lead.</span></div>';
     return;
   }
-  const today = new Date().toISOString().split('T')[0];
-  list.innerHTML = data.map(l => {
-    const done   = l.followup_done;
-    const d      = l.followup_date;
-    const status = done ? 'done' : d < today ? 'overdue' : d === today ? 'today' : 'upcoming';
-    const badge  = done ? '✅ Done' : d < today ? '🔴 Overdue' : d === today ? '🟡 Today' : '🟢 Upcoming';
-    const dateLabel = new Date(d + 'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-    const reason = l.not_sold_reasons?.label || '—';
-    const phone  = l.followup_phone ? `<a href="tel:+1${l.followup_phone}" style="color:var(--green-dark);font-size:11px;font-weight:700;text-decoration:none">📲 ${l.followup_phone.replace(/(\d{3})(\d{3})(\d{4})/,'($1) $2-$3')}</a>` : '';
-    return `<div class="fup-card ${status}${done?' done':''}">
-      <div class="fup-top">
-        <div class="fup-name">${l.followup_name || 'Customer'}</div>
-        <span class="fup-badge ${status}">${badge}</span>
+
+  const todayStr = localDate(new Date());
+  
+  // Categorize
+  const groups = { overdue: [], today: [], upcoming: [], done: [] };
+  data.forEach(l => {
+    if (l.followup_done) groups.done.push(l);
+    else if (l.followup_date < todayStr) groups.overdue.push(l);
+    else if (l.followup_date === todayStr) groups.today.push(l);
+    else groups.upcoming.push(l);
+  });
+
+  let html = '';
+  const renderGroup = (label, leads, color, icon) => {
+    if (!leads.length) return '';
+    return `
+      <div style="margin-top:16px; margin-bottom:10px; padding:0 4px; display:flex; align-items:center; gap:6px">
+        <span style="font-size:11px; font-weight:800; color:${color}; text-transform:uppercase; letter-spacing:.5px">${icon} ${label}</span>
+        <div style="flex:1; height:1px; background:${color}; opacity:.2"></div>
       </div>
-      <div class="fup-reason">Not Sold: ${reason}</div>
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="fup-date">📅 ${dateLabel}</div>
-        ${phone}
-      </div>
-      <div class="fup-actions">
-        <button class="fup-btn sms" onclick="fuQuickSMS('${l.followup_phone||''}','${(l.followup_name||'there').replace(/'/g,"\\'")}',' ${reason.replace(/'/g,"\\'")}')">📱 SMS</button>
-        <button class="fup-btn done-btn${done?' active':''}" onclick="toggleFuDone('${l.id}',${!done})">${done ? '↩ Reopen':'✅ Mark Done'}</button>
-      </div>
-    </div>`;
-  }).join('');
+      ${leads.map(l => {
+        const d = l.followup_date;
+        const dateLabel = new Date(d + 'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+        const reason = l.not_sold_reasons?.label || '—';
+        const phonePretty = l.followup_phone ? l.followup_phone.replace(/(\d{3})(\d{3})(\d{4})/,'($1) $2-$3') : '';
+        return `<div class="fup-card ${l.followup_done?'done':l.followup_date < todayStr?'overdue':l.followup_date === todayStr?'today':'upcoming'}">
+          <div class="fup-top">
+            <div class="fup-name">${l.followup_name || 'Customer'}</div>
+            <div style="font-size:11px; font-weight:700; color:var(--muted)">📅 ${dateLabel}</div>
+          </div>
+          <div class="fup-reason" style="margin-bottom:8px">Not Sold: ${reason}</div>
+          <div class="fup-actions">
+            ${l.followup_phone ? `<a href="tel:+1${l.followup_phone}" class="fup-btn" style="background:#F0FDF4; color:#166534; border:1px solid #BBF7D0; text-decoration:none; display:flex; align-items:center; justify-content:center">📞 Call</a>` : ''}
+            <button class="fup-btn sms" onclick="openFu('${l.id}','${(l.followup_name||'').replace(/'/g,"\\'")}','${l.followup_phone||''}','${reason.replace(/'/g,"\\'")}', '${(l.notes||'').replace(/'/g,"\\'")}')">📱 SMS</button>
+            <button class="fup-btn done-btn" onclick="toggleFuDone('${l.id}',${!l.followup_done})" style="min-width:44px">${l.followup_done ? '↩':'✅'}</button>
+          </div>
+        </div>`;
+      }).join('')}
+    `;
+  };
+
+  html += renderGroup('Overdue', groups.overdue, '#EF4444', '🔴');
+  html += renderGroup('Today', groups.today, '#F59E0B', '🟡');
+  html += renderGroup('Upcoming', groups.upcoming, '#10B981', '🟢');
+  html += renderGroup('Completed', groups.done, 'var(--muted)', '✅');
+
+  list.innerHTML = html;
 }
 
 function fuQuickSMS(phone, name, reasonLabel) {
@@ -1706,10 +1815,30 @@ async function submitLead(type) {
     if (!selReason) { toast('Please select a reason', 'err'); return; }
     const notes = document.getElementById('notNotes').value.trim();
     const nsDate = document.getElementById('notSoldDate').value || null;
-    const { data, error } = await sb.from('leads').insert({ status: 'not_sold', reason_id: selReason, notes: notes || null, sales_date: nsDate }).select().single();
+    
+    // Integrated follow-up values
+    const fuName = document.getElementById('notFuName').value.trim();
+    const fuPhone = document.getElementById('notFuPhone').value.trim();
+    const fuDate = document.getElementById('notFuDate').value || null;
+
+    const payload = { 
+      status: 'not_sold', 
+      reason_id: selReason, 
+      notes: notes || null, 
+      sales_date: nsDate 
+    };
+
+    if (fuDate) {
+      payload.followup_date = fuDate;
+      payload.followup_name = fuName || 'Customer';
+      payload.followup_phone = fuPhone || null;
+      payload.followup_done = false;
+    }
+
+    const { data, error } = await sb.from('leads').insert(payload).select().single();
     if (error) { toast('Error saving lead', 'err'); return; }
     lastId = data.id;
-    showUndo('Not sold lead logged');
+    showUndo('Not sold lead logged' + (fuDate ? ' + Follow-up scheduled' : ''));
     resetLog();
   }
 }
@@ -2365,6 +2494,69 @@ function savePriceList() {
   localStorage.setItem('cc_price_list', JSON.stringify(PRICE_LIST));
   toast('Price list updated ✓');
   closePriceListEditor();
+}
+
+// SMS TEMPLATE EDITOR
+// ─────────────────────────────────────────
+function openFuTemplateEditor() {
+  renderFuTemplateEditor();
+  document.getElementById('priceListOverlay').classList.add('open'); // reusing overlay shell
+  document.querySelector('#priceListOverlay .es-title').textContent = '📱 SMS Templates';
+}
+
+let _localFuMsgs = {};
+
+function renderFuTemplateEditor() {
+  _localFuMsgs = JSON.parse(JSON.stringify(FU_MSGS));
+  const container = document.getElementById('plContent'); // reusing container
+  const keys = Object.keys(_localFuMsgs);
+  
+  container.innerHTML = keys.map((key, i) => `
+    <div style="background:#F9FAFB;border:1.5px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;position:relative">
+      <button onclick="removeFuRow('${key}')" style="position:absolute;top:-8px;right:-8px;width:24px;height:24px;background:var(--red);color:#fff;border:none;border-radius:50%;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.2)">✕</button>
+      <div style="margin-bottom:8px">
+        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Template Name</label>
+        <input type="text" class="fi" style="font-size:12px;padding:8px" value="${key}" disabled>
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Message Body (use [Name] for placeholder)</label>
+        <textarea class="fi" style="font-size:12px;padding:8px;height:60px" oninput="_localFuMsgs['${key}']=this.value">${_localFuMsgs[key]}</textarea>
+      </div>
+    </div>
+  `).join('') + `
+    <div style="margin-top:20px; padding:10px; background:#EFF6FF; border-radius:12px; border:1px solid #BFDBFE">
+      <div style="font-size:11px; font-weight:700; margin-bottom:4px; color:#1E40AF">Add New Template</div>
+      <input type="text" id="newTplName" placeholder="e.g. Next Season" class="fi" style="padding:8px; font-size:12px; margin-bottom:8px">
+      <button onclick="addFuRow()" style="width:100%; padding:8px; background:var(--blue); color:#fff; border:none; border-radius:8px; font-weight:700; font-size:12px">+ Add Template</button>
+    </div>
+  `;
+  
+  // Update the save button to use the correct function
+  const sheet = document.getElementById('priceListOverlay');
+  const saveBtn = sheet.querySelector('button[onclick*="save"]');
+  saveBtn.setAttribute('onclick', 'saveFuTemplates()');
+}
+
+function addFuRow() {
+  const name = document.getElementById('newTplName').value.trim();
+  if (!name) { toast('Enter a name', 'err'); return; }
+  _localFuMsgs[name] = 'New message for [Name]...';
+  renderFuTemplateEditor();
+}
+
+function removeFuRow(key) {
+  delete _localFuMsgs[key];
+  renderFuTemplateEditor();
+}
+
+function saveFuTemplates() {
+  FU_MSGS = _localFuMsgs;
+  localStorage.setItem('cc_fu_msgs', JSON.stringify(FU_MSGS));
+  toast('Templates updated ✓');
+  closePriceListEditor();
+  // Restore original overlay state for price list use
+  document.querySelector('#priceListOverlay .es-title').textContent = '🏷️ Edit Price List';
+  document.getElementById('priceListOverlay').querySelector('button[onclick*="save"]').setAttribute('onclick', 'savePriceList()');
 }
 
 function renderCCItems() {
