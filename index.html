@@ -81,8 +81,9 @@
 
     .ns-section{padding:0 10px 16px}
     .ns-title{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;padding:0 2px}
-    .ns-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;transition:background 0.2s;border-radius:4px}
+    .ns-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;transition:background 0.2s;border-radius:4px;user-select:none;position:relative;z-index:2}
     .ns-row:hover{background:rgba(0,0,0,0.03)}
+    .ns-row:active{background:rgba(0,0,0,0.08)}
     .ns-rank{font-size:10px;font-weight:800;color:var(--muted);width:14px;text-align:right;flex-shrink:0}
     .ns-bar-col{flex:1;min-width:0}
     .ns-label{display:block;font-size:11px;font-weight:700;color:#1A1A1A;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -574,10 +575,10 @@
       <!-- All Leads sub-section -->
       <div id="histLeadsSection">
         <div class="ftabs">
-          <button class="ftab active" onclick="filterHist('today',this)">Today</button>
-          <button class="ftab" onclick="filterHist('week',this)">This Week</button>
-          <button class="ftab" onclick="filterHist('month',this)">This Month</button>
-          <button class="ftab" onclick="filterHist('custom',this)">Custom</button>
+          <button id="ft-today" class="ftab active" onclick="filterHist('today',this)">Today</button>
+          <button id="ft-week" class="ftab" onclick="filterHist('week',this)">This Week</button>
+          <button id="ft-month" class="ftab" onclick="filterHist('month',this)">This Month</button>
+          <button id="ft-custom" class="ftab" onclick="filterHist('custom',this)">Custom</button>
         </div>
         <!-- History Custom Date Inputs -->
         <div id="histCustomPicker" style="display:none; padding:10px 14px; background:#F9FAFB; border:1px solid var(--border); border-top:none; border-bottom-left-radius:14px; border-bottom-right-radius:14px; gap:8px; align-items:center; justify-content:space-between; margin-bottom:12px">
@@ -1951,9 +1952,13 @@ async function undoLead() {
 }
 
 function drillIntoReason(reasonId) {
-  // Switch to history tab
-  showPage('hist');
+  // Switch to history tab (the actual function name is goTo)
+  if (typeof goTo === 'function') goTo('hist');
   
+  // Also ensure we are on the "Leads" sub-tab of history, not "Follow-ups"
+  const leadsTab = document.querySelector('.hist-tabs .htab:first-child');
+  if (leadsTab && typeof switchHistTab === 'function') switchHistTab('leads', leadsTab);
+
   // Map dashboard period to history range
   let range = 'all';
   let tabId = 'ft-all';
@@ -1966,12 +1971,14 @@ function drillIntoReason(reasonId) {
     tabId = 'ft-custom';
     // Sync custom picker dates
     const { cs, ce } = getPeriodRanges(curPeriod);
-    document.getElementById('histCustS').value = cs.split('T')[0];
-    document.getElementById('histCustE').value = ce.split('T')[0];
+    const sEl = document.getElementById('histCustS');
+    const eEl = document.getElementById('histCustE');
+    if (sEl && cs) sEl.value = cs.split('T')[0];
+    if (eEl && ce) eEl.value = ce.split('T')[0];
   }
   
   const btn = document.getElementById(tabId);
-  filterHist(range, btn, reasonId);
+  if (typeof filterHist === 'function') filterHist(range, btn, reasonId);
 }
 
 // ─────────────────────────────────────────
