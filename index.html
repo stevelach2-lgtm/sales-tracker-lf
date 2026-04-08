@@ -625,9 +625,9 @@
       <div class="settings-wrap">
         <div class="s-title" onclick="toggleSetSec('reasonsSection', 'reasonsIcon')" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between">
           <span>⚙️ No Sale Reasons</span>
-          <span id="reasonsIcon" style="font-size:12px; transition:transform .3s; transform:rotate(-180deg)">▲</span>
+          <span id="reasonsIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
         </div>
-        <div id="reasonsSection">
+        <div id="reasonsSection" style="display:none">
           <div class="s-sub">Manage your "Not Sold" reasons. Edit or delete anytime.</div>
           <div id="reasonsSet"><div class="loading"><div class="spinner"></div></div></div>
           <button class="add-btn" onclick="openAdd()" style="margin-top:10px">
