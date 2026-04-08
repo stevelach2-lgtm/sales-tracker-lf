@@ -1348,22 +1348,29 @@ function renderNsBreakdown(leads) {
   const list    = document.getElementById('nsBrkList');
   const nsLeads = leads.filter(l => l.status === 'not_sold');
   if (!nsLeads.length) { section.style.display = 'none'; return; }
-  // Tally by reason label
+  
+  // Tally by reason ID
   const tally = {};
+  const idToLabel = {};
   nsLeads.forEach(l => {
+    const rid = l.reason_id || 'unknown';
     const label = l.not_sold_reasons?.label || 'Unknown';
-    tally[label] = (tally[label] || 0) + 1;
+    tally[rid] = (tally[rid] || 0) + 1;
+    idToLabel[rid] = label;
   });
+  
   const sorted = Object.entries(tally).sort((a,b) => b[1]-a[1]);
   const max = sorted[0][1];
   const total = nsLeads.length;
-  list.innerHTML = sorted.map(([label, count], i) => {
+  
+  list.innerHTML = sorted.map(([id, count], i) => {
+    const label = idToLabel[id];
     const pct = Math.round(count/total*100);
     const barW = Math.round(count/max*100);
-    // Color shifts from deep red → orange as rank drops
     const hue = Math.round(0 + (i / Math.max(sorted.length-1,1)) * 30);
     const barColor = `hsl(${hue},85%,38%)`;
-    return `<div class="ns-row">
+    
+    return `<div class="ns-row" onclick="drillIntoReason('${id}', '${label}')" style="cursor:pointer">
       <span class="ns-rank">${i+1}</span>
       <div class="ns-bar-col">
         <span class="ns-label">${label}</span>
@@ -1942,12 +1949,34 @@ async function undoLead() {
   toast('Lead removed ✓', 'ok');
 }
 
+function drillIntoReason(reasonId, label) {
+  // Switch to history tab
+  showPage('hist');
+  
+  // Map dashboard period to history range
+  let range = 'all';
+  let tabId = 'ft-all';
+  
+  if (curPeriod === 'today') { range = 'today'; tabId = 'ft-today'; }
+  else if (curPeriod === 'week') { range = 'week'; tabId = 'ft-week'; }
+  else if (curPeriod === 'month') { range = 'month'; tabId = 'ft-month'; }
+  else if (curPeriod === 'custom' || curPeriod === 'rolling60') {
+    range = 'custom';
+    tabId = 'ft-custom';
+    // Sync custom picker dates
+    const { cs, ce } = getPeriodRanges(curPeriod);
+    document.getElementById('histCustS').value = cs.split('T')[0];
+    document.getElementById('histCustE').value = ce.split('T')[0];
+  }
+  
+  const btn = document.getElementById(tabId);
+  filterHist(range, btn, reasonId);
+}
+
 // ─────────────────────────────────────────
-// HISTORY
-// ─────────────────────────────────────────
-async function filterHist(range, btn) {
+async function filterHist(range, btn, filterReason = null) {
   document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
   const el = document.getElementById('histList');
   el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   const now = new Date();
@@ -1993,6 +2022,10 @@ async function filterHist(range, btn) {
 
   let query = sb.from('leads').select('*, not_sold_reasons(label)');
   
+  if (filterReason) {
+    query = query.eq('reason_id', filterReason);
+  }
+
   if (range === 'custom') {
     if (fromDate) query = query.gte('sales_date', fromDate);
     if (toDate)   query = query.lte('sales_date', toDate);
