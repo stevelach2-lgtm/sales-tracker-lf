@@ -11,6 +11,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
   <style>
     :root {
       --green:#00853E; --green-dark:#006830; --green-light:#E8F5EE;
@@ -622,7 +624,7 @@
     <div id="p-comm" class="page">
       <div style="padding:14px 14px 0;display:flex;align-items:center;justify-content:space-between">
         <div style="font-size:17px;font-weight:800">💰 Commissions Due</div>
-        <button onclick="exportCommCSV()" style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer">⬇ Export CSV</button>
+        <button onclick="exportCommPDF()" style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 6px rgba(0,133,62,0.3)">📄 Download PDF</button>
       </div>
       <div style="padding:6px 14px 10px;font-size:11px;color:var(--muted);line-height:1.5">Jobs with an install date, grouped by week (Thu–Wed). Mark <strong>Paid</strong> to track commission payments.</div>
 
@@ -2491,34 +2493,82 @@ async function toggleCommPaid(id, newVal) {
   loadComm(); // refresh
 }
 
-async function exportCommCSV() {
-  const rows = [['Install Date','Job #','Commission','Paid','Cancelled','BTD']];
+async function exportCommPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  // Image loading for logo
+  const logoUrl = 'logo.png';
+  try {
+    const imgData = await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "Anonymous";
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0,0, canvas.width, canvas.height); // white background
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = reject;
+      img.src = logoUrl;
+    });
+    doc.addImage(imgData, 'PNG', 14, 10, 20, 20);
+  } catch (e) {
+    console.warn("Could not load logo", e);
+  }
+
+  // Header Title
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(22);
+  doc.setTextColor(0, 133, 62); // LeafFilter Green
+  doc.text("LeafFilter", 38, 20);
+  
+  doc.setFontSize(14);
+  doc.setTextColor(50, 50, 50);
+  doc.text("Commissions Report", 38, 28);
+  
+  doc.setFontSize(10);
+  doc.setTextColor(100, 100, 100);
+  doc.text("Generated: " + new Date().toLocaleDateString(), 14, 38);
+
+  const rows = [];
   document.querySelectorAll('#commList [id^="cr-"]').forEach(row => {
     const cells = row.querySelectorAll('span');
     rows.push([
-      cells[0]?.textContent.trim(),
-      cells[1]?.textContent.trim(),
-      cells[2]?.textContent.trim(),
-      row.querySelector('div[onclick]')?.style.background?.includes('green') ? 'Yes' : 'No',
-      '', ''
+      cells[0]?.textContent.trim() || '',
+      cells[1]?.textContent.trim() || '',
+      cells[2]?.textContent.trim() || '',
+      row.querySelector('div[onclick]')?.style.background?.includes('green') ? 'Yes' : 'No'
     ]);
   });
-  const csv = rows.map(r => r.map(c => '"' + (c||'').replace(/"/g,'""') + '"').join(',')).join('\n');
-  const fileName = 'commissions_' + new Date().toISOString().split('T')[0] + '.csv';
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const file = new File([blob], fileName, { type: 'text/csv' });
-  // Use iOS Share Sheet — tap Google Sheets in the share menu
+
+  doc.autoTable({
+    startY: 45,
+    head: [['Install Date', 'Job #', 'Commission', 'Paid']],
+    body: rows,
+    theme: 'grid',
+    headStyles: { fillColor: [0, 133, 62], textColor: 255 },
+    styles: { font: 'helvetica', fontSize: 10 },
+    alternateRowStyles: { fillColor: [240, 247, 243] },
+    margin: { top: 45 }
+  });
+
+  const fileName = 'Commissions_' + new Date().toISOString().split('T')[0] + '.pdf';
+  
+  // Mobile Safari/PWA fallback:
+  const pdfBlob = doc.output('blob');
+  const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: 'LeafFilter Commissions' });
       return;
-    } catch (e) { /* user cancelled or share failed — fall through */ }
+    } catch (e) { /* user cancelled or share failed, fallback to save */ }
   }
-  // Desktop fallback: direct download
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = fileName; a.click();
-  URL.revokeObjectURL(url);
+  doc.save(fileName);
 }
 
 
