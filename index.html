@@ -851,7 +851,7 @@
 </div>
 
 <!-- Commission Calculator -->
-<div class="edit-overlay" id="commCalcOverlay" onclick="closeCommCalc(event)">
+<div class="edit-overlay" id="commCalcOverlay" onclick="closeCommCalc(event)" style="z-index: 9999 !important;">
   <div class="edit-sheet" id="commCalcSheet" style="max-height:94vh">
     <div class="es-hdr">
       <span class="es-title">🧮 Commission Calculator</span>
@@ -2637,7 +2637,8 @@ let ccTarget = 'log'; // 'log' or 'edit'
 
 function openCommCalc(target) {
   ccTarget = target;
-  document.getElementById('ccSoldAt').value = '';
+  let tAmt = target === 'edit' ? document.getElementById('esSaleAmt').value : document.getElementById('saleAmt').value;
+  document.getElementById('ccSoldAt').value = tAmt || '';
   renderCCItems();
   calcComm();
   document.getElementById('commCalcOverlay').classList.add('open');
