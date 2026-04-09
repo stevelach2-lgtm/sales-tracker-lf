@@ -317,19 +317,35 @@
 </head>
 <body>
 
-<!-- CONFIG SCREEN -->
+<!-- AUTH & CONFIG SCREEN -->
 <div class="cfg" id="cfg">
   <div class="cfg-logo">
     <img src="logo.png" alt="LeafFilter Logo" width="80" height="80" style="object-fit: contain;">
   </div>
   <h1 class="cfg-title">LeafFilter Sales Tracker</h1>
-  <p class="cfg-sub">Enter your Supabase credentials to connect.<br>You only need to do this once.</p>
-  <label class="cfg-lbl">Supabase Project URL</label>
-  <input type="url" class="cfg-inp" id="cfgUrl" placeholder="https://xxxx.supabase.co">
-  <label class="cfg-lbl">Supabase Anon (public) Key</label>
-  <input type="text" class="cfg-inp" id="cfgKey" placeholder="eyJhbGciOi...">
-  <button class="cfg-btn" onclick="saveConfig()">Connect &amp; Launch →</button>
-  <p class="cfg-help">Find these in your Supabase project<br><strong>Settings → API</strong></p>
+  <p class="cfg-sub" id="cfgSubText">Log in to track your personal sales and goals.</p>
+  
+  <!-- Login / Signup Form -->
+  <div id="authForm" style="display:none;">
+    <label class="cfg-lbl">Email</label>
+    <input type="email" class="cfg-inp" id="authEmail" placeholder="you@email.com">
+    <label class="cfg-lbl">Password</label>
+    <input type="password" class="cfg-inp" id="authPass" placeholder="••••••••">
+    <button class="cfg-btn" onclick="doLogin()" id="loginBtn" style="margin-bottom:8px;">Sign In</button>
+    <button class="cfg-btn" onclick="doSignup()" style="background:#EEF2FF;color:#4F46E5;border:2px solid #E0E7FF;margin-bottom:12px">Create Account</button>
+    <p class="cfg-help"><a href="#" onclick="showDbSetup(true)" style="color:var(--muted);text-decoration:none">⚙️ Database Setup</a></p>
+  </div>
+
+  <!-- DB Setup Form -->
+  <div id="dbForm" style="display:none;">
+    <p class="cfg-sub">Enter Supabase credentials to connect.</p>
+    <label class="cfg-lbl">Supabase Project URL</label>
+    <input type="url" class="cfg-inp" id="cfgUrl" placeholder="https://xxxx.supabase.co">
+    <label class="cfg-lbl">Supabase Anon (public) Key</label>
+    <input type="text" class="cfg-inp" id="cfgKey" placeholder="eyJhbGciOi...">
+    <button class="cfg-btn" onclick="saveConfig()">Connect Database →</button>
+    <button class="cfg-btn" onclick="showDbSetup(false)" style="background:transparent;color:var(--muted);margin-top:8px">Cancel</button>
+  </div>
 </div>
 
 <!-- MAIN APP -->
@@ -713,15 +729,20 @@
         </div>
       </div>
 
-      <div class="settings-wrap" style="padding-top:0">
+      <div class="settings-wrap" style="padding-top:0;margin-bottom:12px">
         <div class="s-title" onclick="toggleSetSec('dangerSection', 'dangerIcon')" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; font-size:14px; color:var(--muted)">
           <span>🚨 Danger Zone</span>
           <span id="dangerIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
         </div>
         <div id="dangerSection" style="display:none">
-          <div class="s-sub" style="margin-bottom:10px">Disconnect and re-enter your Supabase credentials.</div>
-          <button onclick="resetCfg()" style="width:100%;padding:12px;border:2px solid var(--red);border-radius:10px;background:transparent;color:var(--red);font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer">Disconnect Database</button>
+          <div class="s-sub" style="margin-bottom:10px">Disconnect your database completely. Warning: This removes local storage connection info.</div>
+          <button onclick="resetCfg()" style="width:100%;padding:12px;border:2px dashed var(--red);border-radius:10px;background:transparent;color:var(--red);font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer">Disconnect Database</button>
         </div>
+      </div>
+
+      <!-- Account Settings / Sign Out -->
+      <div class="settings-wrap" style="padding-top:0">
+        <button onclick="signOut()" style="width:100%;padding:14px;border:none;border-radius:12px;background:#E5E7EB;color:var(--text);font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px;transition:.15s">Sign Out Account</button>
       </div>
     </div>
   </div><!-- /main -->
@@ -1055,8 +1076,14 @@ let undoTimer = null;
 let chartInst = null;
 
 // ─────────────────────────────────────────
-// CONFIG
+// CONFIG & AUTH
 // ─────────────────────────────────────────
+function showDbSetup(show) {
+  document.getElementById('authForm').style.display = show ? 'none' : 'block';
+  document.getElementById('dbForm').style.display = show ? 'block' : 'none';
+  document.getElementById('cfgSubText').style.display = show ? 'none' : 'block';
+}
+
 function saveConfig() {
   const url = document.getElementById('cfgUrl').value.trim();
   const key = document.getElementById('cfgKey').value.trim();
@@ -1065,10 +1092,43 @@ function saveConfig() {
   localStorage.setItem('sb_key', key);
   boot();
 }
+
 function resetCfg() {
   if (!confirm('Disconnect from Supabase? Your data stays safe.')) return;
   localStorage.removeItem('sb_url');
   localStorage.removeItem('sb_key');
+  location.reload();
+}
+
+async function doLogin() {
+  const email = document.getElementById('authEmail').value.trim();
+  const pass = document.getElementById('authPass').value.trim();
+  if(!email || !pass) { toast('Please enter email and password','err'); return; }
+  const btn = document.getElementById('loginBtn');
+  btn.textContent = 'Signing in...';
+  
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  btn.textContent = 'Sign In';
+  if (error) { toast(error.message, 'err'); }
+  else { boot(); }
+}
+
+async function doSignup() {
+  const email = document.getElementById('authEmail').value.trim();
+  const pass = document.getElementById('authPass').value.trim();
+  if(!email || !pass) { toast('Please enter email and password','err'); return; }
+  
+  const { data, error } = await sb.auth.signUp({ email, password: pass });
+  if (error) { toast(error.message, 'err'); }
+  else { 
+    toast('Account created! Logging in...', 'ok');
+    setTimeout(boot, 1000);
+  }
+}
+
+async function signOut() {
+  if(!confirm('Sign out?')) return;
+  await sb.auth.signOut();
   location.reload();
 }
 
@@ -1078,20 +1138,44 @@ function resetCfg() {
 async function boot() {
   const url = localStorage.getItem('sb_url');
   const key = localStorage.getItem('sb_key');
-  if (!url || !key) { document.getElementById('cfg').classList.add('open'); return; }
+  const cfg = document.getElementById('cfg');
+  const app = document.getElementById('app');
+  
+  // If no DB connection set
+  if (!url || !key) { 
+    cfg.classList.add('open'); 
+    showDbSetup(true);
+    app.style.display = 'none';
+    return; 
+  }
+  
   try {
-    sb = window.supabase.createClient(url, key);
-    const { error } = await sb.from('not_sold_reasons').select('id').limit(1);
-    if (error) throw error;
-    document.getElementById('cfg').classList.remove('open');
-    document.getElementById('app').style.display = 'block';
+    if (!sb) sb = window.supabase.createClient(url, key);
+    
+    // Check Auth Session
+    const { data: { session }, error: sessionError } = await sb.auth.getSession();
+    
+    // If not logged in
+    if (sessionError || !session) {
+      cfg.classList.add('open');
+      showDbSetup(false);
+      app.style.display = 'none';
+      return;
+    }
+
+    // Success! Hide config, show app
+    cfg.classList.remove('open');
+    app.style.display = 'block';
+    
     setDates();
     await loadReasons();
     await loadSettingsFromSupabase();
     loadDash();
   } catch(e) {
-    document.getElementById('cfg').classList.add('open');
-    document.getElementById('app').style.display = 'none';
+    console.error(e);
+    cfg.classList.add('open');
+    showDbSetup(true);
+    app.style.display = 'none';
     toast('Connection failed — check credentials', 'err');
   }
 }
@@ -2890,8 +2974,16 @@ function loadBaselines() {
 // ─────────────────────────────────────────
 async function loadSettingsFromSupabase() {
   try {
-    const { data } = await sb.from('app_settings').select('*').eq('id', 1).single();
-    if (!data) return;
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    
+    // RLS will ensure we only get our own settings
+    const { data, error } = await sb.from('app_settings')
+                                    .select('*')
+                                    .eq('user_id', session.user.id)
+                                    .maybeSingle();
+    
+    if (error || !data) return;
     const map = {
       nvpil:       'bl_nvpil',
       slg:         'bl_slg',
@@ -2910,8 +3002,12 @@ async function loadSettingsFromSupabase() {
 async function syncSettingsToSupabase() {
   if (!sb) return;
   try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    
     await sb.from('app_settings').upsert({
-      id:          1,
+      id:          session.user.id,
+      user_id:     session.user.id,
       nvpil:       parseFloat(localStorage.getItem('bl_nvpil'))      || 2000,
       slg:         parseFloat(localStorage.getItem('bl_slg'))        || 55,
       ntg:         parseFloat(localStorage.getItem('bl_ntg'))        || 80,

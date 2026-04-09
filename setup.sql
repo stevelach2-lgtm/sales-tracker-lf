@@ -15,6 +15,7 @@ create table if not exists public.not_sold_reasons (
 -- 2. LEADS TABLE (full schema)
 create table if not exists public.leads (
   id                uuid        primary key default gen_random_uuid(),
+  user_id           uuid        not null default auth.uid() references auth.users(id),
   created_at        timestamptz default now(),
   status            text        not null check (status in ('sold', 'not_sold')),
   sale_amount       numeric(10,2),
@@ -105,9 +106,10 @@ insert into public.not_sold_reasons (label, sort_order) values
   ('No one home',                          10)
 on conflict do nothing;
 
--- 7. APP SETTINGS TABLE (single row — stores goals & grading baselines)
+-- 7. APP SETTINGS TABLE (stores goals & grading baselines per user)
 create table if not exists public.app_settings (
-  id          integer primary key default 1,
+  id          uuid primary key default auth.uid(),
+  user_id     uuid not null default auth.uid() references auth.users(id),
   nvpil       numeric default 2000,
   slg         numeric default 55,
   ntg         numeric default 80,
@@ -115,19 +117,56 @@ create table if not exists public.app_settings (
   daily_sales numeric default 2,
   weekly_rev  numeric default 5000,
   comm_goal   numeric default 5000,
-  updated_at  timestamptz default now(),
-  constraint single_row check (id = 1)
+  updated_at  timestamptz default now()
 );
--- Seed the one row (safe to re-run)
-insert into public.app_settings (id) values (1) on conflict do nothing;
 
--- 8. ROW LEVEL SECURITY (optional but recommended)
--- alter table public.leads enable row level security;
--- alter table public.not_sold_reasons enable row level security;
--- alter table public.app_settings enable row level security;
--- create policy "Allow all" on public.leads for all using (true);
--- create policy "Allow all" on public.not_sold_reasons for all using (true);
--- create policy "Allow all" on public.app_settings for all using (true);
+-- ============================================================
+-- MIGRATION FOR EXISTING SETUP (Run if you already created tables):
+-- ============================================================
+do $$ begin
+  -- Add user_id to leads
+  if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='user_id') then
+    alter table public.leads add column user_id uuid references auth.users(id) default auth.uid();
+  end if;
+  
+  -- For settings, since old one used integer ID = 1, we drop and recreate for UUID
+  -- (If migrating old settings data is needed, handle carefully. Otherwise just drop)
+  if exists (select 1 from information_schema.columns where table_name='app_settings' and data_type='integer' and column_name='id') then
+    drop table public.app_settings;
+    create table public.app_settings (
+      id          uuid primary key default auth.uid(),
+      user_id     uuid not null default auth.uid() references auth.users(id),
+      nvpil       numeric default 2000,
+      slg         numeric default 55,
+      ntg         numeric default 80,
+      cr          numeric default 50,
+      daily_sales numeric default 2,
+      weekly_rev  numeric default 5000,
+      comm_goal   numeric default 5000,
+      updated_at  timestamptz default now()
+    );
+  end if;
+end $$;
+
+-- 8. ROW LEVEL SECURITY (Mandatory for Multi-User)
+alter table public.leads enable row level security;
+alter table public.not_sold_reasons enable row level security;
+alter table public.app_settings enable row level security;
+
+-- Leads: Users can only see and modify their own leads
+drop policy if exists "Users can manage their own leads" on public.leads;
+create policy "Users can manage their own leads" on public.leads for all using (auth.uid() = user_id);
+
+-- Settings: Users can only see and modify their own settings
+drop policy if exists "Users can manage their own settings" on public.app_settings;
+create policy "Users can manage their own settings" on public.app_settings for all using (auth.uid() = user_id);
+
+-- Reasons (Shared Data): Anyone logged in can read, update, or insert reasons
+drop policy if exists "Authenticated users can read reasons" on public.not_sold_reasons;
+create policy "Authenticated users can read reasons" on public.not_sold_reasons for select using (auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated users can modify reasons" on public.not_sold_reasons;
+create policy "Authenticated users can modify reasons" on public.not_sold_reasons for all using (auth.role() = 'authenticated');
 
 -- ============================================================
 -- Done! Your tables are ready.
