@@ -525,6 +525,8 @@
             <div>
               <label class="fl">Commission ($)</label>
               <input type="number" class="fi" id="commAmt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px">
+              <input type="hidden" id="retailPct">
+              <input type="hidden" id="commPct">
             </div>
           </div>
           <div class="paid-row" onclick="togglePaid()">
@@ -958,7 +960,13 @@
           <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Net (sold − $500 admin − fin.)</span><span id="ccUnderNet" style="font-weight:700">$0.00</span></div>
           <div style="display:flex;justify-content:space-between"><span id="ccTierLabel" style="color:#92400E;font-weight:700">Under-Par Tier</span><span id="ccTierPct" style="font-weight:700;color:#92400E"></span></div>
         </div>
-        <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid #BBF7D0;margin-top:4px;margin-bottom:10px"><span style="font-weight:800;color:var(--green-dark)">TOTAL COMMISSION</span><span id="ccTotal" style="font-weight:900;font-size:15px;color:var(--green-dark)">$0.00</span></div>
+        <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid #BBF7D0;margin-top:4px;margin-bottom:6px"><span style="font-weight:800;color:var(--green-dark)">TOTAL COMMISSION</span><span id="ccTotal" style="font-weight:900;font-size:15px;color:var(--green-dark)">$0.00</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:11px;color:var(--muted)">
+          <span>Retail %: <strong id="ccRetailPctDisp">0.0%</strong></span>
+          <span>Comm %: <strong id="ccCommPctDisp">0.0%</strong></span>
+        </div>
+        <input type="hidden" id="ccRetailPctVal">
+        <input type="hidden" id="ccCommPctVal">
         <button onclick="applyCommCalc()" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:11px;font-family:'Inter',sans-serif;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(34,197,94,0.3)">✅ Apply to Sale</button>
       </div>
     </div>
@@ -1016,7 +1024,12 @@
         </div>
         <div class="fg2">
           <div><label class="fl">Install Date</label><input type="date" class="fi" id="esInstallDate" style="font-size:13px;padding:11px 13px"></div>
-          <div><label class="fl">Commission ($)</label><input type="number" class="fi" id="esCommAmt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px"></div>
+          <div>
+            <label class="fl">Commission ($)</label>
+            <input type="number" class="fi" id="esCommAmt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px">
+            <input type="hidden" id="esRetailPct">
+            <input type="hidden" id="esCommPct">
+          </div>
         </div>
         <button type="button" onclick="openCommCalc('edit')" style="width:100%;padding:11px;background:linear-gradient(135deg,#00853E,#005a2e);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:10px">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>
@@ -1977,6 +1990,8 @@ async function submitLead(type) {
       sales_date: document.getElementById('salesDate').value || null,
       install_date: document.getElementById('installDate').value || null,
       commission_amount: parseFloat(document.getElementById('commAmt').value) || null,
+      retail_percentage: parseFloat(document.getElementById('retailPct').value) || null,
+      commission_percentage: parseFloat(document.getElementById('commPct').value) || null,
       commission_paid: isPaid,
       notes: document.getElementById('soldNotes').value.trim() || null
     };
@@ -2165,6 +2180,7 @@ function renderHist(leads) {
         </div>
         <div class="hcard-main ${sold?'g':''}">${main}</div>
         ${tags.length ? '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">' + tags.join('') + '</div>' : ''}
+        ${sold && l.retail_percentage ? `<div style="font-size:11px;color:var(--text);margin-top:4px">Retail: <strong>${parseFloat(l.retail_percentage).toFixed(1)}%</strong> &nbsp; Comm: <strong>${parseFloat(l.commission_percentage || 0).toFixed(1)}%</strong></div>` : ''}
         ${l.followup_date ? `<div style="font-size:9px;font-weight:700;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 6px;display:inline-block;margin-top:3px">📞 Follow-up: ${new Date(l.followup_date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>` : ''}
         ${sub.length ? `<div class="hcard-note">${sub.join(' · ')}</div>` : (l.notes ? `<div class="hcard-note">${l.notes}</div>` : '')}
         <div class="hcard-detail">
@@ -2206,6 +2222,8 @@ async function openLeadEdit(id) {
   document.getElementById('esSalesDate').value = l.sales_date || '';
   document.getElementById('esInstallDate').value = l.install_date || '';
   document.getElementById('esCommAmt').value = l.commission_amount || '';
+  document.getElementById('esRetailPct').value = l.retail_percentage || '';
+  document.getElementById('esCommPct').value = l.commission_percentage || '';
   document.getElementById('esNotes').value = l.notes || '';
   esIsPaid = l.commission_paid || false;
   document.getElementById('esPaidChk').classList.toggle('on', esIsPaid);
@@ -2278,6 +2296,8 @@ async function saveLeadEdit() {
     payload.sales_date = document.getElementById('esSalesDate').value || null;
     payload.install_date = document.getElementById('esInstallDate').value || null;
     payload.commission_amount = parseFloat(document.getElementById('esCommAmt').value) || null;
+    payload.retail_percentage = parseFloat(document.getElementById('esRetailPct').value) || null;
+    payload.commission_percentage = parseFloat(document.getElementById('esCommPct').value) || null;
     payload.commission_paid = esIsPaid;
     payload.is_cancelled = esCancelled;
     payload.is_btd = esBtd;
@@ -2935,7 +2955,21 @@ function calcComm() {
 
   document.getElementById('ccRetail').textContent = fmt(retail);
   document.getElementById('ccPar').textContent    = fmt(par);
-  document.getElementById('ccTotal').textContent  = fmt(Math.max(0, total));
+  
+  const finalComm = Math.max(0, total);
+  document.getElementById('ccTotal').textContent = fmt(finalComm);
+
+  const finalCommPct = effectiveNet > 0 ? (finalComm / effectiveNet * 100) : 0;
+  
+  const ccRetailPctValEl = document.getElementById('ccRetailPctVal');
+  if (ccRetailPctValEl) ccRetailPctValEl.value = netPct.toFixed(2);
+  const ccRetailPctDispEl = document.getElementById('ccRetailPctDisp');
+  if (ccRetailPctDispEl) ccRetailPctDispEl.textContent = netPct.toFixed(1) + '%';
+  
+  const ccCommPctValEl = document.getElementById('ccCommPctVal');
+  if (ccCommPctValEl) ccCommPctValEl.value = finalCommPct.toFixed(2);
+  const ccCommPctDispEl = document.getElementById('ccCommPctDisp');
+  if (ccCommPctDispEl) ccCommPctDispEl.textContent = finalCommPct.toFixed(1) + '%';
 
   // ── PAR GAP INDICATOR ─────────────────────────────────────
   const parGapEl = document.getElementById('ccParGap');
@@ -2991,11 +3025,17 @@ function calcComm() {
 function applyCommCalc() {
   const total = parseFloat(document.getElementById('ccTotal').textContent.replace(/[$,]/g,'')) || 0;
   const sold  = parseFloat(document.getElementById('ccSoldAt').value) || 0;
+  const retailPct = document.getElementById('ccRetailPctVal').value;
+  const commPct = document.getElementById('ccCommPctVal').value;
   if (ccTarget === 'log') {
     document.getElementById('commAmt').value = total.toFixed(2);
+    document.getElementById('retailPct').value = retailPct;
+    document.getElementById('commPct').value = commPct;
     if (sold > 0) document.getElementById('saleAmt').value = sold.toFixed(2);
   } else {
     document.getElementById('esCommAmt').value = total.toFixed(2);
+    document.getElementById('esRetailPct').value = retailPct;
+    document.getElementById('esCommPct').value = commPct;
     if (sold > 0) document.getElementById('esSaleAmt').value = sold.toFixed(2);
   }
   document.getElementById('commCalcOverlay').classList.remove('open');

@@ -33,7 +33,9 @@ create table if not exists public.leads (
   followup_name     text,
   followup_phone    text,
   followup_date     date,
-  followup_done     boolean     default false
+  followup_done     boolean     default false,
+  retail_percentage numeric(10,2),
+  commission_percentage numeric(10,2)
 );
 
 -- 3. MIGRATION: add missing columns to existing leads table (safe to re-run)
@@ -76,6 +78,12 @@ do $$ begin
   end if;
   if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='followup_done') then
     alter table public.leads add column followup_done boolean default false;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='retail_percentage') then
+    alter table public.leads add column retail_percentage numeric(10,2);
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='commission_percentage') then
+    alter table public.leads add column commission_percentage numeric(10,2);
   end if;
 end $$;
 
