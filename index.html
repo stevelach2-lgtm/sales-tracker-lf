@@ -409,6 +409,17 @@
         </div>
         <div id="fuActionBadge" style="background:#EF4444; color:#fff; font-size:12px; font-weight:900; padding:4px 10px; border-radius:20px; box-shadow:0 2px 4px rgba(239,68,68,0.3)">0</div>
       </div>
+      <!-- Installations Action Center -->
+      <div id="instActionCenter" style="display:none; background:linear-gradient(135deg, #F0FDF4, #DCFCE7); border:1.5px solid #86EFAC; border-radius:14px; padding:12px 16px; margin-bottom:14px; align-items:center; justify-content:space-between; cursor:pointer" onclick="goTo('comm')">
+        <div style="display:flex; align-items:center; gap:10px">
+          <div style="width:40px; height:40px; border-radius:10px; background:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 6px rgba(0,0,0,0.05)">🛠️</div>
+          <div>
+            <div id="instActionTitle" style="font-size:13px; font-weight:800; color:#166534">Installs scheduled today</div>
+            <div id="instActionSub" style="font-size:11px; color:#15803D; font-weight:600">Tap to view commissions</div>
+          </div>
+        </div>
+        <div id="instActionBadge" style="background:#22C55E; color:#fff; font-size:12px; font-weight:900; padding:4px 10px; border-radius:20px; box-shadow:0 2px 4px rgba(34,197,94,0.3)">0</div>
+      </div>
 
       <!-- Goal Progress Bars -->
       <div class="goal-section" id="goalSection">
@@ -1441,6 +1452,25 @@ async function loadDash() {
     document.getElementById('fuActionTitle').textContent = dueFu.length === 1 ? '1 follow-up due today' : `${dueFu.length} follow-ups due today`;
   } else {
     fuBar.style.display = 'none';
+  }
+
+  // Install alerts
+  const { data: instsToday, error: instErr } = await sb.from('leads')
+    .select('id')
+    .eq('install_date', todayStr)
+    .neq('is_cancelled', true);
+    
+  if (instErr) {
+    console.error('Install load error:', instErr);
+  }
+    
+  const instBar = document.getElementById('instActionCenter');
+  if (!instErr && instsToday && instsToday.length > 0) {
+    instBar.style.display = 'flex';
+    document.getElementById('instActionBadge').textContent = instsToday.length;
+    document.getElementById('instActionTitle').textContent = instsToday.length === 1 ? '1 install today' : `${instsToday.length} installs today`;
+  } else {
+    instBar.style.display = 'none';
   }
 }
 
