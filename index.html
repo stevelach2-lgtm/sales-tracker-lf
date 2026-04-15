@@ -2117,6 +2117,7 @@ function drillIntoReason(reasonId) {
 
 // ─────────────────────────────────────────
 async function filterHist(range, btn, filterReason = null) {
+  window._lastHistArgs = [range, btn, filterReason];
   document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
   if (btn) btn.classList.add('active');
   const el = document.getElementById('histList');
@@ -2359,8 +2360,17 @@ async function saveLeadEdit() {
   // Refresh whichever tab is currently active
   if (document.getElementById('n-comm').classList.contains('active')) {
     loadComm();
-  } else {
-    document.querySelector('.ftab.active')?.click();
+  } else if (document.getElementById('n-hist').classList.contains('active')) {
+    const isFu = document.querySelectorAll('.htab')[1].classList.contains('active');
+    if (isFu) {
+      loadFollowUps();
+    } else if (window._lastHistArgs) {
+      filterHist(...window._lastHistArgs);
+    } else {
+      document.querySelector('.ftab.active')?.click();
+    }
+  } else if (document.getElementById('n-dash').classList.contains('active')) {
+    loadDash();
   }
 }
 
@@ -2373,8 +2383,17 @@ async function deleteLead() {
   editLeadId = null;
   if (document.getElementById('n-comm').classList.contains('active')) {
     loadComm();
-  } else {
-    document.querySelector('.ftab.active')?.click();
+  } else if (document.getElementById('n-hist').classList.contains('active')) {
+    const isFu = document.querySelectorAll('.htab')[1].classList.contains('active');
+    if (isFu) {
+      loadFollowUps();
+    } else if (window._lastHistArgs) {
+      filterHist(...window._lastHistArgs);
+    } else {
+      document.querySelector('.ftab.active')?.click();
+    }
+  } else if (document.getElementById('n-dash').classList.contains('active')) {
+    loadDash();
   }
 }
 
