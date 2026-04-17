@@ -1442,22 +1442,40 @@ async function loadDash() {
   renderGoalBars(c);
   calcStreak();
 
-  // Follow-up alerts
+  // Follow-up alerts — uses same 3-step sequence logic as the Follow-Ups tab
   const todayStr = localDate(new Date());
-  const { data: dueFu, error: fuErr } = await sb.from('leads')
-    .select('id')
+  const todayDate = new Date(); todayDate.setHours(12,0,0,0);
+  // Pull all non-done leads that have a followup_date set (any date — need to apply step logic)
+  const { data: allFu, error: fuErr } = await sb.from('leads')
+    .select('id,followup_date')
     .eq('followup_done', false)
-    .lte('followup_date', todayStr);
-    
+    .not('followup_date','is',null);
+
   if (fuErr) {
     console.error('Follow-up load error. DB may need update:', fuErr);
   }
+
+  // Apply the same step logic: a lead is "due today" if its active step date <= today
+  let fuDueCount = 0;
+  if (!fuErr && allFu) {
+    allFu.forEach(l => {
+      const d1 = new Date(l.followup_date + 'T12:00:00');
+      const d3 = new Date(l.followup_date + 'T12:00:00'); d3.setDate(d3.getDate() + 3);
+      const d7 = new Date(l.followup_date + 'T12:00:00'); d7.setDate(d7.getDate() + 7);
+      let activeDate;
+      if (todayDate < d1)       activeDate = localDate(d1);
+      else if (todayDate < d3)  activeDate = localDate(d1);
+      else if (todayDate < d7)  activeDate = localDate(d3);
+      else                      activeDate = localDate(d7);
+      if (activeDate <= todayStr) fuDueCount++;
+    });
+  }
     
   const fuBar = document.getElementById('fuActionCenter');
-  if (!fuErr && dueFu && dueFu.length > 0) {
+  if (!fuErr && fuDueCount > 0) {
     fuBar.style.display = 'flex';
-    document.getElementById('fuActionBadge').textContent = dueFu.length;
-    document.getElementById('fuActionTitle').textContent = dueFu.length === 1 ? '1 follow-up due today' : `${dueFu.length} follow-ups due today`;
+    document.getElementById('fuActionBadge').textContent = fuDueCount;
+    document.getElementById('fuActionTitle').textContent = fuDueCount === 1 ? '1 follow-up due today' : `${fuDueCount} follow-ups due today`;
   } else {
     fuBar.style.display = 'none';
   }
