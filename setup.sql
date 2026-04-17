@@ -120,12 +120,13 @@ begin
   end if;
 end $$;
 
--- MIGRATION: Merge "Spouse not present / needs to discuss" into "Spouse not home"
+-- MIGRATIONS: Clean up, merge, and rename reasons
 do $$
 declare
     old_id uuid;
     new_id uuid;
 begin
+    -- 1. Spouse not present / needs to discuss -> Spouse not home
     select id into old_id from public.not_sold_reasons where label = 'Spouse not present / needs to discuss' limit 1;
     if found then
         select id into new_id from public.not_sold_reasons where label = 'Spouse not home' limit 1;
@@ -135,15 +136,43 @@ begin
         update public.leads set reason_id = new_id where reason_id = old_id;
         delete from public.not_sold_reasons where id = old_id;
     end if;
+
+    -- 2. No show / not home -> No one home
+    select id into old_id from public.not_sold_reasons where label = 'No show / not home' limit 1;
+    if found then
+        select id into new_id from public.not_sold_reasons where label = 'No one home' limit 1;
+        if not found then
+            insert into public.not_sold_reasons (label, sort_order) values ('No one home', 10) returning id into new_id;
+        end if;
+        update public.leads set reason_id = new_id where reason_id = old_id;
+        delete from public.not_sold_reasons where id = old_id;
+    end if;
+
+    -- 3. Not interested in product -> No demo
+    select id into old_id from public.not_sold_reasons where label = 'Not interested in product' limit 1;
+    if found then
+        select id into new_id from public.not_sold_reasons where label = 'No demo' limit 1;
+        if not found then
+            insert into public.not_sold_reasons (label, sort_order) values ('No demo', 6) returning id into new_id;
+        end if;
+        update public.leads set reason_id = new_id where reason_id = old_id;
+        delete from public.not_sold_reasons where id = old_id;
+    end if;
+
+    -- 4. Delete Financing denied / declined
+    delete from public.not_sold_reasons where label in ('Financing denied', 'Financing declined');
+
+    -- 5. Rename Wants other quotes -> Shop around
+    update public.not_sold_reasons set label = 'Shop around' where label = 'Wants other quotes';
+
 end $$;
 
 insert into public.not_sold_reasons (label, sort_order) values
   ('Price too high',                        1),
   ('Needs to think about it',               2),
-  ('Wants other quotes',                    3),
+  ('Shop around',                           3),
   ('Spouse not home',                       4),
-  ('Financing denied',                      5),
-  ('Not interested in product',             6),
+  ('No demo',                               6),
   ('Already has gutter protection',         7),
   ('Home not a fit',                        8),
   ('Reschedule / Call back',                9),
