@@ -101,6 +101,25 @@ create index if not exists leads_status_idx       on public.leads (status);
 create index if not exists leads_sales_date_idx   on public.leads (sales_date desc);  -- key index for dashboard
 
 -- 6. SEED DEFAULT "NOT SOLD" REASONS
+-- MIGRATION: Deduplicate reasons and add unique constraint safely
+do $$ 
+declare
+    r record;
+    survivor uuid;
+begin
+  if not exists (select 1 from pg_constraint where conname = 'not_sold_reasons_label_key') then
+    -- Find groups of identical labels
+    for r in (select label, array_agg(id order by created_at asc) as ids from public.not_sold_reasons group by label having count(*) > 1) loop
+        survivor := r.ids[1];
+        -- Point leads attached to duplicates to the survivor
+        update public.leads set reason_id = survivor where reason_id = any(r.ids[2:array_length(r.ids, 1)]);
+        -- Delete the duplicates
+        delete from public.not_sold_reasons where id = any(r.ids[2:array_length(r.ids, 1)]);
+    end loop;
+    alter table public.not_sold_reasons add constraint not_sold_reasons_label_key unique (label);
+  end if;
+end $$;
+
 insert into public.not_sold_reasons (label, sort_order) values
   ('Price too high',                        1),
   ('Needs to think about it',               2),
@@ -112,7 +131,7 @@ insert into public.not_sold_reasons (label, sort_order) values
   ('Home not a fit',                        8),
   ('Reschedule / Call back',                9),
   ('No one home',                          10)
-on conflict do nothing;
+on conflict (label) do nothing;
 
 -- 7. APP SETTINGS TABLE (stores goals & grading baselines per user)
 create table if not exists public.app_settings (
