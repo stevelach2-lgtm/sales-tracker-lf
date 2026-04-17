@@ -732,13 +732,25 @@
           <span id="calcIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
         </div>
         <div id="calcConfigSection" style="display:none">
-          <div class="s-sub" style="margin-bottom:10px">Manage your price list and SMS message templates.</div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px">
-            <button onclick="openPriceListEditor()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-              🏷️ Prices
+          <div class="s-sub" style="margin-bottom:10px">Manage your custom price list.</div>
+          <div style="margin-bottom:12px">
+            <button onclick="openPriceListEditor()" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+              🏷️ Edit Prices
             </button>
-            <button onclick="openFuTemplateEditor()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-              📱 SMS
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-wrap" style="padding-top:0;margin-bottom:12px">
+        <div class="s-title" onclick="toggleSetSec('smsConfigSection', 'smsIcon')" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; font-size:14px; color:var(--muted)">
+          <span>📱 SMS Messages</span>
+          <span id="smsIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
+        </div>
+        <div id="smsConfigSection" style="display:none">
+          <div class="s-sub" style="margin-bottom:10px">Manage your follow-up message templates.</div>
+          <div style="margin-bottom:12px">
+            <button onclick="openFuTemplateEditor()" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+              💬 Edit SMS Templates
             </button>
           </div>
         </div>
