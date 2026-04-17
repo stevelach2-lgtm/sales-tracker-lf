@@ -120,11 +120,28 @@ begin
   end if;
 end $$;
 
+-- MIGRATION: Merge "Spouse not present / needs to discuss" into "Spouse not home"
+do $$
+declare
+    old_id uuid;
+    new_id uuid;
+begin
+    select id into old_id from public.not_sold_reasons where label = 'Spouse not present / needs to discuss' limit 1;
+    if found then
+        select id into new_id from public.not_sold_reasons where label = 'Spouse not home' limit 1;
+        if not found then
+            insert into public.not_sold_reasons (label, sort_order) values ('Spouse not home', 4) returning id into new_id;
+        end if;
+        update public.leads set reason_id = new_id where reason_id = old_id;
+        delete from public.not_sold_reasons where id = old_id;
+    end if;
+end $$;
+
 insert into public.not_sold_reasons (label, sort_order) values
   ('Price too high',                        1),
   ('Needs to think about it',               2),
   ('Wants other quotes',                    3),
-  ('Spouse not present / needs to discuss', 4),
+  ('Spouse not home',                       4),
   ('Financing denied',                      5),
   ('Not interested in product',             6),
   ('Already has gutter protection',         7),
