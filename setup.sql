@@ -128,6 +128,44 @@ create index if not exists leads_created_at_idx  on public.leads (created_at des
 create index if not exists leads_status_idx       on public.leads (status);
 create index if not exists leads_sales_date_idx   on public.leads (sales_date desc);  -- key index for dashboard
 
+-- 5b. ROW LEVEL SECURITY — isolate each user's data
+alter table public.leads enable row level security;
+
+-- Drop old policies if they exist, then recreate cleanly
+do $$ begin
+  drop policy if exists "Users see own leads"   on public.leads;
+  drop policy if exists "Users insert own leads" on public.leads;
+  drop policy if exists "Users update own leads" on public.leads;
+  drop policy if exists "Users delete own leads" on public.leads;
+end $$;
+
+create policy "Users see own leads"
+  on public.leads for select
+  using (auth.uid() = user_id);
+
+create policy "Users insert own leads"
+  on public.leads for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users update own leads"
+  on public.leads for update
+  using (auth.uid() = user_id);
+
+create policy "Users delete own leads"
+  on public.leads for delete
+  using (auth.uid() = user_id);
+
+-- Also ensure not_sold_reasons is readable by all authenticated users (shared table)
+alter table public.not_sold_reasons enable row level security;
+
+do $$ begin
+  drop policy if exists "Authenticated users read reasons" on public.not_sold_reasons;
+end $$;
+
+create policy "Authenticated users read reasons"
+  on public.not_sold_reasons for select
+  using (auth.role() = 'authenticated');
+
 -- 6. SEED DEFAULT "NOT SOLD" REASONS
 -- MIGRATION: Deduplicate reasons and add unique constraint safely
 do $$ 
