@@ -197,10 +197,21 @@ begin
         delete from public.not_sold_reasons where id = old_id;
     end if;
 
+    -- 9. Price too high -> Too much
+    select id into old_id from public.not_sold_reasons where label = 'Price too high' limit 1;
+    if found then
+        select id into new_id from public.not_sold_reasons where label = 'Too much' limit 1;
+        if not found then
+            insert into public.not_sold_reasons (label, sort_order) values ('Too much', 1) returning id into new_id;
+        end if;
+        update public.leads set reason_id = new_id where reason_id = old_id;
+        delete from public.not_sold_reasons where id = old_id;
+    end if;
+
 end $$;
 
 insert into public.not_sold_reasons (label, sort_order) values
-  ('Price too high',                        1),
+  ('Too much',                              1),
   ('Needs to think about it',               2),
   ('Shop around',                           3),
   ('Spouse not home',                       4),
