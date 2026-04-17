@@ -1221,13 +1221,8 @@ async function doSignup() {
   }
 
   btn.textContent = 'Create Account';
-  // Show confirmation panel instead of trying to boot immediately
-  document.getElementById('panelSignup').style.display = 'none';  
-  document.getElementById('panelLogin').style.display = 'block';
-  showAuthTab('login');
-  document.getElementById('authEmail').value = email;
-  // Show a clear "check your email" message
-  document.getElementById('cfgSubText').textContent = '✅ Account created! Check your email for a confirmation link, then sign in below.';
+  toast('Welcome, ' + first + '! Signing you in...', 'ok');
+  setTimeout(boot, 1000);
 }
 
 async function signOut() {
