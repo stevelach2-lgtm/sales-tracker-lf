@@ -208,6 +208,17 @@ begin
         delete from public.not_sold_reasons where id = old_id;
     end if;
 
+    -- 10. Consolidate all variations of 'Too much' (e.g. 'Too Much', 'Too much ')
+    select id into new_id from public.not_sold_reasons where label = 'Too much' limit 1;
+    if not found then
+        insert into public.not_sold_reasons (label, sort_order) values ('Too much', 1) returning id into new_id;
+    end if;
+
+    for r in (select id from public.not_sold_reasons where id != new_id and lower(trim(label)) = 'too much') loop
+        update public.leads set reason_id = new_id where reason_id = r.id;
+        delete from public.not_sold_reasons where id = r.id;
+    end loop;
+
 end $$;
 
 insert into public.not_sold_reasons (label, sort_order) values
