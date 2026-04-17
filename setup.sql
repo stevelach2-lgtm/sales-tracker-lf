@@ -4,6 +4,34 @@
 -- Supabase Dashboard → SQL Editor → New query → Paste → Run
 -- ============================================================
 
+-- 0. USER PROFILES TABLE
+create table if not exists public.profiles (
+  id          uuid        primary key references auth.users(id) on delete cascade,
+  first_name  text,
+  last_name   text,
+  full_name   text,
+  phone       text,
+  office      text,
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now()
+);
+
+-- Enable RLS on profiles
+alter table public.profiles enable row level security;
+
+-- Profiles policy: users can only read/write their own row
+do $$ begin
+  if not exists (
+    select 1 from pg_policies where tablename = 'profiles' and policyname = 'Users manage own profile'
+  ) then
+    create policy "Users manage own profile"
+      on public.profiles
+      for all
+      using (auth.uid() = id)
+      with check (auth.uid() = id);
+  end if;
+end $$;
+
 -- 1. NOT SOLD REASONS TABLE
 create table if not exists public.not_sold_reasons (
   id          uuid primary key default gen_random_uuid(),

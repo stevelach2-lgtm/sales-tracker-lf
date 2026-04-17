@@ -327,15 +327,46 @@
   <h1 class="cfg-title">LeafFilter Sales Tracker</h1>
   <p class="cfg-sub" id="cfgSubText">Log in to track your personal sales and goals.</p>
   
-  <!-- Login / Signup Form -->
+  <!-- Auth Tabs -->
   <div id="authForm" style="display:none;">
-    <label class="cfg-lbl">Email</label>
-    <input type="email" class="cfg-inp" id="authEmail" value="stevelach2@gmail.com" placeholder="you@email.com">
-    <label class="cfg-lbl">Password</label>
-    <input type="password" class="cfg-inp" id="authPass" value="leaf123" placeholder="••••••••">
-    <button class="cfg-btn" onclick="doLogin()" id="loginBtn" style="margin-bottom:8px;">Sign In</button>
-    <button class="cfg-btn" onclick="doSignup()" style="background:#EEF2FF;color:#4F46E5;border:2px solid #E0E7FF;margin-bottom:12px">Create Account</button>
-    <p class="cfg-help"><a href="#" onclick="showDbSetup(true)" style="color:var(--muted);text-decoration:none">⚙️ Database Setup</a></p>
+    <!-- Tab Switcher -->
+    <div style="display:flex; background:#F3F4F6; border-radius:10px; padding:3px; gap:3px; margin-bottom:20px">
+      <button id="tabLogin" onclick="showAuthTab('login')" style="flex:1; padding:9px; background:#fff; border:none; border-radius:8px; font-family:'Inter',sans-serif; font-size:13px; font-weight:700; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.1); color:var(--text)">Sign In</button>
+      <button id="tabSignup" onclick="showAuthTab('signup')" style="flex:1; padding:9px; background:transparent; border:none; border-radius:8px; font-family:'Inter',sans-serif; font-size:13px; font-weight:700; cursor:pointer; color:var(--muted)">Create Account</button>
+    </div>
+
+    <!-- Sign In Panel -->
+    <div id="panelLogin">
+      <label class="cfg-lbl">Email</label>
+      <input type="email" class="cfg-inp" id="authEmail" placeholder="you@email.com">
+      <label class="cfg-lbl">Password</label>
+      <input type="password" class="cfg-inp" id="authPass" placeholder="••••••••">
+      <button class="cfg-btn" onclick="doLogin()" id="loginBtn" style="margin-bottom:8px;">Sign In</button>
+      <p class="cfg-help"><a href="#" onclick="showDbSetup(true)" style="color:var(--muted);text-decoration:none">⚙️ Database Setup</a></p>
+    </div>
+
+    <!-- Create Account Panel -->
+    <div id="panelSignup" style="display:none">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+        <div>
+          <label class="cfg-lbl">First Name</label>
+          <input type="text" class="cfg-inp" id="signupFirst" placeholder="First">
+        </div>
+        <div>
+          <label class="cfg-lbl">Last Name</label>
+          <input type="text" class="cfg-inp" id="signupLast" placeholder="Last">
+        </div>
+      </div>
+      <label class="cfg-lbl">Email</label>
+      <input type="email" class="cfg-inp" id="signupEmail" placeholder="you@email.com">
+      <label class="cfg-lbl">Phone Number</label>
+      <input type="tel" class="cfg-inp" id="signupPhone" placeholder="(555) 555-5555">
+      <label class="cfg-lbl">Office Location</label>
+      <input type="text" class="cfg-inp" id="signupOffice" placeholder="e.g. San Antonio, TX">
+      <label class="cfg-lbl">Password</label>
+      <input type="password" class="cfg-inp" id="signupPass" placeholder="At least 6 characters">
+      <button class="cfg-btn" onclick="doSignup()" id="signupBtn" style="margin-bottom:8px;">Create Account</button>
+    </div>
   </div>
 
   <!-- DB Setup Form -->
@@ -1131,6 +1162,18 @@ function resetCfg() {
   location.reload();
 }
 
+function showAuthTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('panelLogin').style.display  = isLogin ? 'block' : 'none';
+  document.getElementById('panelSignup').style.display = isLogin ? 'none'  : 'block';
+  document.getElementById('tabLogin').style.background  = isLogin ? '#fff' : 'transparent';
+  document.getElementById('tabSignup').style.background = isLogin ? 'transparent' : '#fff';
+  document.getElementById('tabLogin').style.color  = isLogin ? 'var(--text)' : 'var(--muted)';
+  document.getElementById('tabSignup').style.color = isLogin ? 'var(--muted)' : 'var(--text)';
+  document.getElementById('tabLogin').style.boxShadow  = isLogin ? '0 1px 3px rgba(0,0,0,.1)' : 'none';
+  document.getElementById('tabSignup').style.boxShadow = isLogin ? 'none' : '0 1px 3px rgba(0,0,0,.1)';
+}
+
 async function doLogin() {
   const email = document.getElementById('authEmail').value.trim();
   const pass = document.getElementById('authPass').value.trim();
@@ -1145,16 +1188,41 @@ async function doLogin() {
 }
 
 async function doSignup() {
-  const email = document.getElementById('authEmail').value.trim();
-  const pass = document.getElementById('authPass').value.trim();
-  if(!email || !pass) { toast('Please enter email and password','err'); return; }
-  
+  const first  = document.getElementById('signupFirst').value.trim();
+  const last   = document.getElementById('signupLast').value.trim();
+  const email  = document.getElementById('signupEmail').value.trim();
+  const phone  = document.getElementById('signupPhone').value.trim();
+  const office = document.getElementById('signupOffice').value.trim();
+  const pass   = document.getElementById('signupPass').value.trim();
+
+  if (!first || !last)   { toast('Please enter your first and last name', 'err'); return; }
+  if (!email)            { toast('Please enter your email', 'err'); return; }
+  if (!phone)            { toast('Please enter your phone number', 'err'); return; }
+  if (!office)           { toast('Please enter your office location', 'err'); return; }
+  if (!pass || pass.length < 6) { toast('Password must be at least 6 characters', 'err'); return; }
+
+  const btn = document.getElementById('signupBtn');
+  btn.textContent = 'Creating account...';
+
   const { data, error } = await sb.auth.signUp({ email, password: pass });
-  if (error) { toast(error.message, 'err'); }
-  else { 
-    toast('Account created! Logging in...', 'ok');
-    setTimeout(boot, 1000);
+  if (error) { toast(error.message, 'err'); btn.textContent = 'Create Account'; return; }
+
+  // Save profile data
+  const userId = data.user?.id;
+  if (userId) {
+    await sb.from('profiles').upsert({
+      id:         userId,
+      first_name: first,
+      last_name:  last,
+      phone:      phone,
+      office:     office,
+      full_name:  `${first} ${last}`,
+    });
   }
+
+  btn.textContent = 'Create Account';
+  toast('Account created! Welcome, ' + first + '!', 'ok');
+  setTimeout(boot, 1200);
 }
 
 async function signOut() {
