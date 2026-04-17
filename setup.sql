@@ -164,6 +164,38 @@ begin
 
     -- 5. Rename Wants other quotes -> Shop around
     update public.not_sold_reasons set label = 'Shop around' where label = 'Wants other quotes';
+    -- 6. Home not a fit -> No demo
+    select id into old_id from public.not_sold_reasons where label = 'Home not a fit' limit 1;
+    if found then
+        select id into new_id from public.not_sold_reasons where label = 'No demo' limit 1;
+        if not found then
+            insert into public.not_sold_reasons (label, sort_order) values ('No demo', 6) returning id into new_id;
+        end if;
+        update public.leads set reason_id = new_id where reason_id = old_id;
+        delete from public.not_sold_reasons where id = old_id;
+    end if;
+
+    -- 7. Already has gutter protection -> No demo
+    select id into old_id from public.not_sold_reasons where label = 'Already has gutter protection' limit 1;
+    if found then
+        select id into new_id from public.not_sold_reasons where label = 'No demo' limit 1;
+        if not found then
+            insert into public.not_sold_reasons (label, sort_order) values ('No demo', 6) returning id into new_id;
+        end if;
+        update public.leads set reason_id = new_id where reason_id = old_id;
+        delete from public.not_sold_reasons where id = old_id;
+    end if;
+
+    -- 8. Reschedule / Call back -> No one home
+    select id into old_id from public.not_sold_reasons where label = 'Reschedule / Call back' limit 1;
+    if found then
+        select id into new_id from public.not_sold_reasons where label = 'No one home' limit 1;
+        if not found then
+            insert into public.not_sold_reasons (label, sort_order) values ('No one home', 10) returning id into new_id;
+        end if;
+        update public.leads set reason_id = new_id where reason_id = old_id;
+        delete from public.not_sold_reasons where id = old_id;
+    end if;
 
 end $$;
 
@@ -173,9 +205,6 @@ insert into public.not_sold_reasons (label, sort_order) values
   ('Shop around',                           3),
   ('Spouse not home',                       4),
   ('No demo',                               6),
-  ('Already has gutter protection',         7),
-  ('Home not a fit',                        8),
-  ('Reschedule / Call back',                9),
   ('No one home',                          10)
 on conflict (label) do nothing;
 
