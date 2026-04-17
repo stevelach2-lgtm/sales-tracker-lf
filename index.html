@@ -686,7 +686,34 @@
 
     <!-- SETTINGS -->
     <div id="p-set" class="page">
+      <!-- My Profile -->
       <div class="settings-wrap">
+        <div class="s-title" onclick="toggleSetSec('profileSection', 'profileIcon')" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between">
+          <span>👤 My Profile</span>
+          <span id="profileIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
+        </div>
+        <div id="profileSection" style="display:none">
+          <div class="s-sub" style="margin-bottom:12px">Your name appears in all SMS follow-up messages.</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px">
+            <div>
+              <label class="fl">First Name</label>
+              <input type="text" class="fi" id="profFirst" placeholder="First">
+            </div>
+            <div>
+              <label class="fl">Last Name</label>
+              <input type="text" class="fi" id="profLast" placeholder="Last">
+            </div>
+          </div>
+          <label class="fl">Phone Number</label>
+          <input type="tel" class="fi" id="profPhone" placeholder="(555) 555-5555" style="margin-bottom:10px">
+          <label class="fl">Office Location</label>
+          <input type="text" class="fi" id="profOffice" placeholder="e.g. San Antonio, TX" style="margin-bottom:12px">
+          <button onclick="saveProfile()" style="width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer">Save Profile</button>
+        </div>
+      </div>
+      <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
+
+      <div class="settings-wrap" style="padding-top:0">
         <div class="s-title" onclick="toggleSetSec('reasonsSection', 'reasonsIcon')" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between">
           <span>⚙️ No Sale Reasons</span>
           <span id="reasonsIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
@@ -1290,16 +1317,46 @@ async function loadRepProfile() {
   try {
     const { data: { user } } = await sb.auth.getUser();
     if (!user) return;
-    const { data: profile } = await sb.from('profiles').select('first_name, full_name').eq('id', user.id).single();
+    const { data: profile } = await sb.from('profiles').select('first_name, last_name, full_name, phone, office').eq('id', user.id).single();
     if (profile?.first_name) {
       _repName = profile.first_name;
+      // Pre-fill the settings form fields
+      if (document.getElementById('profFirst'))  document.getElementById('profFirst').value  = profile.first_name  || '';
+      if (document.getElementById('profLast'))   document.getElementById('profLast').value   = profile.last_name   || '';
+      if (document.getElementById('profPhone'))  document.getElementById('profPhone').value  = profile.phone       || '';
+      if (document.getElementById('profOffice')) document.getElementById('profOffice').value = profile.office      || '';
     } else if (user.email) {
-      // Fallback: use the part before @ in email
       _repName = user.email.split('@')[0];
     }
   } catch(e) {
     console.warn('Could not load rep profile', e);
   }
+}
+
+async function saveProfile() {
+  const first  = (document.getElementById('profFirst').value  || '').trim();
+  const last   = (document.getElementById('profLast').value   || '').trim();
+  const phone  = (document.getElementById('profPhone').value  || '').trim();
+  const office = (document.getElementById('profOffice').value || '').trim();
+
+  if (!first) { toast('Please enter your first name', 'err'); return; }
+
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) { toast('Not logged in', 'err'); return; }
+
+  const { error } = await sb.from('profiles').upsert({
+    id:         user.id,
+    first_name: first,
+    last_name:  last,
+    full_name:  `${first} ${last}`.trim(),
+    phone:      phone,
+    office:     office,
+  });
+
+  if (error) { toast('Error saving profile', 'err'); console.error(error); return; }
+
+  _repName = first;
+  toast('Profile saved ✓', 'ok');
 }
 
 function setDates() {
