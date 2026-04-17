@@ -844,16 +844,13 @@
       <div class="fg">
         <label class="fl">Message Angle</label>
         <select class="fi" id="fuMsgAngle" onchange="refreshFuMsg()" style="appearance:none; background:url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394A3B8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E') no-repeat right 12px center; background-size:18px">
-          <option value="warm">Warm Follow-up</option>
-          <option value="price">Price Objection</option>
-          <option value="think">Spouse/Think Over</option>
-          <option value="quotes">Shopping Quotes</option>
-          <option value="financing">Financing Concern</option>
-          <option value="reschedule">Reschedule</option>
-          <option value="nothome">Missed/Not Home</option>
-          <option value="notinterested">Not Interested (Old)</option>
-          <option value="existing">Existing Product</option>
-          <option value="default">Custom/Other</option>
+          <option value="too_much">Too much</option>
+          <option value="think_about">Think about</option>
+          <option value="shop_around">Shop around</option>
+          <option value="spouse">Spouse not home</option>
+          <option value="no_demo">No demo</option>
+          <option value="no_one_home">No one home</option>
+          <option value="default">General Follow-Up</option>
         </select>
       </div>
       <div class="fg">
@@ -1748,15 +1745,12 @@ function openFu(leadId, reasonLabel, name, phone, notes) {
 
   const r = (reasonLabel || '').toLowerCase();
   let autoAngle = 'default';
-  if      (r.includes('price') || r.includes('too high') || r.includes('expensive'))                        autoAngle = 'price';
-  else if (r.includes('think') || r.includes('decide') || r.includes('consider'))                           autoAngle = 'think';
-  else if (r.includes('quote') || r.includes('other') || r.includes('shop'))                                autoAngle = 'quotes';
-  else if (r.includes('spouse') || r.includes('discuss') || r.includes('partner') || r.includes('husband') || r.includes('wife')) autoAngle = 'spouse';
-  else if (r.includes('financ') || r.includes('bank') || r.includes('credit') || r.includes('denied'))     autoAngle = 'financing';
-  else if (r.includes('reschedule') || r.includes('call back') || r.includes('call me'))                    autoAngle = 'reschedule';
-  else if (r.includes('not home') || r.includes('no one') || r.includes('missed'))                         autoAngle = 'nothome';
-  else if (r.includes('not interested'))                                                                      autoAngle = 'notinterested';
-  else if (r.includes('already has') || r.includes('has gutter') || r.includes('existing'))                 autoAngle = 'existing';
+  if      (r.includes('too much'))                      autoAngle = 'too_much';
+  else if (r.includes('think about'))                   autoAngle = 'think_about';
+  else if (r.includes('shop around'))                   autoAngle = 'shop_around';
+  else if (r.includes('spouse not home') || r.includes('spouse')) autoAngle = 'spouse';
+  else if (r.includes('no demo'))                       autoAngle = 'no_demo';
+  else if (r.includes('no one home'))                   autoAngle = 'no_one_home';
   document.getElementById('fuMsgAngle').value = autoAngle;
 
   _fuLead = { id: leadId, reason: reasonLabel };
@@ -1770,19 +1764,20 @@ function closeFu() { document.getElementById('fuOverlay').classList.remove('open
 
 // Message templates keyed by dropdown value
 const DEFAULT_FU_MSGS = {
-  price:         `Hi [Name]! This is Steve from LeafFilter. I know price was a concern when we last spoke — I actually just spoke with my Install Manager and we have a large commercial job going on in the area, and I think I could save you a bunch of money. Is that something you might be interested in? 😊`,
-  think:         `Hi [Name]! This is Steve from LeafFilter. I know you wanted some time to think things over after our last visit. Just checking in to see if you had any questions I could help answer. No pressure at all! 😊`,
-  quotes:        `Hi [Name]! This is Steve from LeafFilter. I know you were shopping around when we last spoke — just wanted to check in. LeafFilter is the only product with a lifetime no-clog guarantee. Happy to chat and compare if it would help! 😊`,
-  spouse:        `Hi [Name]! This is Steve from LeafFilter. I know you wanted to chat with your spouse before making a decision. Just checking in to see if you've had a chance to discuss it and if you'd like to move forward! 😊`,
-  financing:     `Hi [Name]! This is Steve from LeafFilter. I know financing was a challenge last time. I wanted to reach out because we may have some other options available that could work better for you. Would you be open to a quick chat? 😊`,
-  reschedule:    `Hi [Name]! This is Steve from LeafFilter. You asked me to follow up, so here I am! 😄 Would you be open to connecting to go over our gutter protection options? 😊`,
-  nothome:       `Hi [Name]! This is Steve from LeafFilter — I stopped by recently about gutter protection and missed you. I'd love to connect when it's a good time! Would you be open to a quick chat? 😊`,
-  notinterested: `Hi [Name]! This is Steve from LeafFilter. I know the timing might not have been right when we last spoke. Just wanted to check in — happy to answer any questions if anything has changed! 😊`,
-  existing:      `Hi [Name]! This is Steve from LeafFilter. Just wanted to follow up — if you're ever not 100% satisfied with your current gutter protection, we're here. Our lifetime no-clog guarantee really sets us apart! 😊`,
+  too_much:      `Hi [Name]! This is Steve from LeafFilter. I know price was a concern when we last spoke — I actually just spoke with my Install Manager and we have a large commercial job going on in the area, and I think I could save you a bunch of money. Is that something you might be interested in? 😊`,
+  think_about:   `Hi [Name]! This is Steve from LeafFilter. I know you wanted some time to think things over after our last visit. Just checking in to see if you had any questions I could help answer. No pressure at all! 😊`,
+  shop_around:   `Hi [Name]! This is Steve from LeafFilter. I know you were shopping around when we last spoke — just wanted to check in. LeafFilter is the only product with a lifetime no-clog guarantee. Happy to chat and compare if it would help! 😊`,
+  spouse:        `Hi [Name]! This is Steve from LeafFilter. I know your spouse wasn't home to see our demo. I'd love to come back out when you're both available to show you how our system works! 😊`,
+  no_demo:       `Hi [Name]! This is Steve from LeafFilter. I know the timing might not have been right to see our system when I stopped by. Just wanted to check in — happy to share a quick overview and answer any questions if anything has changed! 😊`,
+  no_one_home:   `Hi [Name]! This is Steve from LeafFilter — I stopped by recently about gutter protection and missed you. I'd love to connect when it's a good time! Would you be open to a quick chat? 😊`,
   default:       `Hi [Name]! This is Steve from LeafFilter. I wanted to follow up on our previous conversation about gutter protection. Just wanted to check in and see if you wanted to move forward 😊`,
 };
 
 let FU_MSGS = JSON.parse(localStorage.getItem('cc_fu_msgs')) || DEFAULT_FU_MSGS;
+if (FU_MSGS.price || FU_MSGS.nothome || FU_MSGS.think) {
+  FU_MSGS = DEFAULT_FU_MSGS;
+  localStorage.setItem('cc_fu_msgs', JSON.stringify(FU_MSGS));
+}
 
 function refreshFuMsg() {
   const name  = document.getElementById('fuName').value.trim() || 'there';
