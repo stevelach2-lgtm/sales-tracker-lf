@@ -661,12 +661,8 @@
           <span id="reasonsIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
         </div>
         <div id="reasonsSection" style="display:none">
-          <div class="s-sub">Manage your "Not Sold" reasons. Edit or delete anytime.</div>
+          <div class="s-sub">View your configured "Not Sold" reasons.</div>
           <div id="reasonsSet"><div class="loading"><div class="spinner"></div></div></div>
-          <button class="add-btn" onclick="openAdd()" style="margin-top:10px">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add New Reason
-          </button>
         </div>
       </div>
       <!-- Goal Settings -->
@@ -2416,14 +2412,10 @@ async function loadSettings() {
   loadBaselines();
   await loadReasons();
   const el = document.getElementById('reasonsSet');
-  if (!reasons.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;padding:8px 0">No reasons yet. Add one below.</p>'; return; }
+  if (!reasons.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;padding:8px 0">No reasons found.</p>'; return; }
   el.innerHTML = reasons.map(r => `
-    <div class="ri" id="ri-${r.id}">
+    <div class="ri" id="ri-${r.id}" style="padding-right:12px">
       <span class="ri-txt">${r.label}</span>
-      <div class="ri-acts">
-        <button class="ibtn edit" onclick="openEdit('${r.id}','${r.label.replace(/'/g,"\\'")}')">✏️</button>
-        <button class="ibtn del" onclick="delReason('${r.id}')">🗑️</button>
-      </div>
     </div>`).join('');
 }
 
