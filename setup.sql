@@ -125,6 +125,7 @@ do $$
 declare
     old_id uuid;
     new_id uuid;
+    r record;
 begin
     -- 1. Spouse not present / needs to discuss -> Spouse not home
     select id into old_id from public.not_sold_reasons where label = 'Spouse not present / needs to discuss' limit 1;
