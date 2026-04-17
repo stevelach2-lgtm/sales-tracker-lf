@@ -220,11 +220,41 @@ begin
         delete from public.not_sold_reasons where id = r.id;
     end loop;
 
+    -- 11. Consolidate variations of 'Shop around'
+    select id into new_id from public.not_sold_reasons where label = 'Shop around' limit 1;
+    if not found then
+        insert into public.not_sold_reasons (label, sort_order) values ('Shop around', 3) returning id into new_id;
+    end if;
+    for r in (select id from public.not_sold_reasons where id != new_id and lower(trim(label)) = 'shop around') loop
+        update public.leads set reason_id = new_id where reason_id = r.id;
+        delete from public.not_sold_reasons where id = r.id;
+    end loop;
+
+    -- 12. Renter/not owner -> No demo
+    select id into new_id from public.not_sold_reasons where label = 'No demo' limit 1;
+    if not found then
+        insert into public.not_sold_reasons (label, sort_order) values ('No demo', 6) returning id into new_id;
+    end if;
+    for r in (select id from public.not_sold_reasons where id != new_id and lower(label) like '%rent%' and lower(label) like '%owner%') loop
+        update public.leads set reason_id = new_id where reason_id = r.id;
+        delete from public.not_sold_reasons where id = r.id;
+    end loop;
+
+    -- 13. Needs to think about it -> Think about
+    select id into new_id from public.not_sold_reasons where label = 'Think about' limit 1;
+    if not found then
+        insert into public.not_sold_reasons (label, sort_order) values ('Think about', 2) returning id into new_id;
+    end if;
+    for r in (select id from public.not_sold_reasons where id != new_id and (lower(label) like '%think about%' or lower(label) like '%think anout%')) loop
+        update public.leads set reason_id = new_id where reason_id = r.id;
+        delete from public.not_sold_reasons where id = r.id;
+    end loop;
+
 end $$;
 
 insert into public.not_sold_reasons (label, sort_order) values
   ('Too much',                              1),
-  ('Needs to think about it',               2),
+  ('Think about',                           2),
   ('Shop around',                           3),
   ('Spouse not home',                       4),
   ('No demo',                               6),
