@@ -1745,7 +1745,7 @@ function switchHistTab(tab, btn) {
 // ─────────────────────────────────────────
 let _fuLead = null;
 
-function openFu(leadId, reasonLabel, name, phone, notes) {
+function openFu(leadId, reasonLabel, name, phone, notes, stepNum) {
   document.getElementById('fuLeadId').value = leadId;
   document.getElementById('fuName').value = name || '';
   document.getElementById('fuPhone').value = phone || '';
@@ -1771,7 +1771,7 @@ function openFu(leadId, reasonLabel, name, phone, notes) {
   else if (r.includes('no one home'))                   autoAngle = 'no_one_home';
   document.getElementById('fuMsgAngle').value = autoAngle;
 
-  _fuLead = { id: leadId, reason: reasonLabel };
+  _fuLead = { id: leadId, reason: reasonLabel, step: stepNum || 1 };
   refreshFuMsg();
   document.getElementById('fuOverlay').classList.add('open');
 }
@@ -1780,15 +1780,37 @@ function openFu(leadId, reasonLabel, name, phone, notes) {
 
 function closeFu() { document.getElementById('fuOverlay').classList.remove('open'); }
 
-// Message templates keyed by dropdown value
+// Message templates keyed by dropdown value — Step 1 (initial, friendly)
 const DEFAULT_FU_MSGS = {
-  too_much:      `Hi [Name]! This is Steve from LeafFilter. I know price was a concern when we last spoke — I actually just spoke with my Install Manager and we have a large commercial job going on in the area, and I think I could save you a bunch of money. Is that something you might be interested in? 😊`,
-  think_about:   `Hi [Name]! This is Steve from LeafFilter. I know you wanted some time to think things over after our last visit. Just checking in to see if you had any questions I could help answer. No pressure at all! 😊`,
-  shop_around:   `Hi [Name]! This is Steve from LeafFilter. I know you were shopping around when we last spoke — just wanted to check in. LeafFilter is the only product with a lifetime no-clog guarantee. Happy to chat and compare if it would help! 😊`,
-  spouse:        `Hi [Name]! This is Steve from LeafFilter. I know your spouse wasn't home to see our demo. I'd love to come back out when you're both available to show you how our system works! 😊`,
-  no_demo:       `Hi [Name]! This is Steve from LeafFilter. I know the timing might not have been right to see our system when I stopped by. Just wanted to check in — happy to share a quick overview and answer any questions if anything has changed! 😊`,
-  no_one_home:   `Hi [Name]! This is Steve from LeafFilter — I stopped by recently about gutter protection and missed you. I'd love to connect when it's a good time! Would you be open to a quick chat? 😊`,
-  default:       `Hi [Name]! This is Steve from LeafFilter. I wanted to follow up on our previous conversation about gutter protection. Just wanted to check in and see if you wanted to move forward 😊`,
+  too_much:    `Hi [Name]! This is Steve from LeafFilter. I know price was a concern when we last spoke — I actually just spoke with my Install Manager and we have a large commercial job going on in the area, and I think I could save you a bunch of money. Is that something you might be interested in? 😊`,
+  think_about: `Hi [Name]! This is Steve from LeafFilter. I know you wanted some time to think things over after our last visit. Just checking in to see if you had any questions I could help answer. No pressure at all! 😊`,
+  shop_around: `Hi [Name]! This is Steve from LeafFilter. I know you were shopping around when we last spoke — just wanted to check in. LeafFilter is the only product with a lifetime no-clog guarantee. Happy to chat and compare if it would help! 😊`,
+  spouse:      `Hi [Name]! This is Steve from LeafFilter. I know your spouse wasn't home to see our demo. I'd love to come back out when you're both available to show you how our system works! 😊`,
+  no_demo:     `Hi [Name]! This is Steve from LeafFilter. I know the timing might not have been right to see our system when I stopped by. Just wanted to check in — happy to share a quick overview and answer any questions if anything has changed! 😊`,
+  no_one_home: `Hi [Name]! This is Steve from LeafFilter — I stopped by recently about gutter protection and missed you. I'd love to connect when it's a good time! Would you be open to a quick chat? 😊`,
+  default:     `Hi [Name]! This is Steve from LeafFilter. I wanted to follow up on our previous conversation about gutter protection. Just wanted to check in and see if you wanted to move forward 😊`,
+};
+
+// Step 2 templates (3-day follow-up — more direct)
+const DEFAULT_FU_MSGS_S2 = {
+  too_much:    `Hey [Name], Steve again from LeafFilter! I wanted to circle back — I spoke with my manager and there may be a way to make this work within your budget. Worth a 5-minute chat? 😊`,
+  think_about: `Hey [Name], Steve from LeafFilter again! Just wanted to check back in — I know you were still thinking it over. Did any questions come up I could help answer? Happy to chat anytime! 😊`,
+  shop_around: `Hey [Name], Steve from LeafFilter checking in again! If you've gotten other quotes, I'd love a chance to compare — LeafFilter's lifetime no-clog guarantee is hard to beat. Still interested? 😊`,
+  spouse:      `Hey [Name]! Steve from LeafFilter again. Just following up — have you and your spouse had a chance to chat about it? I'd love to come back out when you're both available. 😊`,
+  no_demo:     `Hey [Name], Steve from LeafFilter! Wanted to try one more time — I'd love to show you our system when the timing works. It only takes about 15 minutes. Are you available soon? 😊`,
+  no_one_home: `Hey [Name], Steve from LeafFilter! Tried reaching out once before — just wanted to make sure I didn't miss you. Would love to connect about gutter protection when you have a moment! 😊`,
+  default:     `Hey [Name]! Steve from LeafFilter again — just wanted to follow up one more time. Would now be a good time to chat about moving forward with gutter protection? 😊`,
+};
+
+// Step 3 templates (7-day follow-up — final, urgent nudge)
+const DEFAULT_FU_MSGS_S3 = {
+  too_much:    `Hi [Name], this is Steve from LeafFilter — last time I'll reach out! I genuinely think I can save you money on this. If price is the only thing holding you back, let's talk before the current offer expires. 😊`,
+  think_about: `Hi [Name], Steve from LeafFilter — final check-in! I don't want to bother you but I also don't want you to miss out. If you're still on the fence, I'm happy to answer any last questions before I close out the file. 😊`,
+  shop_around: `Hi [Name], Steve from LeafFilter — one last follow-up! If you're still comparing options, I'm confident LeafFilter will come out on top. Let me know if you'd like a final comparison before you decide. 😊`,
+  spouse:      `Hi [Name], Steve from LeafFilter — just a final check-in! If you and your spouse have had a chance to discuss it, I'd love to hear where things landed. No pressure — just want to make sure you have everything you need! 😊`,
+  no_demo:     `Hi [Name], Steve from LeafFilter — last follow-up from me! I'd still love the chance to show you our system — it truly sells itself. If the timing ever works out, just reply and I'll make it happen. 😊`,
+  no_one_home: `Hi [Name], Steve from LeafFilter — one final attempt! I've tried a couple of times and don't want to keep bothering you, but if you ever want to explore gutter protection, I'm just a text away. 😊`,
+  default:     `Hi [Name], Steve LeafFilter — this is my last follow-up! If now isn't the right time, no worries at all. But if you're ever ready to talk gutter protection, don't hesitate to reach out. 😊`,
 };
 
 let FU_MSGS = JSON.parse(localStorage.getItem('cc_fu_msgs')) || DEFAULT_FU_MSGS;
@@ -1800,15 +1822,13 @@ if (FU_MSGS.price || FU_MSGS.nothome || FU_MSGS.think) {
 function refreshFuMsg() {
   const name  = document.getElementById('fuName').value.trim() || 'there';
   const angle = document.getElementById('fuMsgAngle').value || 'default';
-  const tpl   = FU_MSGS[angle] || FU_MSGS.default;
+  const step  = _fuLead?.step || 1;
+
+  // Pick the right template set based on which step we're on
+  const tplSet = step === 3 ? DEFAULT_FU_MSGS_S3 : step === 2 ? DEFAULT_FU_MSGS_S2 : FU_MSGS;
+  const tpl = tplSet[angle] || tplSet.default;
   
-  // If it's a function (old style), call it. If string, replace placeholder.
-  let msg = '';
-  if (typeof tpl === 'function') {
-    msg = tpl(name);
-  } else {
-    msg = tpl.replace('[Name]', name);
-  }
+  let msg = typeof tpl === 'function' ? tpl(name) : tpl.replace(/\[Name\]/g, name);
   document.getElementById('fuMsg').value = msg;
 }
 
@@ -1921,7 +1941,7 @@ async function loadFollowUps() {
             <div class="fup-reason" style="margin-bottom:8px">Not Sold: ${rStr}</div>
             <div class="fup-actions">
               ${phone ? `<a href="tel:+1${phone}" class="fup-btn" style="background:#F0FDF4; color:#166534; border:1px solid #BBF7D0; text-decoration:none; display:flex; align-items:center; justify-content:center">📞 Call</a>` : ''}
-              <button class="fup-btn sms" onclick="openFu('${l.id}','${reasonEsc}','${name}','${phone}','${notesEsc}')">📱 SMS</button>
+              <button class="fup-btn sms" onclick="openFu('${l.id}','${reasonEsc}','${name}','${phone}','${notesEsc}',${l.step_num||1})">📱 SMS</button>
               <button class="fup-btn done-btn" onclick="toggleFuDone('${l.id}',${!l.followup_done})" style="min-width:44px">${l.followup_done ? '↩':'✅'}</button>
             </div>
           </div>`;
