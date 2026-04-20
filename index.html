@@ -2468,10 +2468,14 @@
             <div style="background:#FEF9C3;border:1.5px solid #FDE047;border-radius:12px;padding:14px;margin-bottom:4px">
               <div style="font-size:12px;font-weight:800;color:#713F12;margin-bottom:10px;display:flex;align-items:center;gap:6px">💰 Quote Calculator Settings</div>
               <label class="fl">Opening Price % Over Retail</label>
-              <input type="number" class="fi" id="openingPricePct" min="0" max="200" step="0.1"
-                placeholder="e.g. 15" inputmode="decimal"
-                onchange="saveOpeningPricePct(this.value)"
-                style="margin-bottom:4px">
+              <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
+                <input type="number" class="fi" id="openingPricePct" min="0" max="200" step="0.1"
+                  placeholder="e.g. 15" inputmode="decimal" style="flex:1">
+                <button onclick="saveOpeningPricePct(document.getElementById('openingPricePct').value)"
+                  style="padding:10px 16px;background:#FACC15;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:12px;font-weight:800;color:#713F12;cursor:pointer;white-space:nowrap;flex-shrink:0">
+                  Save %
+                </button>
+              </div>
               <div style="font-size:11px;color:#A16207;margin-bottom:12px">Opening Price = Retail × (1 + this %)</div>
               <div onclick="toggleAdminDefault()" style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #FDE047;border-radius:9px;padding:10px 12px;cursor:pointer;user-select:none;margin-bottom:8px">
                 <div id="adminDefaultChk" style="width:20px;height:20px;border:2px solid #FDE047;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;transition:.15s"></div>
@@ -5404,6 +5408,7 @@
     function saveOpeningPricePct(val) {
       localStorage.setItem('cc_opening_pct', parseFloat(val) || 0);
       syncSettingsToSupabase();
+      toast('Opening price % saved ✓', 'ok');
     }
 
     function toggleAdminDefault() {
