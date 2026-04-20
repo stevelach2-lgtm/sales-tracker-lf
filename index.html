@@ -2933,15 +2933,12 @@
             </optgroup>
           </select>
         </div>
-        <!-- Toggle row -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
-          <div onclick="toggleQcAdminInOpening()" style="display:flex;align-items:center;gap:7px;background:#FEF9C3;border:1.5px solid #FDE047;border-radius:9px;padding:8px 10px;cursor:pointer;user-select:none">
-            <div id="qcAdminOpeningChk" style="width:18px;height:18px;border:2px solid #FDE047;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;transition:.15s"></div>
-            <div style="font-size:10px;font-weight:700;color:#713F12;line-height:1.3">+$500 to<br>opening</div>
-          </div>
-          <div onclick="toggleQcAdmin()" style="display:flex;align-items:center;gap:7px;background:#F9FAFB;border:1.5px solid var(--border);border-radius:9px;padding:8px 10px;cursor:pointer;user-select:none">
-            <div id="qcAdminChk" style="width:18px;height:18px;border:2px solid var(--border);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;transition:.15s"></div>
-            <div style="font-size:10px;font-weight:700;color:var(--text);line-height:1.3">Admin in<br>PAR min</div>
+        <!-- Overage toggle -->
+        <div onclick="toggleQcOverage()" style="display:flex;align-items:center;gap:10px;background:#F9FAFB;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;margin-bottom:8px;cursor:pointer;user-select:none">
+          <div id="qcOverageChk" style="width:20px;height:20px;border:2px solid var(--border);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;transition:.15s"></div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--text)">Include Overage (40%)</div>
+            <div style="font-size:10px;color:var(--muted)">Count overage commission on amount above PAR</div>
           </div>
         </div>
         <!-- Min-to-PAR indicator -->
@@ -5252,13 +5249,13 @@
     // ─────────────────────────────────────────
     let qcAdminIncluded = true;
     let qcAdminInOpening = false;
+    let qcOverageEnabled = true;
 
     function openQuoteCalc() {
       qcAdminIncluded = localStorage.getItem('cc_admin_default') !== 'false';
       qcAdminInOpening = localStorage.getItem('cc_admin_in_opening') === 'true';
       renderQCItems();
-      updateQcAdminChk();
-      updateQcAdminOpeningChk();
+      updateQcOverageChk();
       calcQuote();
       document.getElementById('quoteCalcOverlay').classList.add('open');
     }
@@ -5293,34 +5290,19 @@
       container.innerHTML = html;
     }
 
-    function updateQcAdminChk() {
-      const chk = document.getElementById('qcAdminChk');
-      if (!chk) return;
-      chk.innerHTML = qcAdminIncluded ? '✓' : '';
-      chk.style.background = qcAdminIncluded ? 'var(--green)' : '';
-      chk.style.color = qcAdminIncluded ? '#fff' : '';
-      chk.style.borderColor = qcAdminIncluded ? 'var(--green)' : 'var(--border)';
-    }
-
-    function toggleQcAdmin() {
-      qcAdminIncluded = !qcAdminIncluded;
-      updateQcAdminChk();
+    function toggleQcOverage() {
+      qcOverageEnabled = !qcOverageEnabled;
+      updateQcOverageChk();
       calcQuote();
     }
 
-    function toggleQcAdminInOpening() {
-      qcAdminInOpening = !qcAdminInOpening;
-      updateQcAdminOpeningChk();
-      calcQuote();
-    }
-
-    function updateQcAdminOpeningChk() {
-      const chk = document.getElementById('qcAdminOpeningChk');
+    function updateQcOverageChk() {
+      const chk = document.getElementById('qcOverageChk');
       if (!chk) return;
-      chk.innerHTML = qcAdminInOpening ? '✓' : '';
-      chk.style.background = qcAdminInOpening ? '#FACC15' : '';
-      chk.style.color = qcAdminInOpening ? '#713F12' : '';
-      chk.style.borderColor = qcAdminInOpening ? '#EAB308' : '#FDE047';
+      chk.innerHTML = qcOverageEnabled ? '✓' : '';
+      chk.style.background = qcOverageEnabled ? 'var(--green)' : '';
+      chk.style.color = qcOverageEnabled ? '#fff' : '';
+      chk.style.borderColor = qcOverageEnabled ? 'var(--green)' : 'var(--border)';
     }
 
     function calcQuote() {
@@ -5368,9 +5350,9 @@
         if (!isUnderPar) {
           const parComm = par * 0.08;
           const overage = Math.max(0, effectiveNet - par);
-          const overComm = overage * 0.40;
+          const overComm = qcOverageEnabled ? overage * 0.40 : 0;
           commTotal = parComm + overComm;
-          tierLabel = `${netPct.toFixed(1)}% net — at/above par`;
+          tierLabel = `${netPct.toFixed(1)}% net — at/above par${qcOverageEnabled ? '' : ' (no overage)'}`;
         } else {
           let tierRate, tierDesc;
           if (netPct >= 60) {
