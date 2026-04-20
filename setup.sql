@@ -390,5 +390,20 @@ drop policy if exists "Authenticated users can modify reasons" on public.not_sol
 create policy "Authenticated users can modify reasons" on public.not_sold_reasons for all using (auth.role() = 'authenticated');
 
 -- ============================================================
+-- MIGRATION: Add quote calculator settings columns to app_settings
+-- ============================================================
+do $$ begin
+  if not exists (select 1 from information_schema.columns where table_name='app_settings' and column_name='opening_price_pct') then
+    alter table public.app_settings add column opening_price_pct numeric default 0;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='app_settings' and column_name='admin_default') then
+    alter table public.app_settings add column admin_default boolean default true;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='app_settings' and column_name='admin_in_opening') then
+    alter table public.app_settings add column admin_in_opening boolean default false;
+  end if;
+end $$;
+
+-- ============================================================
 -- Done! Your tables are ready.
 -- ============================================================
