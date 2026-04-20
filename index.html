@@ -2868,6 +2868,7 @@
           <div id="qcCommBox" style="background:#F9FAFB;border-radius:9px;padding:7px 10px;display:none">
             <div style="font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.5px">COMMISSION</div>
             <div id="qcComm" style="font-size:15px;font-weight:800;color:var(--green-dark)">$0.00</div>
+            <div id="qcParGapLine" style="font-size:9px;font-weight:700;margin-top:2px"></div>
             <div id="qcCommTier" style="font-size:9px;font-weight:600;color:var(--muted)"></div>
           </div>
         </div>
@@ -5385,6 +5386,15 @@
         const finalComm = Math.max(0, commTotal);
         document.getElementById('qcComm').textContent = fmt(finalComm);
         document.getElementById('qcComm').style.color = isUnderPar ? 'var(--red)' : 'var(--green-dark)';
+        const gap = effectiveNet - par;
+        const gapEl = document.getElementById('qcParGapLine');
+        if (gap >= 0) {
+          gapEl.style.color = '#166534';
+          gapEl.textContent = `▲ $${Math.abs(gap).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} above PAR`;
+        } else {
+          gapEl.style.color = 'var(--red)';
+          gapEl.textContent = `▼ $${Math.abs(gap).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} below PAR`;
+        }
         document.getElementById('qcCommTier').textContent = tierLabel;
       } else {
         commBox.style.display = 'none';
