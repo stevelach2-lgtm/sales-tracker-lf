@@ -2956,6 +2956,10 @@
     // ─────────────────────────────────────────
     // CONFIG & AUTH
     // ─────────────────────────────────────────
+
+    const APP_SUPABASE_URL = 'https://gktnrjtmuxhnxggqgpny.supabase.co';
+    const APP_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrdG5yanRtdXhobnhnZ3FncG55Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MTM3NjUsImV4cCI6MjA5MDQ4OTc2NX0.oTH6Gd1O2fRH5eaJsVSk2hSTVZmXCApf2_SNPQ5Qb-o';
+
     function showDbSetup(show) {
       document.getElementById('authForm').style.display = show ? 'none' : 'block';
       document.getElementById('dbForm').style.display = show ? 'block' : 'none';
@@ -3051,18 +3055,10 @@
     // BOOT
     // ─────────────────────────────────────────
     async function boot() {
-      const url = localStorage.getItem('sb_url');
-      const key = localStorage.getItem('sb_key');
+      const url = localStorage.getItem('sb_url') || APP_SUPABASE_URL;
+      const key = localStorage.getItem('sb_key') || APP_SUPABASE_KEY;
       const cfg = document.getElementById('cfg');
       const app = document.getElementById('app');
-
-      // If no DB connection set
-      if (!url || !key) {
-        cfg.classList.add('open');
-        showDbSetup(true);
-        app.style.display = 'none';
-        return;
-      }
 
       try {
         if (!sb) sb = window.supabase.createClient(url, key);
