@@ -2851,9 +2851,9 @@
         <!-- Opening Price + PAR+Admin -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
           <div style="background:#FEF9C3;border:1.5px solid #FDE047;border-radius:9px;padding:9px 11px">
-            <div style="font-size:9px;font-weight:700;color:#854D0E;letter-spacing:.5px">OPENING PRICE</div>
+            <div id="qcOpeningLabel" style="font-size:9px;font-weight:700;color:#854D0E;letter-spacing:.5px">OPENING PRICE</div>
             <div id="qcOpening" style="font-size:17px;font-weight:800;color:#854D0E">$0.00</div>
-            <div id="qcOpeningPct" style="font-size:9px;font-weight:600;color:#A16207">+0% over retail</div>
+            <div id="qcOpeningPct" style="font-size:10px;font-weight:700;color:#A16207"></div>
           </div>
           <div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:9px;padding:9px 11px">
             <div style="font-size:9px;font-weight:700;color:#166534;letter-spacing:.5px">PAR + ADMIN</div>
@@ -2938,13 +2938,14 @@
           </select>
         </div>
         <!-- Overage toggle -->
-        <div onclick="toggleQcOverage()" style="display:flex;align-items:center;gap:10px;background:#F9FAFB;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;margin-bottom:8px;cursor:pointer;user-select:none">
+        <button type="button" onclick="toggleQcOverage()"
+          style="width:100%;display:flex;align-items:center;gap:10px;background:#F9FAFB;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;margin-bottom:8px;cursor:pointer;user-select:none;font-family:'Inter',sans-serif;text-align:left">
           <div id="qcOverageChk" style="width:20px;height:20px;border:2px solid var(--border);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;transition:.15s"></div>
           <div>
             <div style="font-size:12px;font-weight:700;color:var(--text)">Include Overage (40%)</div>
             <div style="font-size:10px;color:var(--muted)">Count overage commission on amount above PAR</div>
           </div>
-        </div>
+        </button>
         <!-- Min-to-PAR indicator -->
         <div id="qcMinParBox" style="display:none;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;line-height:1.6"></div>
       </div>
@@ -5326,8 +5327,12 @@
       const parPlusAdmin = par + 500;
       const openingPrice = retail * (1 + openingPct / 100) + (qcAdminInOpening ? 500 : 0);
 
+      const openingLabelEl = document.getElementById('qcOpeningLabel');
+      if (openingLabelEl) openingLabelEl.textContent = openingPct > 0 ? `OPENING PRICE (+${openingPct % 1 === 0 ? openingPct : openingPct.toFixed(1)}%)` : 'OPENING PRICE';
       document.getElementById('qcOpening').textContent = retail > 0 ? fmt(openingPrice) : '$0.00';
-      document.getElementById('qcOpeningPct').textContent = `+${openingPct.toFixed(1)}% over retail${qcAdminInOpening ? ' + $500 admin' : ''}`;
+      document.getElementById('qcOpeningPct').textContent = retail > 0
+        ? `retail $${retail.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${qcAdminInOpening ? ' + $500 admin' : ''}`
+        : '';
       document.getElementById('qcParAdmin').textContent = retail > 0 ? fmt(parPlusAdmin) : '$0.00';
 
       // Finance plan — exact same structure as calcComm()
