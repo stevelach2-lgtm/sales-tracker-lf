@@ -3332,25 +3332,18 @@
       const { cs, ce, ps, pe } = getPeriodRanges(curPeriod);
       const ytdStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
       // Filter by sales_date (actual appointment/sale date) for all leads.
-      // Fallback: leads with no sales_date use created_at date instead (covers old entries).
       const csDate = cs.split('T')[0]; const ceDate = ce.split('T')[0];
       const psDate = ps.split('T')[0]; const peDate = pe.split('T')[0];
       const ytdStartDate = ytdStart.split('T')[0];
       const [
-        { data: curDated },   // leads with sales_date in current period
-        { data: curUndated }, // leads with no sales_date, created_at in current period
-        { data: prvDated },
-        { data: prvUndated },
+        { data: cur },
+        { data: prv },
         { data: ytd }
       ] = await Promise.all([
         sb.from('leads').select('*, not_sold_reasons(label)').not('sales_date', 'is', null).gte('sales_date', csDate).lte('sales_date', ceDate),
-        sb.from('leads').select('*, not_sold_reasons(label)').is('sales_date', null).gte('created_at', cs).lte('created_at', ce),
         sb.from('leads').select('*, not_sold_reasons(label)').not('sales_date', 'is', null).gte('sales_date', psDate).lte('sales_date', peDate),
-        sb.from('leads').select('*, not_sold_reasons(label)').is('sales_date', null).gte('created_at', ps).lte('created_at', pe),
         sb.from('leads').select('commission_amount,commission_paid,is_cancelled').eq('status', 'sold').eq('is_cancelled', false).not('sales_date', 'is', null).gte('sales_date', ytdStartDate)
       ]);
-      const cur = [...(curDated || []), ...(curUndated || [])];
-      const prv = [...(prvDated || []), ...(prvUndated || [])];
       const c = calcM(cur || []), p = calcM(prv || []);
       const ytdComm = (ytd || []).filter(l => l.commission_paid).reduce((s, l) => s + (parseFloat(l.commission_amount) || 0), 0);
       // Load baselines
@@ -4156,10 +4149,10 @@
         toDate = document.getElementById('histCustE').value;
       }
 
-      // Sort helper: sort by sales_date desc, fall back to created_at (so list order matches displayed date)
+      // Sort helper: sort by sales_date desc
       const sortByDate = arr => arr.sort((a, b) => {
-        const da = a.sales_date ? new Date(a.sales_date + 'T12:00:00') : new Date(a.created_at);
-        const db = b.sales_date ? new Date(b.sales_date + 'T12:00:00') : new Date(b.created_at);
+        const da = a.sales_date ? new Date(a.sales_date + 'T12:00:00') : new Date(0);
+        const db = b.sales_date ? new Date(b.sales_date + 'T12:00:00') : new Date(0);
         return db - da;
       });
 
@@ -4175,8 +4168,7 @@
         if (fromDate) query = query.gte('sales_date', fromDate);
         if (toDate) query = query.lte('sales_date', toDate);
       } else if (fromDate) {
-        // Filtered range — try sales_date first, fall back to created_at if null
-        query = query.or(`sales_date.gte.${fromDate},and(sales_date.is.null,created_at.gte.${fromISO})`);
+        query = query.not('sales_date', 'is', null).gte('sales_date', fromDate);
       }
 
       const { data: d, error } = await query;
@@ -4190,10 +4182,10 @@
       if (!leads.length) { el.innerHTML = '<div class="empty"><div class="ei">📋</div><p>No leads in this range yet</p></div>'; return; }
       el.innerHTML = leads.map(l => {
         const sold = l.status === 'sold';
-        // Top-right: show sold date for sold leads, visit date for not-sold, fallback to logged time
+        // Top-right: show sales_date
         const displayDate = l.sales_date
           ? new Date(l.sales_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-          : new Date(l.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          : '—';
         const main = sold ? '$' + (parseFloat(l.sale_amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 0 }) : (l.not_sold_reasons?.label || 'No reason');
         const tags = [];
         if (l.sale_type === 'combo') tags.push('<span style="font-size:9px;font-weight:700;background:#E0F4FF;color:#0077A8;border-radius:4px;padding:1px 5px">COMBO</span>');
