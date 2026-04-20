@@ -15,7 +15,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     :root {
       --green: #00853E;
@@ -2968,7 +2968,7 @@
       </div>
       <!-- QR Code -->
       <div style="display:flex;flex-direction:column;align-items:center;padding:20px 20px 14px;background:#F9FAFB;border-bottom:1px solid var(--border)">
-        <canvas id="bcQrCanvas" style="border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1)"></canvas>
+        <div id="bcQrContainer" style="border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1);line-height:0"></div>
         <div style="margin-top:8px;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.3px">Scan to save contact</div>
       </div>
       <!-- Text preview -->
@@ -5544,10 +5544,16 @@
         'END:VCARD'
       ].filter(Boolean).join('\n');
 
-      const canvas = document.getElementById('bcQrCanvas');
-      if (typeof QRCode !== 'undefined') {
-        QRCode.toCanvas(canvas, vcard, { width: 200, margin: 1, color: { dark: '#003d1f', light: '#F9FAFB' } });
-      }
+      const container = document.getElementById('bcQrContainer');
+      container.innerHTML = '';
+      new QRCode(container, {
+        text: vcard,
+        width: 200,
+        height: 200,
+        colorDark: '#003d1f',
+        colorLight: '#F9FAFB',
+        correctLevel: QRCode.CorrectLevel.M
+      });
 
       document.getElementById('bizCardOverlay').style.display = 'flex';
     }
