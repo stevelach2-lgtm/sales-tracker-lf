@@ -5343,34 +5343,47 @@
       document.getElementById('qcOpeningPct').textContent = `+${openingPct.toFixed(1)}% over retail${qcAdminInOpening ? ' + $500 admin' : ''}`;
       document.getElementById('qcParAdmin').textContent = retail > 0 ? fmt(parPlusAdmin) : '$0.00';
 
-      // Finance plan
+      // Finance plan — exact same structure as calcComm()
       const planVal = document.getElementById('qcFinPlan').value;
-      let planRate = 0;
-      if (planVal) planRate = parseFloat(planVal.split('|')[1]) || 0;
+      let finCharge = 0, planNum = '', planRate = 0;
+      if (planVal) {
+        const parts = planVal.split('|');
+        planNum = parts[0];
+        planRate = parseFloat(parts[1]) || 0;
+        finCharge = (parseFloat(document.getElementById('qcSoldAt').value) || 0) * (planRate / 100);
+      }
 
       // Commission from sold price input
       const soldRaw = parseFloat(document.getElementById('qcSoldAt').value) || 0;
       const commBox = document.getElementById('qcCommBox');
       if (soldRaw > 0 && retail > 0) {
         commBox.style.display = '';
-        const finCharge = soldRaw * (planRate / 100);
-        const effectiveNet = soldRaw - 500 - finCharge;
-        const netPct = (effectiveNet / retail) * 100;
-        const isUnderPar = netPct < 65;
+        // Recompute finCharge using soldRaw (matches calcComm exactly)
+        const qcFinCharge = soldRaw * (planRate / 100);
+        const effectiveNet = soldRaw - 500 - qcFinCharge;
+        const netPct = retail > 0 ? (effectiveNet / retail) * 100 : 0;
+        const isUnderPar = soldRaw > 0 && netPct < 65;
         let commTotal = 0, tierLabel = '';
         if (!isUnderPar) {
           const parComm = par * 0.08;
           const overage = Math.max(0, effectiveNet - par);
-          commTotal = parComm + overage * 0.40;
+          const overComm = overage * 0.40;
+          commTotal = parComm + overComm;
           tierLabel = `${netPct.toFixed(1)}% net — at/above par`;
         } else {
-          let tierRate;
-          if (netPct >= 60) { tierRate = 0.05; tierLabel = `${netPct.toFixed(1)}% — Tier 1 (5%)`; }
-          else if (netPct >= 55) { tierRate = 0.02; tierLabel = `${netPct.toFixed(1)}% — Tier 2 (2%)`; }
-          else { tierRate = 0.01; tierLabel = `${netPct.toFixed(1)}% — Tier 3 (1%)`; }
-          commTotal = Math.max(0, effectiveNet * tierRate);
+          let tierRate, tierDesc;
+          if (netPct >= 60) {
+            tierRate = 0.05; tierDesc = `Tier 1: 60–64.99% of retail (5%)`;
+          } else if (netPct >= 55) {
+            tierRate = 0.02; tierDesc = `Tier 2: 55–59.99% of retail (2%)`;
+          } else {
+            tierRate = 0.01; tierDesc = `Tier 3: Below 55% of retail (1%)`;
+          }
+          commTotal = effectiveNet * tierRate;
+          tierLabel = `Net ${netPct.toFixed(1)}% → ${tierDesc}`;
         }
-        document.getElementById('qcComm').textContent = fmt(Math.max(0, commTotal));
+        const finalComm = Math.max(0, commTotal);
+        document.getElementById('qcComm').textContent = fmt(finalComm);
         document.getElementById('qcComm').style.color = isUnderPar ? 'var(--red)' : 'var(--green-dark)';
         document.getElementById('qcCommTier').textContent = tierLabel;
       } else {
