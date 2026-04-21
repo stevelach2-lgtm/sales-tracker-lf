@@ -4349,7 +4349,7 @@
       if (range === 'install_today') {
         query = query.eq('install_date', localDate(now)).neq('is_cancelled', true);
       } else if (range === 'no_install') {
-        query = query.eq('status', 'sold').is('install_date', null).neq('is_cancelled', true);
+        query = query.eq('status', 'sold').is('install_date', null).neq('is_cancelled', true).neq('commission_paid', true);
       } else if (range === 'custom') {
         if (fromDate) query = query.gte('sales_date', fromDate);
         if (toDate) query = query.lte('sales_date', toDate);
