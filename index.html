@@ -4101,6 +4101,11 @@
       window.open(`sms:+1${clean}?&body=${encodeURIComponent(msg)}`);
     }
 
+    function sendReviewSMS() {
+      const msg = `Hi! It was a pleasure working with you — we hope you're loving your new LeafFilter! 😊\n\nIf you have a moment, we'd really appreciate it if you could leave us a quick Google review. It means the world to us and helps other homeowners find us!\n\n⭐ Leave a review here: https://search.google.com/local/writereview?placeid=ChIJpTOYiBeUxokRBwVfDzAz4Ck&pli=1\n\nThank you so much! 🙏`;
+      window.open('sms:?&body=' + encodeURIComponent(msg));
+    }
+
     function toggleSetSec(id, iconId) {
       const el = document.getElementById(id);
       const icon = document.getElementById(iconId);
@@ -4405,7 +4410,7 @@
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;align-items:center">
         <button class="edit-btn" onclick="openLeadEdit('${l.id}')">✏️</button>
-        ${!sold ? `<button class="edit-btn" onclick="openFu('${l.id}','${(l.not_sold_reasons?.label || '').replace(/'/g, "\\'")}'); event.stopPropagation()" style="font-size:12px" title="Set Follow-Up">📞</button>` : ''}
+        ${sold ? `<button class="edit-btn" onclick="sendReviewSMS(); event.stopPropagation()" style="font-size:12px" title="Request Google Review">⭐</button>` : `<button class="edit-btn" onclick="openFu('${l.id}','${(l.not_sold_reasons?.label || '').replace(/'/g, "\\'")}'); event.stopPropagation()" style="font-size:12px" title="Set Follow-Up">📞</button>`}
       </div>
     </div>`;
 
