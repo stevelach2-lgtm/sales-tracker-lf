@@ -4103,12 +4103,7 @@
 
     function sendReviewSMS() {
       const msg = `Hi! It was a pleasure working with you — we hope you're loving your new LeafFilter! 😊\n\nIf you have a moment, we'd really appreciate it if you could leave us a quick Google review. It means the world to us and helps other homeowners find us!\n\n⭐ Leave a review here: https://tinyurl.com/3ax9b3wd\n\nThank you so much! 🙏`;
-      navigator.clipboard.writeText(msg).then(() => {
-        toast('Message copied! Opening SMS — just paste & send 📋');
-        setTimeout(() => window.open('sms:'), 600);
-      }).catch(() => {
-        window.open('sms:?body=' + encodeURIComponent(msg));
-      });
+      window.open('sms:?&body=' + encodeURIComponent(msg));
     }
 
     function toggleSetSec(id, iconId) {
