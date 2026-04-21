@@ -2272,6 +2272,7 @@
             <button id="ft-week" class="ftab" onclick="filterHist('week',this)">This Week</button>
             <button id="ft-month" class="ftab" onclick="filterHist('month',this)">This Month</button>
             <button id="ft-custom" class="ftab" onclick="filterHist('custom',this)">Custom</button>
+            <button id="ft-no-install" class="ftab" onclick="filterHist('no_install',this)">No Install Date</button>
           </div>
           <!-- History Custom Date Inputs -->
           <div id="histCustomPicker"
@@ -4345,6 +4346,8 @@
 
       if (range === 'install_today') {
         query = query.eq('install_date', localDate(now)).neq('is_cancelled', true);
+      } else if (range === 'no_install') {
+        query = query.eq('status', 'sold').is('install_date', null).neq('is_cancelled', true);
       } else if (range === 'custom') {
         if (fromDate) query = query.gte('sales_date', fromDate);
         if (toDate) query = query.lte('sales_date', toDate);
