@@ -396,13 +396,21 @@ do $$ begin
   if not exists (select 1 from information_schema.columns where table_name='app_settings' and column_name='opening_price_pct') then
     alter table public.app_settings add column opening_price_pct numeric default 0;
   end if;
-  if not exists (select 1 from information_schema.columns where table_name='app_settings' and column_name='admin_default') then
+  if not exists (select 1 from information_schema.columns where table_name='app_settings' and column_name='admin_default') thenno
     alter table public.app_settings add column admin_default boolean default true;
   end if;
   if not exists (select 1 from information_schema.columns where table_name='app_settings' and column_name='admin_in_opening') then
     alter table public.app_settings add column admin_in_opening boolean default false;
   end if;
 end $$;
+
+-- ============================================================
+-- MIGRATION: Draw sheet image URL for not-sold leads
+-- ============================================================
+alter table public.leads add column if not exists draw_sheet_url text;
+
+-- Storage bucket 'draw-sheets' must be created manually in Supabase Dashboard → Storage
+-- Set as Public bucket so images can be viewed without auth tokens
 
 -- ============================================================
 -- Done! Your tables are ready.

@@ -3024,6 +3024,13 @@
   </div>
 
 
+  <!-- Draw Sheet Lightbox -->
+  <div id="drawSheetOverlay" onclick="closeDrawSheet()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:10000;align-items:center;justify-content:center;flex-direction:column;padding:20px">
+    <button onclick="closeDrawSheet()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;width:38px;height:38px;border-radius:50%;cursor:pointer">✕</button>
+    <img id="drawSheetImg" src="" style="max-width:100%;max-height:85vh;border-radius:10px;object-fit:contain">
+    <a id="drawSheetDl" href="" download target="_blank" style="margin-top:14px;color:#fff;font-size:12px;font-weight:700;text-decoration:underline;opacity:.7">Open full size</a>
+  </div>
+
   <!-- Lead edit sheet -->
 
   <div class="edit-overlay" id="editOverlay" onclick="closeLeadEdit(event)">
@@ -3147,6 +3154,20 @@
               style="padding:8px 10px;font-size:13px" oninput="esCalcPar()">
           </div>
           <div id="esNsParGap" style="display:none;margin-top:8px;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700"></div>
+        </div>
+        <!-- Draw Sheet Upload -->
+        <div class="fg" style="margin-bottom:4px">
+          <label class="fl">📋 Draw Sheet</label>
+          <input type="file" id="esDrawFile" accept="image/*,application/pdf" capture="environment" style="display:none" onchange="esHandleDrawUpload(this)">
+          <div id="esDrawPreview" style="display:none;margin-bottom:8px;position:relative">
+            <img id="esDrawThumb" src="" style="width:100%;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;max-height:180px;object-fit:cover" onclick="viewDrawSheet(document.getElementById('esDrawThumb').src)">
+            <button onclick="esRemoveDrawSheet()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer">Remove</button>
+          </div>
+          <button type="button" id="esDrawBtn" onclick="document.getElementById('esDrawFile').click()"
+            style="width:100%;background:#F9FAFB;border:1.5px dashed var(--border);border-radius:10px;padding:11px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">
+            📸 Upload Draw Sheet
+          </button>
+          <div id="esDrawUploading" style="display:none;font-size:11px;color:var(--muted);margin-top:4px;text-align:center">Uploading…</div>
         </div>
       </div>
 
@@ -4439,6 +4460,7 @@
         <div class="hcard-detail">
           ${sub.length ? sub.join(' &nbsp;·&nbsp; ') + '<br>' : ''}
           ${l.notes ? '<strong>Notes:</strong> ' + l.notes + '<br>' : ''}
+          ${!sold && l.draw_sheet_url ? `<div style="margin:6px 0 2px"><button onclick="viewDrawSheet('${l.draw_sheet_url}');event.stopPropagation()" style="background:#EFF6FF;border:1.5px solid #BFDBFE;color:#1D4ED8;border-radius:8px;padding:5px 12px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;cursor:pointer">📋 View Draw Sheet</button></div>` : ''}
           Tap to collapse
         </div>
       </div>
@@ -4497,6 +4519,14 @@
       document.getElementById('esNsRetail').value = nsRetail;
       document.getElementById('esNsLeftAt').value = nsLeftAt;
       esCalcPar();
+      // Draw sheet
+      esDrawSheetUrl = l.draw_sheet_url || null;
+      document.getElementById('esDrawFile').value = '';
+      if (esDrawSheetUrl) {
+        esShowDrawPreview(esDrawSheetUrl);
+      } else {
+        esRemoveDrawSheet();
+      }
 
       // Not-sold reason
       esSelReason = l.reason_id || null;
@@ -4542,6 +4572,56 @@
       } else {
         gapEl.style.display = 'none';
       }
+    }
+
+    let esDrawSheetUrl = null;
+
+    function esShowDrawPreview(url) {
+      document.getElementById('esDrawThumb').src = url;
+      document.getElementById('esDrawPreview').style.display = 'block';
+      document.getElementById('esDrawBtn').style.display = 'none';
+    }
+
+    function esRemoveDrawSheet() {
+      esDrawSheetUrl = null;
+      document.getElementById('esDrawThumb').src = '';
+      document.getElementById('esDrawPreview').style.display = 'none';
+      document.getElementById('esDrawBtn').style.display = 'block';
+      document.getElementById('esDrawFile').value = '';
+    }
+
+    async function esHandleDrawUpload(input) {
+      const file = input.files[0];
+      if (!file) return;
+      document.getElementById('esDrawUploading').style.display = 'block';
+      document.getElementById('esDrawBtn').style.display = 'none';
+      try {
+        const { data: { user } } = await sb.auth.getUser();
+        const ext = file.name.split('.').pop().toLowerCase() || 'jpg';
+        const path = `${user.id}/${editLeadId}.${ext}`;
+        const { error } = await sb.storage.from('draw-sheets').upload(path, file, { upsert: true });
+        if (error) { toast('Upload failed: ' + error.message, 'err'); document.getElementById('esDrawBtn').style.display = 'block'; return; }
+        const { data: { publicUrl } } = sb.storage.from('draw-sheets').getPublicUrl(path);
+        esDrawSheetUrl = publicUrl;
+        esShowDrawPreview(publicUrl);
+        toast('Draw sheet uploaded ✓', 'ok');
+      } catch(e) {
+        toast('Upload failed', 'err');
+        document.getElementById('esDrawBtn').style.display = 'block';
+      } finally {
+        document.getElementById('esDrawUploading').style.display = 'none';
+      }
+    }
+
+    function viewDrawSheet(url) {
+      const overlay = document.getElementById('drawSheetOverlay');
+      document.getElementById('drawSheetImg').src = url;
+      document.getElementById('drawSheetDl').href = url;
+      overlay.style.display = 'flex';
+    }
+
+    function closeDrawSheet() {
+      document.getElementById('drawSheetOverlay').style.display = 'none';
     }
 
     function esTogglePaid() {
@@ -4597,6 +4677,7 @@
         const nsRetail = parseFloat(document.getElementById('esNsRetail').value) || null;
         const nsLeftAt = parseFloat(document.getElementById('esNsLeftAt').value) || null;
         payload.sale_amount = nsLeftAt;
+        payload.draw_sheet_url = esDrawSheetUrl || null;
         payload.commission_amount = null;
         payload.commission_paid = false;
         // Build quote reference line for notes
