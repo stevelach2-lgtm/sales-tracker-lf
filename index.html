@@ -2316,34 +2316,39 @@
       <!-- COMMISSIONS -->
       <div id="p-comm" class="page">
         <div style="padding:14px 14px 0;display:flex;align-items:center;justify-content:space-between">
-          <div style="font-size:17px;font-weight:800">💰 Commissions Due</div>
-          <button onclick="exportCommPDF()"
+          <div style="font-size:17px;font-weight:800">💰 Commissions</div>
+          <button onclick="exportCommPDF()" id="commPdfBtn"
             style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 6px rgba(0,133,62,0.3)">📄
             Download PDF</button>
         </div>
-        <div style="padding:6px 14px 10px;font-size:11px;color:var(--muted);line-height:1.5">Jobs with an install date,
-          grouped by week (Thu–Wed). Mark <strong>Paid</strong> to track commission payments.</div>
 
-        <!-- Goal setting -->
-        <div
-          style="margin:0 14px 12px;background:#F9FAFB;border:1.5px solid var(--border);border-radius:12px;padding:11px 13px;display:flex;align-items:center;gap:10px">
-          <span style="font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap">Weekly Goal $</span>
-          <input type="number" id="commGoalInput" placeholder="5000" inputmode="decimal"
-            style="flex:1;border:none;background:transparent;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;color:var(--text);outline:none"
-            onchange="saveCommGoal()">
-          <button onclick="saveCommGoal()"
-            style="background:var(--green-light);color:var(--green-dark);border:none;border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer">Set</button>
+        <!-- Tabs -->
+        <div class="ftabs" style="padding:10px 14px 6px">
+          <button id="ctab-due" class="ftab active" onclick="switchCommTab('due',this)">Due</button>
+          <button id="ctab-summary" class="ftab" onclick="switchCommTab('summary',this)">Summary</button>
         </div>
 
-        <div id="commList" style="padding:0 14px 14px">
-          <div class="loading">
-            <div class="spinner"></div>
+        <!-- DUE TAB -->
+        <div id="commDueSection">
+          <div style="padding:2px 14px 10px;font-size:11px;color:var(--muted);line-height:1.5">Jobs with an install date,
+            grouped by week (Thu–Wed). Mark <strong>Paid</strong> to track commission payments.</div>
+          <div style="margin:0 14px 12px;background:#F9FAFB;border:1.5px solid var(--border);border-radius:12px;padding:11px 13px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap">Weekly Goal $</span>
+            <input type="number" id="commGoalInput" placeholder="5000" inputmode="decimal"
+              style="flex:1;border:none;background:transparent;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;color:var(--text);outline:none"
+              onchange="saveCommGoal()">
+            <button onclick="saveCommGoal()"
+              style="background:var(--green-light);color:var(--green-dark);border:none;border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer">Set</button>
+          </div>
+          <div id="commList" style="padding:0 14px 100px">
+            <div class="loading"><div class="spinner"></div></div>
           </div>
         </div>
-        <div style="padding:0 14px 16px;text-align:center">
-          <button id="paidHistBtn" onclick="togglePaidHistory()" style="background:#F9FAFB;border:1.5px solid var(--border);border-radius:10px;padding:9px 18px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">📋 View Paid Pay Weeks</button>
+
+        <!-- SUMMARY TAB -->
+        <div id="commSummarySection" style="display:none;padding:0 14px 100px">
+          <div class="loading"><div class="spinner"></div></div>
         </div>
-        <div id="paidHistList" style="display:none;padding:0 14px 100px"></div>
       </div>
 
       <!-- SETTINGS -->
@@ -4769,69 +4774,100 @@
       loadComm(); // refresh
     }
 
-    let _paidHistOpen = false;
-    async function togglePaidHistory() {
-      _paidHistOpen = !_paidHistOpen;
-      const list = document.getElementById('paidHistList');
-      const btn = document.getElementById('paidHistBtn');
-      if (!_paidHistOpen) {
-        list.style.display = 'none';
-        btn.textContent = '📋 View Paid Pay Weeks';
-        return;
-      }
-      btn.textContent = '▲ Hide Paid Pay Weeks';
-      list.style.display = 'block';
-      list.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    function switchCommTab(tab, btn) {
+      document.querySelectorAll('#p-comm .ftab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('commDueSection').style.display = tab === 'due' ? 'block' : 'none';
+      document.getElementById('commSummarySection').style.display = tab === 'summary' ? 'block' : 'none';
+      document.getElementById('commPdfBtn').style.display = tab === 'due' ? '' : 'none';
+      if (tab === 'summary') loadCommSummary();
+    }
+
+    async function loadCommSummary() {
+      const el = document.getElementById('commSummarySection');
+      el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
       const { data: leads, error } = await sb
         .from('leads')
-        .select('id,job_number,install_date,commission_amount,commission_paid,sale_amount,is_cancelled')
+        .select('id,job_number,install_date,commission_amount,commission_paid,is_cancelled')
         .eq('status', 'sold')
         .neq('is_cancelled', true)
         .not('install_date', 'is', null)
-        .eq('commission_paid', true)
         .order('install_date', { ascending: false });
 
       if (error || !leads || !leads.length) {
-        list.innerHTML = '<div class="empty"><div class="ei">💰</div><p>No paid weeks yet.</p></div>';
+        el.innerHTML = '<div class="empty"><div class="ei">💰</div><p>No commission data yet.</p></div>';
         return;
       }
 
-      const weeks = {};
-      leads.forEach(l => {
-        const w = weekKey(l.install_date);
-        if (!weeks[w.key]) weeks[w.key] = { start: w.start, end: w.end, jobs: [] };
-        weeks[w.key].jobs.push(l);
-      });
-
+      const fmtMoney = v => '$' + parseFloat(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const fmt = d => d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
-      const fmtInstall = s => new Date(s + 'T12:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
-      const fmtMoney = v => v != null ? '$' + parseFloat(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+      const fmtShort = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-      let html = '<div style="font-size:12px;font-weight:800;color:var(--muted);padding:4px 0 10px;text-transform:uppercase;letter-spacing:.5px">Paid History</div>';
-      Object.keys(weeks).sort().reverse().forEach(key => {
-        const w = weeks[key];
-        const totalComm = w.jobs.reduce((s, j) => s + (parseFloat(j.commission_amount) || 0), 0);
-        html += `
-    <div style="background:#fff;border:1.5px solid var(--border);border-radius:14px;margin-bottom:14px;overflow:hidden;opacity:0.85">
-      <div style="background:#F0FDF4;padding:10px 14px;border-bottom:1px solid var(--border)">
-        <div style="font-size:12px;font-weight:800;color:var(--green-dark)">✓ Paid — Week ${fmt(w.start)} – ${fmt(w.end)}</div>
-      </div>
-      <div style="display:grid;grid-template-columns:100px 1fr 90px;padding:7px 12px 5px;font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.5px;border-bottom:1px solid #F3F4F6">
-        <span>INSTALL DATE</span><span>JOB #</span><span style="text-align:right">COMMISSION</span>
-      </div>
-      ${w.jobs.map(j => `
-      <div style="display:grid;grid-template-columns:100px 1fr 90px;padding:10px 12px;border-bottom:1px solid #F9FAFB;align-items:center">
-        <span style="font-size:13px;color:var(--muted)">${fmtInstall(j.install_date)}</span>
-        <span onclick="openLeadEdit('${j.id}')" style="font-size:13px;font-weight:700;color:var(--green-dark);text-decoration:underline;text-underline-offset:2px;cursor:pointer">${j.job_number || '<span style="color:var(--muted);font-weight:400;text-decoration:none">tap to edit</span>'}</span>
-        <span style="font-size:13px;font-weight:700;text-align:right">${fmtMoney(j.commission_amount)}</span>
-      </div>`).join('')}
-      <div style="padding:10px 12px;background:#F0FDF4;border-top:1.5px solid var(--green-light);text-align:right">
-        <span style="font-size:12px;font-weight:800;color:var(--green-dark)">Total Paid: ${fmtMoney(totalComm)}</span>
-      </div>
-    </div>`;
+      // Totals
+      const totalPaid = leads.filter(l => l.commission_paid).reduce((s, l) => s + (parseFloat(l.commission_amount) || 0), 0);
+      const totalDue  = leads.filter(l => !l.commission_paid).reduce((s, l) => s + (parseFloat(l.commission_amount) || 0), 0);
+      const avgPerDeal = leads.length ? (totalPaid + totalDue) / leads.length : 0;
+
+      // Group into paid weeks
+      const paidWeeks = {};
+      leads.filter(l => l.commission_paid).forEach(l => {
+        const w = weekKey(l.install_date);
+        if (!paidWeeks[w.key]) paidWeeks[w.key] = { start: w.start, end: w.end, total: 0, jobs: 0 };
+        paidWeeks[w.key].total += parseFloat(l.commission_amount) || 0;
+        paidWeeks[w.key].jobs++;
       });
-      list.innerHTML = html;
+
+      const sortedWeeks = Object.keys(paidWeeks).sort().reverse();
+      const last4 = sortedWeeks.slice(0, 4);
+      const avg4 = last4.length ? last4.reduce((s, k) => s + paidWeeks[k].total, 0) / last4.length : 0;
+
+      // Stat cards
+      let html = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Total Paid</div>
+          <div style="font-size:18px;font-weight:800;color:var(--green-dark)">${fmtMoney(totalPaid)}</div>
+        </div>
+        <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Total Due</div>
+          <div style="font-size:18px;font-weight:800;color:var(--red)">${fmtMoney(totalDue)}</div>
+        </div>
+        <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">4-Week Avg</div>
+          <div style="font-size:18px;font-weight:800;color:var(--text)">${avg4 > 0 ? fmtMoney(avg4) : '—'}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">paid weeks</div>
+        </div>
+        <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Avg Per Deal</div>
+          <div style="font-size:18px;font-weight:800;color:var(--text)">${fmtMoney(avgPerDeal)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${leads.length} deals total</div>
+        </div>
+      </div>`;
+
+      if (sortedWeeks.length) {
+        html += `<div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Weekly Paychecks</div>`;
+        html += `<div style="background:#fff;border:1.5px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px">`;
+        html += `<div style="display:grid;grid-template-columns:1fr auto auto;padding:7px 14px 5px;font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.5px;border-bottom:1px solid #F3F4F6"><span>WEEK</span><span style="text-align:center;padding:0 12px">DEALS</span><span style="text-align:right">PAYCHECK</span></div>`;
+        sortedWeeks.forEach((key, i) => {
+          const w = paidWeeks[key];
+          const isTop4 = i < 4;
+          html += `
+          <div style="display:grid;grid-template-columns:1fr auto auto;padding:11px 14px;border-bottom:1px solid #F9FAFB;align-items:center${isTop4 ? ';background:#FAFFF7' : ''}">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--text)">${fmtShort(w.start)} – ${fmtShort(w.end)}</div>
+              ${isTop4 ? '<div style="font-size:9px;color:var(--green-dark);font-weight:700">IN 4-WK AVG</div>' : ''}
+            </div>
+            <span style="font-size:13px;color:var(--muted);text-align:center;padding:0 12px">${w.jobs}</span>
+            <span style="font-size:14px;font-weight:800;color:var(--green-dark);text-align:right">${fmtMoney(w.total)}</span>
+          </div>`;
+        });
+        html += `</div>`;
+      } else {
+        html += `<div class="empty"><div class="ei">💰</div><p>No paid weeks yet.<br>Mark commissions as paid to see your history.</p></div>`;
+      }
+
+      el.innerHTML = html;
     }
 
     async function exportCommPDF() {
