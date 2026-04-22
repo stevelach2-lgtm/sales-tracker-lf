@@ -4159,8 +4159,8 @@
       document.getElementById('notFuPhone').value = '';
       document.getElementById('notFuDate').value = '';
 
-      // default dates to today
-      const today = new Date().toISOString().split('T')[0];
+      // default dates to today (local date, not UTC)
+      const today = localDate(new Date());
       document.getElementById('salesDate').value = today;
       document.getElementById('notSoldDate').value = today;
       document.getElementById('installDate').value = '';
