@@ -2111,151 +2111,7 @@
       <div id="p-log" class="page">
         <div class="log-hero">
           <h2>Log a Lead</h2>
-          <p>Select the outcome of your appointment</p>
-        </div>
-        <div class="act-btns">
-          <button class="abtn sold" onclick="pickType('sold')">
-            <span class="ico">✅</span>
-            <span class="lbl">SOLD</span>
-            <span class="sub">Deal closed!</span>
-          </button>
-          <button class="abtn ns" onclick="pickType('not_sold')">
-            <span class="ico">❌</span>
-            <span class="lbl">NOT SOLD</span>
-            <span class="sub">Select reason</span>
-          </button>
-        </div>
-
-        <!-- Sold form -->
-        <div class="lform" id="fSold">
-          <div class="fhdr"><span class="fbadge sold">✅ Sold</span></div>
-          <div class="card" style="padding:15px">
-            <!-- Calculate Commission button at top -->
-            <div style="margin-bottom:12px">
-              <button type="button" onclick="openCommCalc('log')"
-                style="width:100%;padding:12px;background:linear-gradient(135deg,#00853E,#005a2e);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <rect x="2" y="3" width="20" height="18" rx="2" />
-                  <line x1="8" y1="8" x2="16" y2="8" />
-                  <line x1="8" y1="12" x2="16" y2="12" />
-                  <line x1="8" y1="16" x2="12" y2="16" />
-                </svg>
-                Calculate Commission
-              </button>
-            </div>
-            <div class="fg">
-              <label class="fl">Sale Amount</label>
-              <div class="amt-wrap"><span class="amt-pre">$</span><input type="number" class="fi" id="saleAmt"
-                  placeholder="0.00" inputmode="decimal" step="0.01"></div>
-            </div>
-            <!-- Type checkboxes -->
-            <div class="chk-row">
-              <div class="chk-box" id="chkCombo" onclick="toggleChk('chkCombo')">
-                <div class="chk-top">
-                  <div class="chk-mark"></div><span class="chk-lbl">Combo</span>
-                </div>
-                <div class="chk-sub">Gutter + LeafFilter</div>
-              </div>
-              <div class="chk-box" id="chkRehash" onclick="toggleChk('chkRehash')">
-                <div class="chk-top">
-                  <div class="chk-mark"></div><span class="chk-lbl">Rehash</span>
-                </div>
-                <div class="chk-sub">Not in SLG%</div>
-              </div>
-              <div class="chk-box" id="chkSelfGen" onclick="toggleChk('chkSelfGen')">
-                <div class="chk-top">
-                  <div class="chk-mark"></div><span class="chk-lbl">Self Gen</span>
-                </div>
-                <div class="chk-sub">Counts as issued</div>
-              </div>
-            </div>
-            <!-- Job # and dates -->
-            <div class="fg2">
-              <div>
-                <label class="fl">Job #</label>
-                <input type="text" class="fi" id="jobNum" placeholder="Job number"
-                  style="font-size:14px;padding:11px 13px">
-              </div>
-              <div>
-                <label class="fl">Sales Date</label>
-                <input type="date" class="fi" id="salesDate" style="font-size:13px;padding:11px 13px">
-              </div>
-            </div>
-            <div class="fg2">
-              <div>
-                <label class="fl">Install Date</label>
-                <input type="date" class="fi" id="installDate" style="font-size:13px;padding:11px 13px">
-              </div>
-              <div>
-                <label class="fl">Commission ($)</label>
-                <input type="number" class="fi" id="commAmt" placeholder="0.00" inputmode="decimal" step="0.01"
-                  style="font-size:14px;padding:11px 13px">
-                <input type="hidden" id="retailPct">
-                <input type="hidden" id="commPct">
-              </div>
-            </div>
-            <div class="paid-row" onclick="togglePaid()">
-              <div class="paid-chk" id="paidChk"></div>
-              <span class="paid-lbl">Commission Paid</span>
-            </div>
-            <div class="fg" style="margin-bottom:0">
-              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-              <textarea class="fi" id="soldNotes" placeholder="e.g. 180ft, financing used..."></textarea>
-            </div>
-            <button class="sbtn sold" onclick="submitLead('sold')">✅ Log Sale</button>
-          </div>
-        </div>
-
-        <!-- Not Sold form -->
-        <div class="lform" id="fNot">
-          <div class="fhdr"><span class="fbadge ns">❌ Not Sold</span></div>
-          <div class="card" style="padding:15px">
-            <div class="fg">
-              <label class="fl">Reason</label>
-              <div class="rl" id="reasonList">
-                <div class="loading">
-                  <div class="spinner"></div>
-                </div>
-              </div>
-            </div>
-            <div class="fg2">
-              <div>
-                <label class="fl">Visit Date</label>
-                <input type="date" class="fi" id="notSoldDate" style="font-size:13px;padding:11px 13px">
-              </div>
-              <div></div>
-            </div>
-            <div class="fg" style="margin-bottom:12px">
-              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-              <textarea class="fi" id="notNotes" placeholder="e.g. Call back in spring, left card..."></textarea>
-            </div>
-
-            <!-- Integrated Follow-up Section -->
-            <div
-              style="background:#F9FAFB; border:1.5px dashed var(--border); border-radius:12px; padding:12px; margin-bottom:12px">
-              <div
-                style="font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; margin-bottom:10px; display:flex; align-items:center; gap:5px">
-                📞 Quick Follow-Up <span style="font-weight:400; text-transform:none">(optional)</span>
-              </div>
-              <div class="fg2" style="margin-bottom:8px">
-                <div>
-                  <label class="fl" style="font-size:10px">Customer First Name</label>
-                  <input type="text" class="fi" id="notFuName" placeholder="Michael"
-                    style="padding:8px 10px; font-size:12px">
-                </div>
-                <div>
-                  <label class="fl" style="font-size:10px">Phone Number</label>
-                  <input type="tel" class="fi" id="notFuPhone" placeholder="555..."
-                    style="padding:8px 10px; font-size:12px">
-                </div>
-              </div>
-              <div class="fg" style="margin-bottom:0">
-                <label class="fl" style="font-size:10px">Follow-Up Date</label>
-                <input type="date" class="fi" id="notFuDate" style="padding:8px 10px; font-size:12px">
-              </div>
-            </div>
-            <button class="sbtn ns" onclick="submitLead('not_sold')">❌ Log Not Sold</button>
-          </div>
+          <p>Tap Log Lead to open the calculator</p>
         </div>
       </div>
 
@@ -2843,9 +2699,109 @@
           </div>
           <input type="hidden" id="ccRetailPctVal">
           <input type="hidden" id="ccCommPctVal">
-          <button onclick="applyCommCalc()"
+          <button id="ccApplyBtn" onclick="applyCommCalc()"
             style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:11px;font-family:'Inter',sans-serif;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(34,197,94,0.3)">✅
             Apply to Sale</button>
+        </div>
+
+        <!-- Log Outcome Section — shown only when opened from Log Lead -->
+        <div id="ccLogSection" style="display:none;margin-top:10px;border-top:2px solid var(--border);padding-top:12px">
+          <div style="font-size:10px;font-weight:800;letter-spacing:.6px;color:var(--muted);margin-bottom:8px;text-transform:uppercase">Log Outcome</div>
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <button id="ccOutcomeSold" onclick="ccSetOutcome('sold')"
+              style="flex:1;padding:11px;border:2px solid var(--green);border-radius:10px;background:var(--green);color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">✅ SOLD</button>
+            <button id="ccOutcomeNot" onclick="ccSetOutcome('not_sold')"
+              style="flex:1;padding:11px;border:2px solid #E53935;border-radius:10px;background:#fff;color:#E53935;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">❌ NOT SOLD</button>
+          </div>
+
+          <!-- SOLD panel -->
+          <div id="ccSoldPanel">
+            <input type="hidden" id="saleAmt">
+            <input type="hidden" id="retailPct">
+            <input type="hidden" id="commPct">
+            <div class="chk-row" style="margin-bottom:10px">
+              <div class="chk-box" id="chkCombo" onclick="toggleChk('chkCombo')">
+                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Combo</span></div>
+                <div class="chk-sub">Gutter + LeafFilter</div>
+              </div>
+              <div class="chk-box" id="chkRehash" onclick="toggleChk('chkRehash')">
+                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Rehash</span></div>
+                <div class="chk-sub">Not in SLG%</div>
+              </div>
+              <div class="chk-box" id="chkSelfGen" onclick="toggleChk('chkSelfGen')">
+                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Self Gen</span></div>
+                <div class="chk-sub">Counts as issued</div>
+              </div>
+            </div>
+            <div class="fg2" style="margin-bottom:8px">
+              <div>
+                <label class="fl">Job #</label>
+                <input type="text" class="fi" id="jobNum" placeholder="Job number" style="font-size:14px;padding:11px 13px">
+              </div>
+              <div>
+                <label class="fl">Sales Date</label>
+                <input type="date" class="fi" id="salesDate" style="font-size:13px;padding:11px 13px">
+              </div>
+            </div>
+            <div class="fg2" style="margin-bottom:8px">
+              <div>
+                <label class="fl">Install Date</label>
+                <input type="date" class="fi" id="installDate" style="font-size:13px;padding:11px 13px">
+              </div>
+              <div>
+                <label class="fl">Commission ($)</label>
+                <input type="number" class="fi" id="commAmt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px">
+              </div>
+            </div>
+            <div class="paid-row" onclick="togglePaid()" style="margin-bottom:10px">
+              <div class="paid-chk" id="paidChk"></div>
+              <span class="paid-lbl">Commission Paid</span>
+            </div>
+            <div class="fg" style="margin-bottom:10px">
+              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <textarea class="fi" id="soldNotes" placeholder="e.g. 180ft, financing used..."></textarea>
+            </div>
+            <button class="sbtn sold" onclick="submitLeadFromCalc('sold')">✅ Log Sale</button>
+          </div>
+
+          <!-- NOT SOLD panel -->
+          <div id="ccNotPanel" style="display:none">
+            <div class="fg">
+              <label class="fl">Reason</label>
+              <div class="rl" id="ccReasonList"></div>
+            </div>
+            <div class="fg2" style="margin-bottom:8px">
+              <div>
+                <label class="fl">Visit Date</label>
+                <input type="date" class="fi" id="ccNotSoldDate" style="font-size:13px;padding:11px 13px">
+              </div>
+              <div></div>
+            </div>
+            <div class="fg" style="margin-bottom:12px">
+              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <textarea class="fi" id="ccNotNotes" placeholder="e.g. Call back in spring, left card..."></textarea>
+            </div>
+            <div style="background:#F9FAFB;border:1.5px dashed var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
+              <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
+                📞 Quick Follow-Up <span style="font-weight:400;text-transform:none">(optional)</span>
+              </div>
+              <div class="fg2" style="margin-bottom:8px">
+                <div>
+                  <label class="fl" style="font-size:10px">Customer First Name</label>
+                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px">
+                </div>
+                <div>
+                  <label class="fl" style="font-size:10px">Phone Number</label>
+                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555..." style="padding:8px 10px;font-size:12px">
+                </div>
+              </div>
+              <div class="fg" style="margin-bottom:0">
+                <label class="fl" style="font-size:10px">Follow-Up Date</label>
+                <input type="date" class="fi" id="ccNotFuDate" style="padding:8px 10px;font-size:12px">
+              </div>
+            </div>
+            <button class="sbtn ns" onclick="submitLeadFromCalc('not_sold')">❌ Log Not Sold</button>
+          </div>
         </div>
       </div>
     </div>
@@ -3192,6 +3148,7 @@
     let sb = null;
     let reasons = [];
     let selReason = null;
+    let selCcReason = null;
     let lastId = null;
     let undoTimer = null;
     let chartInst = null;
@@ -3407,7 +3364,7 @@
         else filterHist('today', document.querySelector('.ftab'));
       }
       if (id === 'set') loadSettings();
-      if (id === 'log') resetLog();
+      if (id === 'log') openCommCalc('log');
       if (id === 'comm') loadComm();
     }
 
@@ -4192,56 +4149,7 @@
     }
 
     function resetLog() {
-      document.getElementById('fSold').classList.remove('open');
-      document.getElementById('fNot').classList.remove('open');
-      document.getElementById('saleAmt').value = '';
-      document.getElementById('soldNotes').value = '';
-      document.getElementById('notNotes').value = '';
-      document.getElementById('jobNum').value = '';
-      document.getElementById('commAmt').value = '';
-
-      // Clear integrated follow-up fields
-      document.getElementById('notFuName').value = '';
-      document.getElementById('notFuPhone').value = '';
-      document.getElementById('notFuDate').value = '';
-
-      // default dates to today (local date, not UTC)
-      const today = localDate(new Date());
-      document.getElementById('salesDate').value = today;
-      document.getElementById('notSoldDate').value = today;
-      document.getElementById('installDate').value = '';
-      isPaid = false;
-      document.getElementById('paidChk').classList.remove('on');
-      ['chkCombo', 'chkRehash', 'chkSelfGen'].forEach(id => document.getElementById(id).classList.remove('active'));
-      selReason = null;
-      document.querySelectorAll('.ro').forEach(r => r.classList.remove('sel'));
-    }
-
-    function pickType(type) {
-      resetLog();
-      if (type === 'sold') {
-        document.getElementById('fSold').classList.add('open');
-        setTimeout(() => document.getElementById('saleAmt').focus(), 300);
-      } else {
-        buildReasonList();
-        document.getElementById('fNot').classList.add('open');
-      }
-    }
-
-    function buildReasonList() {
-      const el = document.getElementById('reasonList');
-      if (!reasons.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px">No reasons found. Add some in Settings.</p>'; return; }
-      el.innerHTML = reasons.map(r => `
-    <div class="ro" id="ro-${r.id}" onclick="selR('${r.id}')">
-      <div class="rr"></div>
-      <span class="rt">${r.label}</span>
-    </div>`).join('');
-    }
-
-    function selR(id) {
-      document.querySelectorAll('.ro').forEach(r => r.classList.remove('sel'));
-      document.getElementById('ro-' + id)?.classList.add('sel');
-      selReason = id;
+      // forms removed — calc handles reset via ccResetLogPanel()
     }
 
     async function submitLead(type) {
@@ -4266,10 +4174,11 @@
           notes: document.getElementById('soldNotes').value.trim() || null
         };
         const { data, error } = await sb.from('leads').insert(payload).select().single();
-        if (error) { toast('Error saving lead', 'err'); console.error(error); return; }
+        if (error) { toast('Error saving lead', 'err'); console.error(error); return false; }
         lastId = data.id;
         showUndo('Sale of $' + amt.toLocaleString() + ' logged!');
         resetLog();
+        return true;
       } else {
         if (!selReason) { toast('Please select a reason', 'err'); return; }
         const notes = document.getElementById('notNotes').value.trim();
@@ -5176,10 +5085,26 @@
 
     function openCommCalc(target) {
       ccTarget = target;
-      let tAmt = target === 'edit' ? document.getElementById('esSaleAmt').value : document.getElementById('saleAmt').value;
+      let tAmt = target === 'edit' ? document.getElementById('esSaleAmt').value : '';
       document.getElementById('ccSoldAt').value = tAmt || '';
       renderCCItems();
       calcComm();
+
+      const logSection = document.getElementById('ccLogSection');
+      const esBody = document.querySelector('#commCalcSheet .es-body');
+      const applyBtn = document.getElementById('ccApplyBtn');
+
+      if (target === 'log') {
+        logSection.style.display = '';
+        esBody.style.paddingBottom = '820px';
+        applyBtn.style.display = 'none';
+        ccResetLogPanel();
+      } else {
+        logSection.style.display = 'none';
+        esBody.style.paddingBottom = '180px';
+        applyBtn.style.display = '';
+      }
+
       document.getElementById('commCalcOverlay').classList.add('open');
     }
 
@@ -5580,6 +5505,117 @@
       }
       document.getElementById('commCalcOverlay').classList.remove('open');
       toast('Commission applied ✓', 'ok');
+    }
+
+    // ─────────────────────────────────────────
+    // IN-CALC LOG HELPERS
+    // ─────────────────────────────────────────
+    function ccSetOutcome(type) {
+      const soldPanel = document.getElementById('ccSoldPanel');
+      const notPanel  = document.getElementById('ccNotPanel');
+      const soldBtn   = document.getElementById('ccOutcomeSold');
+      const notBtn    = document.getElementById('ccOutcomeNot');
+      if (type === 'sold') {
+        soldPanel.style.display = '';
+        notPanel.style.display  = 'none';
+        soldBtn.style.background = 'var(--green)';
+        soldBtn.style.color = '#fff';
+        soldBtn.style.borderColor = 'var(--green)';
+        notBtn.style.background = '#fff';
+        notBtn.style.color = '#E53935';
+        notBtn.style.borderColor = '#E53935';
+      } else {
+        soldPanel.style.display  = 'none';
+        notPanel.style.display   = '';
+        soldBtn.style.background = '#fff';
+        soldBtn.style.color = 'var(--green)';
+        soldBtn.style.borderColor = 'var(--green)';
+        notBtn.style.background  = '#E53935';
+        notBtn.style.color = '#fff';
+        notBtn.style.borderColor = '#E53935';
+        buildCcReasonList();
+      }
+    }
+
+    function ccResetLogPanel() {
+      ccSetOutcome('sold');
+      document.getElementById('commAmt').value = '';
+      document.getElementById('soldNotes').value = '';
+      document.getElementById('jobNum').value = '';
+      document.getElementById('saleAmt').value = '';
+      const today = localDate(new Date());
+      document.getElementById('salesDate').value = today;
+      document.getElementById('installDate').value = '';
+      isPaid = false;
+      document.getElementById('paidChk').classList.remove('on');
+      ['chkCombo', 'chkRehash', 'chkSelfGen'].forEach(id =>
+        document.getElementById(id).classList.remove('active'));
+      document.getElementById('ccNotNotes').value = '';
+      document.getElementById('ccNotSoldDate').value = today;
+      document.getElementById('ccNotFuName').value = '';
+      document.getElementById('ccNotFuPhone').value = '';
+      document.getElementById('ccNotFuDate').value = '';
+      selCcReason = null;
+      document.querySelectorAll('#ccReasonList .ro').forEach(r => r.classList.remove('sel'));
+    }
+
+    function buildCcReasonList() {
+      const el = document.getElementById('ccReasonList');
+      if (!reasons.length) {
+        el.innerHTML = '<p style="color:var(--muted);font-size:13px">No reasons found. Add some in Settings.</p>';
+        return;
+      }
+      el.innerHTML = reasons.map(r =>
+        `<div class="ro" id="ccro-${r.id}" onclick="selCcR('${r.id}')"><div class="rr"></div><span class="rt">${r.label}</span></div>`
+      ).join('');
+    }
+
+    function selCcR(id) {
+      document.querySelectorAll('#ccReasonList .ro').forEach(r => r.classList.remove('sel'));
+      document.getElementById('ccro-' + id)?.classList.add('sel');
+      selCcReason = id;
+    }
+
+    async function submitLeadFromCalc(type) {
+      if (type === 'sold') {
+        const soldAt = parseFloat(document.getElementById('ccSoldAt').value);
+        if (!soldAt || soldAt <= 0) { toast('Enter a sale price in "Sold At $"', 'err'); return; }
+        document.getElementById('saleAmt').value = soldAt.toFixed(2);
+        const commTotal = parseFloat(document.getElementById('ccTotal').textContent.replace(/[$,]/g, '')) || 0;
+        document.getElementById('commAmt').value = commTotal.toFixed(2);
+        document.getElementById('retailPct').value = document.getElementById('ccRetailPctVal').value;
+        document.getElementById('commPct').value   = document.getElementById('ccCommPctVal').value;
+        const ok = await submitLead('sold');
+        if (ok) {
+          document.getElementById('commCalcOverlay').classList.remove('open');
+          ccResetLogPanel();
+        }
+      } else {
+        if (!selCcReason) { toast('Please select a reason', 'err'); return; }
+        const notes  = document.getElementById('ccNotNotes').value.trim();
+        const nsDate = document.getElementById('ccNotSoldDate').value || null;
+        const fuName  = document.getElementById('ccNotFuName').value.trim();
+        const fuPhone = document.getElementById('ccNotFuPhone').value.trim();
+        const fuDate  = document.getElementById('ccNotFuDate').value || null;
+        const payload = {
+          status: 'not_sold',
+          reason_id: selCcReason,
+          notes: notes || null,
+          sales_date: nsDate
+        };
+        if (fuDate) {
+          payload.followup_date = fuDate;
+          payload.followup_name = fuName || 'Customer';
+          payload.followup_phone = fuPhone || null;
+          payload.followup_done = false;
+        }
+        const { data, error } = await sb.from('leads').insert(payload).select().single();
+        if (error) { toast('Error saving lead', 'err'); return; }
+        lastId = data.id;
+        document.getElementById('commCalcOverlay').classList.remove('open');
+        showUndo('Not sold lead logged' + (fuDate ? ' + Follow-up scheduled' : ''));
+        ccResetLogPanel();
+      }
     }
 
     // ─────────────────────────────────────────
