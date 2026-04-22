@@ -2577,6 +2577,106 @@
           <!-- rows injected by JS -->
         </div>
 
+        <!-- Log Outcome Section — shown only when opened from Log Lead -->
+        <div id="ccLogSection" style="display:none;margin-top:10px;border-top:2px solid var(--border);padding-top:12px">
+          <div style="font-size:10px;font-weight:800;letter-spacing:.6px;color:var(--muted);margin-bottom:8px;text-transform:uppercase">Log Outcome</div>
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <button id="ccOutcomeSold" onclick="ccSetOutcome('sold')"
+              style="flex:1;padding:11px;border:2px solid var(--green);border-radius:10px;background:var(--green);color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">✅ SOLD</button>
+            <button id="ccOutcomeNot" onclick="ccSetOutcome('not_sold')"
+              style="flex:1;padding:11px;border:2px solid #E53935;border-radius:10px;background:#fff;color:#E53935;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">❌ NOT SOLD</button>
+          </div>
+
+          <!-- SOLD panel -->
+          <div id="ccSoldPanel">
+            <input type="hidden" id="saleAmt">
+            <input type="hidden" id="retailPct">
+            <input type="hidden" id="commPct">
+            <div class="chk-row" style="margin-bottom:10px">
+              <div class="chk-box" id="chkCombo" onclick="toggleChk('chkCombo')">
+                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Combo</span></div>
+                <div class="chk-sub">Gutter + LeafFilter</div>
+              </div>
+              <div class="chk-box" id="chkRehash" onclick="toggleChk('chkRehash')">
+                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Rehash</span></div>
+                <div class="chk-sub">Not in SLG%</div>
+              </div>
+              <div class="chk-box" id="chkSelfGen" onclick="toggleChk('chkSelfGen')">
+                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Self Gen</span></div>
+                <div class="chk-sub">Counts as issued</div>
+              </div>
+            </div>
+            <div class="fg2" style="margin-bottom:8px">
+              <div>
+                <label class="fl">Job #</label>
+                <input type="text" class="fi" id="jobNum" placeholder="Job number" style="font-size:14px;padding:11px 13px">
+              </div>
+              <div>
+                <label class="fl">Sales Date</label>
+                <input type="date" class="fi" id="salesDate" style="font-size:13px;padding:11px 13px">
+              </div>
+            </div>
+            <div class="fg2" style="margin-bottom:8px">
+              <div>
+                <label class="fl">Install Date</label>
+                <input type="date" class="fi" id="installDate" style="font-size:13px;padding:11px 13px">
+              </div>
+              <div>
+                <label class="fl">Commission ($)</label>
+                <input type="number" class="fi" id="commAmt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px">
+              </div>
+            </div>
+            <div class="paid-row" onclick="togglePaid()" style="margin-bottom:10px">
+              <div class="paid-chk" id="paidChk"></div>
+              <span class="paid-lbl">Commission Paid</span>
+            </div>
+            <div class="fg" style="margin-bottom:10px">
+              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <textarea class="fi" id="soldNotes" placeholder="e.g. 180ft, financing used..."></textarea>
+            </div>
+            <button class="sbtn sold" onclick="submitLeadFromCalc('sold')">✅ Log Sale</button>
+          </div>
+
+          <!-- NOT SOLD panel -->
+          <div id="ccNotPanel" style="display:none">
+            <div class="fg">
+              <label class="fl">Reason</label>
+              <div class="rl" id="ccReasonList"></div>
+            </div>
+            <div class="fg2" style="margin-bottom:8px">
+              <div>
+                <label class="fl">Visit Date</label>
+                <input type="date" class="fi" id="ccNotSoldDate" style="font-size:13px;padding:11px 13px">
+              </div>
+              <div></div>
+            </div>
+            <div class="fg" style="margin-bottom:12px">
+              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <textarea class="fi" id="ccNotNotes" placeholder="e.g. Call back in spring, left card..."></textarea>
+            </div>
+            <div style="background:#F9FAFB;border:1.5px dashed var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
+              <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
+                📞 Quick Follow-Up <span style="font-weight:400;text-transform:none">(optional)</span>
+              </div>
+              <div class="fg2" style="margin-bottom:8px">
+                <div>
+                  <label class="fl" style="font-size:10px">Customer First Name</label>
+                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px">
+                </div>
+                <div>
+                  <label class="fl" style="font-size:10px">Phone Number</label>
+                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555..." style="padding:8px 10px;font-size:12px">
+                </div>
+              </div>
+              <div class="fg" style="margin-bottom:0">
+                <label class="fl" style="font-size:10px">Follow-Up Date</label>
+                <input type="date" class="fi" id="ccNotFuDate" style="padding:8px 10px;font-size:12px">
+              </div>
+            </div>
+            <button class="sbtn ns" onclick="submitLeadFromCalc('not_sold')">❌ Log Not Sold</button>
+          </div>
+        </div>
+
       </div>
       <!-- Sticky footer with math -->
       <div
@@ -2704,105 +2804,6 @@
             Apply to Sale</button>
         </div>
 
-        <!-- Log Outcome Section — shown only when opened from Log Lead -->
-        <div id="ccLogSection" style="display:none;margin-top:10px;border-top:2px solid var(--border);padding-top:12px">
-          <div style="font-size:10px;font-weight:800;letter-spacing:.6px;color:var(--muted);margin-bottom:8px;text-transform:uppercase">Log Outcome</div>
-          <div style="display:flex;gap:8px;margin-bottom:14px">
-            <button id="ccOutcomeSold" onclick="ccSetOutcome('sold')"
-              style="flex:1;padding:11px;border:2px solid var(--green);border-radius:10px;background:var(--green);color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">✅ SOLD</button>
-            <button id="ccOutcomeNot" onclick="ccSetOutcome('not_sold')"
-              style="flex:1;padding:11px;border:2px solid #E53935;border-radius:10px;background:#fff;color:#E53935;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">❌ NOT SOLD</button>
-          </div>
-
-          <!-- SOLD panel -->
-          <div id="ccSoldPanel">
-            <input type="hidden" id="saleAmt">
-            <input type="hidden" id="retailPct">
-            <input type="hidden" id="commPct">
-            <div class="chk-row" style="margin-bottom:10px">
-              <div class="chk-box" id="chkCombo" onclick="toggleChk('chkCombo')">
-                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Combo</span></div>
-                <div class="chk-sub">Gutter + LeafFilter</div>
-              </div>
-              <div class="chk-box" id="chkRehash" onclick="toggleChk('chkRehash')">
-                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Rehash</span></div>
-                <div class="chk-sub">Not in SLG%</div>
-              </div>
-              <div class="chk-box" id="chkSelfGen" onclick="toggleChk('chkSelfGen')">
-                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Self Gen</span></div>
-                <div class="chk-sub">Counts as issued</div>
-              </div>
-            </div>
-            <div class="fg2" style="margin-bottom:8px">
-              <div>
-                <label class="fl">Job #</label>
-                <input type="text" class="fi" id="jobNum" placeholder="Job number" style="font-size:14px;padding:11px 13px">
-              </div>
-              <div>
-                <label class="fl">Sales Date</label>
-                <input type="date" class="fi" id="salesDate" style="font-size:13px;padding:11px 13px">
-              </div>
-            </div>
-            <div class="fg2" style="margin-bottom:8px">
-              <div>
-                <label class="fl">Install Date</label>
-                <input type="date" class="fi" id="installDate" style="font-size:13px;padding:11px 13px">
-              </div>
-              <div>
-                <label class="fl">Commission ($)</label>
-                <input type="number" class="fi" id="commAmt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px">
-              </div>
-            </div>
-            <div class="paid-row" onclick="togglePaid()" style="margin-bottom:10px">
-              <div class="paid-chk" id="paidChk"></div>
-              <span class="paid-lbl">Commission Paid</span>
-            </div>
-            <div class="fg" style="margin-bottom:10px">
-              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-              <textarea class="fi" id="soldNotes" placeholder="e.g. 180ft, financing used..."></textarea>
-            </div>
-            <button class="sbtn sold" onclick="submitLeadFromCalc('sold')">✅ Log Sale</button>
-          </div>
-
-          <!-- NOT SOLD panel -->
-          <div id="ccNotPanel" style="display:none">
-            <div class="fg">
-              <label class="fl">Reason</label>
-              <div class="rl" id="ccReasonList"></div>
-            </div>
-            <div class="fg2" style="margin-bottom:8px">
-              <div>
-                <label class="fl">Visit Date</label>
-                <input type="date" class="fi" id="ccNotSoldDate" style="font-size:13px;padding:11px 13px">
-              </div>
-              <div></div>
-            </div>
-            <div class="fg" style="margin-bottom:12px">
-              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-              <textarea class="fi" id="ccNotNotes" placeholder="e.g. Call back in spring, left card..."></textarea>
-            </div>
-            <div style="background:#F9FAFB;border:1.5px dashed var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
-              <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
-                📞 Quick Follow-Up <span style="font-weight:400;text-transform:none">(optional)</span>
-              </div>
-              <div class="fg2" style="margin-bottom:8px">
-                <div>
-                  <label class="fl" style="font-size:10px">Customer First Name</label>
-                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px">
-                </div>
-                <div>
-                  <label class="fl" style="font-size:10px">Phone Number</label>
-                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555..." style="padding:8px 10px;font-size:12px">
-                </div>
-              </div>
-              <div class="fg" style="margin-bottom:0">
-                <label class="fl" style="font-size:10px">Follow-Up Date</label>
-                <input type="date" class="fi" id="ccNotFuDate" style="padding:8px 10px;font-size:12px">
-              </div>
-            </div>
-            <button class="sbtn ns" onclick="submitLeadFromCalc('not_sold')">❌ Log Not Sold</button>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -5096,7 +5097,7 @@
 
       if (target === 'log') {
         logSection.style.display = '';
-        esBody.style.paddingBottom = '820px';
+        esBody.style.paddingBottom = '280px';
         applyBtn.style.display = 'none';
         ccResetLogPanel();
       } else {
