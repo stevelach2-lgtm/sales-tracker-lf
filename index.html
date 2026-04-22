@@ -2645,10 +2645,13 @@
             </div>
             <div class="fg2" style="margin-bottom:8px">
               <div>
+                <label class="fl">Last Price Given</label>
+                <div class="amt-wrap"><span class="amt-pre">$</span><input type="number" class="fi" id="ccNotLeftAt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px"></div>
+              </div>
+              <div>
                 <label class="fl">Visit Date</label>
                 <input type="date" class="fi" id="ccNotSoldDate" style="font-size:13px;padding:11px 13px">
               </div>
-              <div></div>
             </div>
             <div class="fg" style="margin-bottom:12px">
               <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
@@ -5516,6 +5519,7 @@
       const notPanel  = document.getElementById('ccNotPanel');
       const soldBtn   = document.getElementById('ccOutcomeSold');
       const notBtn    = document.getElementById('ccOutcomeNot');
+      const esBody    = document.querySelector('#commCalcSheet .es-body');
       if (type === 'sold') {
         soldPanel.style.display = '';
         notPanel.style.display  = 'none';
@@ -5525,6 +5529,7 @@
         notBtn.style.background = '#fff';
         notBtn.style.color = '#E53935';
         notBtn.style.borderColor = '#E53935';
+        esBody.style.paddingBottom = '460px';
       } else {
         soldPanel.style.display  = 'none';
         notPanel.style.display   = '';
@@ -5534,6 +5539,11 @@
         notBtn.style.background  = '#E53935';
         notBtn.style.color = '#fff';
         notBtn.style.borderColor = '#E53935';
+        esBody.style.paddingBottom = '560px';
+        // auto-fill last price given from Sold At field
+        const soldAt = document.getElementById('ccSoldAt').value;
+        const leftAtEl = document.getElementById('ccNotLeftAt');
+        if (soldAt && !leftAtEl.value) leftAtEl.value = soldAt;
         buildCcReasonList();
       }
     }
@@ -5553,6 +5563,7 @@
         document.getElementById(id).classList.remove('active'));
       document.getElementById('ccNotNotes').value = '';
       document.getElementById('ccNotSoldDate').value = today;
+      document.getElementById('ccNotLeftAt').value = '';
       document.getElementById('ccNotFuName').value = '';
       document.getElementById('ccNotFuPhone').value = '';
       document.getElementById('ccNotFuDate').value = '';
@@ -5593,8 +5604,9 @@
         }
       } else {
         if (!selCcReason) { toast('Please select a reason', 'err'); return; }
-        const notes  = document.getElementById('ccNotNotes').value.trim();
-        const nsDate = document.getElementById('ccNotSoldDate').value || null;
+        const notes   = document.getElementById('ccNotNotes').value.trim();
+        const nsDate  = document.getElementById('ccNotSoldDate').value || null;
+        const leftAt  = parseFloat(document.getElementById('ccNotLeftAt').value) || null;
         const fuName  = document.getElementById('ccNotFuName').value.trim();
         const fuPhone = document.getElementById('ccNotFuPhone').value.trim();
         const fuDate  = document.getElementById('ccNotFuDate').value || null;
@@ -5602,7 +5614,8 @@
           status: 'not_sold',
           reason_id: selCcReason,
           notes: notes || null,
-          sales_date: nsDate
+          sales_date: nsDate,
+          sale_amount: leftAt
         };
         if (fuDate) {
           payload.followup_date = fuDate;
@@ -5611,7 +5624,7 @@
           payload.followup_done = false;
         }
         const { data, error } = await sb.from('leads').insert(payload).select().single();
-        if (error) { toast('Error saving lead', 'err'); return; }
+        if (error) { toast('Error saving lead', 'err'); console.error(error); return; }
         lastId = data.id;
         document.getElementById('commCalcOverlay').classList.remove('open');
         showUndo('Not sold lead logged' + (fuDate ? ' + Follow-up scheduled' : ''));
