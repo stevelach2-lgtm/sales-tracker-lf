@@ -3123,6 +3123,31 @@
           <label class="fl">Reason</label>
           <div class="rl" id="esReasonList"></div>
         </div>
+        <div class="fg">
+          <label class="fl">Visit Date</label>
+          <input type="date" class="fi" id="esNsDate" style="font-size:13px;padding:11px 13px">
+        </div>
+        <!-- Quote Reference -->
+        <div style="background:#F9FAFB;border:1.5px dashed var(--border);border-radius:12px;padding:12px;margin-bottom:4px">
+          <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">📊 Quote Reference</div>
+          <div class="fg2" style="margin-bottom:8px">
+            <div>
+              <label class="fl" style="font-size:10px">Retail Quote $</label>
+              <input type="number" class="fi" id="esNsRetail" inputmode="decimal" placeholder="0.00"
+                style="padding:8px 10px;font-size:13px" oninput="esCalcPar()">
+            </div>
+            <div>
+              <label class="fl" style="font-size:10px">Par (65%)</label>
+              <div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:8px 10px;font-size:13px;font-weight:700;color:var(--green-dark);min-height:38px" id="esNsPar">—</div>
+            </div>
+          </div>
+          <div>
+            <label class="fl" style="font-size:10px">Left At $</label>
+            <input type="number" class="fi" id="esNsLeftAt" inputmode="decimal" placeholder="0.00"
+              style="padding:8px 10px;font-size:13px" oninput="esCalcPar()">
+          </div>
+          <div id="esNsParGap" style="display:none;margin-top:8px;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700"></div>
+        </div>
       </div>
 
       <!-- Notes (both) -->
@@ -4465,6 +4490,14 @@
       document.getElementById('esChkRehash').classList.toggle('active', l.lead_type === 'rehash');
       document.getElementById('esChkSelfGen').classList.toggle('active', l.lead_type === 'self_gen');
 
+      // Not-sold fields
+      document.getElementById('esNsDate').value = l.sales_date || '';
+      const nsRetail = l.ns_retail || '';
+      const nsLeftAt = l.sale_amount && l.status === 'not_sold' ? l.sale_amount : '';
+      document.getElementById('esNsRetail').value = nsRetail;
+      document.getElementById('esNsLeftAt').value = nsLeftAt;
+      esCalcPar();
+
       // Not-sold reason
       esSelReason = l.reason_id || null;
       const rl = document.getElementById('esReasonList');
@@ -4488,6 +4521,27 @@
       esSelReason = id;
       document.querySelectorAll('#esReasonList .ro').forEach(r => r.classList.remove('sel'));
       document.getElementById('esr-' + id)?.classList.add('sel');
+    }
+
+    function esCalcPar() {
+      const retail = parseFloat(document.getElementById('esNsRetail').value) || 0;
+      const leftAt = parseFloat(document.getElementById('esNsLeftAt').value) || 0;
+      const par = retail * 0.65;
+      const parEl = document.getElementById('esNsPar');
+      const gapEl = document.getElementById('esNsParGap');
+      parEl.textContent = retail > 0 ? '$' + par.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+      if (retail > 0 && leftAt > 0) {
+        const diff = leftAt - par;
+        const abovePar = diff >= 0;
+        gapEl.style.display = 'block';
+        gapEl.style.background = abovePar ? '#F0FDF4' : '#FEF2F2';
+        gapEl.style.color = abovePar ? 'var(--green-dark)' : 'var(--red)';
+        gapEl.textContent = abovePar
+          ? `✅ $${diff.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} above par`
+          : `⚠️ $${Math.abs(diff).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} below par`;
+      } else {
+        gapEl.style.display = 'none';
+      }
     }
 
     function esTogglePaid() {
@@ -4539,9 +4593,37 @@
       } else {
         if (!esSelReason) { toast('Select a reason', 'err'); return; }
         payload.reason_id = esSelReason;
-        payload.sale_amount = null;
+        payload.sales_date = document.getElementById('esNsDate').value || null;
+        const nsRetail = parseFloat(document.getElementById('esNsRetail').value) || null;
+        const nsLeftAt = parseFloat(document.getElementById('esNsLeftAt').value) || null;
+        payload.sale_amount = nsLeftAt;
         payload.commission_amount = null;
         payload.commission_paid = false;
+        // Build quote reference line for notes
+        const baseNotes = document.getElementById('esNotes').value.trim();
+        let quoteRef = '';
+        if (nsRetail || nsLeftAt) {
+          const par = nsRetail ? (nsRetail * 0.65) : null;
+          const parts = [];
+          if (nsRetail) parts.push(`Retail: $${nsRetail.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+          if (par) parts.push(`Par: $${par.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+          if (nsLeftAt) parts.push(`Left at: $${nsLeftAt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+          quoteRef = '📊 ' + parts.join(' | ');
+        }
+        payload.notes = [quoteRef, baseNotes].filter(Boolean).join('\n') || null;
+        return (async () => {
+          const { error } = await sb.from('leads').update(payload).eq('id', editLeadId);
+          if (error) { toast('Error saving', 'err'); console.error(error); return; }
+          toast('Lead updated ✓', 'ok');
+          document.getElementById('editOverlay').classList.remove('open');
+          editLeadId = null;
+          if (document.getElementById('n-hist').classList.contains('active')) {
+            const isFu = document.querySelectorAll('.htab')[1].classList.contains('active');
+            if (isFu) loadFollowUps();
+            else if (window._lastHistArgs) filterHist(...window._lastHistArgs);
+            else document.querySelector('.ftab.active')?.click();
+          } else if (document.getElementById('n-dash').classList.contains('active')) loadDash();
+        })();
       }
       payload.notes = document.getElementById('esNotes').value.trim() || null;
       const { error } = await sb.from('leads').update(payload).eq('id', editLeadId);
