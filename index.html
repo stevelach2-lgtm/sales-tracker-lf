@@ -3158,7 +3158,7 @@
         <!-- Draw Sheet Upload -->
         <div class="fg" style="margin-bottom:4px">
           <label class="fl">📋 Draw Sheet</label>
-          <input type="file" id="esDrawFile" accept="image/*,application/pdf" capture="environment" style="display:none" onchange="esHandleDrawUpload(this)">
+          <input type="file" id="esDrawFile" accept="image/*,application/pdf" style="display:none" onchange="esHandleDrawUpload(this)">
           <div id="esDrawPreview" style="display:none;margin-bottom:8px;position:relative">
             <img id="esDrawThumb" src="" style="width:100%;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;max-height:180px;object-fit:cover" onclick="viewDrawSheet(document.getElementById('esDrawThumb').src)">
             <button onclick="esRemoveDrawSheet()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer">Remove</button>
