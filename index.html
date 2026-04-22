@@ -4615,7 +4615,7 @@
       document.getElementById('esDrawBtn').style.display = 'none';
       try {
         const { data: { user } } = await sb.auth.getUser();
-        const compressed = await compressImage(file, 1800, 0.82);
+        const compressed = await compressImage(file, 1200, 0.70);
         const ext = file.type === 'application/pdf' ? 'pdf' : 'jpg';
         const path = `${user.id}/${editLeadId}.${ext}`;
         const { error } = await sb.storage.from('draw-sheets').upload(path, compressed, { upsert: true, contentType: ext === 'pdf' ? 'application/pdf' : 'image/jpeg' });
