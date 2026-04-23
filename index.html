@@ -4001,6 +4001,7 @@
       if (error) { toast('Save failed', 'err'); return; }
       toast('Follow-up saved! 📞', 'ok');
       closeFu();
+      loadFollowUps();
     }
 
     function sendFuSMS() {
