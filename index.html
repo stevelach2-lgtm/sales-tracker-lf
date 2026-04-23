@@ -2698,7 +2698,7 @@
           <label id="ccSoldAtLabel" style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap">Sold At $</label>
           <input type="number" id="ccSoldAt" inputmode="decimal" placeholder="Enter sale price"
             style="flex:1;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;color:var(--text);outline:none"
-            oninput="calcComm()">
+            oninput="calcComm(); syncLeftAt()">
         </div>
         <div style="margin-bottom:8px">
           <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">🏦 Financing
@@ -5552,6 +5552,16 @@
       }
     }
 
+
+    // Keep footer "Last Price Given" in sync with the panel field when not_sold is active
+    function syncLeftAt() {
+      const notPanel = document.getElementById('ccNotPanel');
+      if (notPanel && notPanel.style.display !== 'none') {
+        const val = document.getElementById('ccSoldAt').value;
+        document.getElementById('ccNotLeftAt').value = val;
+      }
+    }
+
     function ccResetLogPanel() {
       ccSetOutcome('sold');
       document.getElementById('commAmt').value = '';
@@ -5610,7 +5620,8 @@
         if (!selCcReason) { toast('Please select a reason', 'err'); return; }
         const notes   = document.getElementById('ccNotNotes').value.trim();
         const nsDate  = document.getElementById('ccNotSoldDate').value || null;
-        const leftAt  = parseFloat(document.getElementById('ccNotLeftAt').value) || null;
+        const leftAt = parseFloat(document.getElementById('ccSoldAt').value) ||
+                       parseFloat(document.getElementById('ccNotLeftAt').value) || null;
         const fuName  = document.getElementById('ccNotFuName').value.trim();
         const fuPhone = document.getElementById('ccNotFuPhone').value.trim();
         const fuDate  = document.getElementById('ccNotFuDate').value || null;
