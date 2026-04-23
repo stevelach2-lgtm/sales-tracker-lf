@@ -3128,6 +3128,7 @@
 
       <div class="es-actions">
         <button class="es-save" onclick="saveLeadEdit()">💾 Save Changes</button>
+        <button id="esRehashBtn" style="display:none;background:linear-gradient(135deg, var(--green-light), #BBF7D0);color:var(--green-dark);border:1.5px solid #86EFAC;border-radius:12px;font-size:15px;font-weight:800;padding:12px;cursor:pointer;width:100%;margin-bottom:10px" onclick="convertRehash()">🔄 Convert to Rehash Sale</button>
         <button class="es-del" onclick="deleteLead()">🗑️</button>
       </div>
     </div>
@@ -4383,6 +4384,7 @@
     let esCancelled = false;
     let esBtd = false;
     let esStatus = 'sold';
+    let esInitialStatus = 'sold';
     let esSelReason = null;
 
     async function openLeadEdit(id) {
@@ -4390,6 +4392,7 @@
       const { data: l, error } = await sb.from('leads').select('*, not_sold_reasons(label)').eq('id', id).single();
       if (error || !l) { toast('Could not load lead', 'err'); return; }
 
+      esInitialStatus = l.status;
       esStatus = l.status;
       esSetStatus(l.status);
 
@@ -4438,7 +4441,31 @@
       <div class="rr"></div><span class="rt">${r.label}</span>
     </div>`).join('');
 
+      if (esInitialStatus === 'not_sold') {
+        document.getElementById('esRehashBtn').style.display = 'block';
+      }
+
       document.getElementById('editOverlay').classList.add('open');
+    }
+
+    function convertRehash() {
+      // Switch tab to sold
+      esSetStatus('sold');
+      
+      // Inherit the Left At price to Sale Amount if empty
+      const leftAt = document.getElementById('esNsLeftAt').value;
+      if (leftAt && !document.getElementById('esSaleAmt').value) {
+        document.getElementById('esSaleAmt').value = leftAt;
+      }
+      
+      // Set to today's date
+      document.getElementById('esSalesDate').value = localDate(new Date());
+      
+      // Ensure Rehash is checked
+      document.getElementById('esChkRehash').classList.add('active');
+      
+      // Hide button as it's logically sold now
+      document.getElementById('esRehashBtn').style.display = 'none';
     }
 
     function esSetStatus(s) {
@@ -4447,6 +4474,12 @@
       document.getElementById('esNot').classList.toggle('active', s === 'not_sold');
       document.getElementById('esFieldsSold').style.display = s === 'sold' ? 'block' : 'none';
       document.getElementById('esFieldsNot').style.display = s === 'not_sold' ? 'block' : 'none';
+      
+      // Manage Rehash Button visibility
+      const rhBtn = document.getElementById('esRehashBtn');
+      if (rhBtn) {
+        rhBtn.style.display = (s === 'not_sold' && esInitialStatus === 'not_sold') ? 'block' : 'none';
+      }
     }
 
     function esSelR(id) {
