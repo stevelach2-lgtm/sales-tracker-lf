@@ -4427,7 +4427,7 @@
 
       // Not-sold fields
       document.getElementById('esNsDate').value = l.sales_date || '';
-      const nsRetail = l.ns_retail || '';
+      const nsRetail = l.retail_price || '';
       const nsLeftAt = l.sale_amount && l.status === 'not_sold' ? l.sale_amount : '';
       document.getElementById('esNsRetail').value = nsRetail;
       document.getElementById('esNsLeftAt').value = nsLeftAt;
@@ -4609,6 +4609,7 @@
         const nsRetail = parseFloat(document.getElementById('esNsRetail').value) || null;
         const nsLeftAt = parseFloat(document.getElementById('esNsLeftAt').value) || null;
         payload.sale_amount = nsLeftAt;
+        payload.retail_price = nsRetail;
         payload.draw_sheet_url = esDrawSheetUrl || null;
         payload.commission_amount = null;
         payload.commission_paid = false;
