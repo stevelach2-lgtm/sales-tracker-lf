@@ -5631,8 +5631,19 @@
           payload.followup_phone = fuPhone || null;
           payload.followup_done = false;
         }
-        const { data, error } = await sb.from('leads').insert(payload).select().single();
-        if (error) { toast('Error saving lead', 'err'); console.error(error); return; }
+        let { data, error } = await sb.from('leads').insert(payload).select().single();
+        // If columns don't exist yet (migration not run), retry without them
+        if (error && (error.message || '').includes('retail_price') || (error && (error.message || '').includes('par_price'))) {
+          const fallback = { ...payload };
+          delete fallback.retail_price;
+          delete fallback.par_price;
+          ({ data, error } = await sb.from('leads').insert(fallback).select().single());
+        }
+        if (error) {
+          toast('Save failed: ' + (error.message || 'unknown error'), 'err');
+          console.error('[not_sold save]', error);
+          return;
+        }
         lastId = data.id;
         document.getElementById('commCalcOverlay').classList.remove('open');
         showUndo('Not sold lead logged' + (fuDate ? ' + Follow-up scheduled' : ''));
