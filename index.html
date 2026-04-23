@@ -985,7 +985,9 @@
       background: #fff;
       transition: .15s;
       -webkit-appearance: none;
-      appearance: none
+      appearance: none;
+      user-select: text;
+      -webkit-user-select: text;
     }
 
     .fi:focus {
@@ -4085,13 +4087,13 @@
             const statusClass = l.followup_done ? 'done' : (d < todayStr ? 'overdue' : (d === todayStr ? 'today' : 'upcoming'));
             const stepBadge = l.step_num ? `<span style="font-size:9px; background:var(--bg); color:var(--muted); padding:2px 6px; border-radius:4px; font-weight:800; border:1px solid var(--border); margin-left:6px">Step ${l.step_num}</span>` : '';
 
-            return `<div class="fup-card ${statusClass}">
+            return `<div class="fup-card ${statusClass}" onclick="openFu('${l.id}','${reasonEsc}','${name}','${phone}','${notesEsc}',${l.step_num || 1})" style="cursor:pointer">
             <div class="fup-top">
               <div class="fup-name">${l.followup_name || 'Customer'}</div>
               <div style="font-size:11px; font-weight:700; color:var(--muted); display:flex; align-items:center">📅 ${dateLabel} ${stepBadge}</div>
             </div>
             <div class="fup-reason" style="margin-bottom:8px">Not Sold: ${rStr}</div>
-            <div class="fup-actions">
+            <div class="fup-actions" onclick="event.stopPropagation()">
               ${phone ? `<a href="tel:+1${phone}" class="fup-btn" style="background:#F0FDF4; color:#166534; border:1px solid #BBF7D0; text-decoration:none; display:flex; align-items:center; justify-content:center">📞 Call</a>` : ''}
               <button class="fup-btn sms" onclick="openFu('${l.id}','${reasonEsc}','${name}','${phone}','${notesEsc}',${l.step_num || 1})">📱 SMS</button>
               <button class="fup-btn done-btn" onclick="toggleFuDone('${l.id}',${!l.followup_done})" style="min-width:44px">${l.followup_done ? '↩' : '✅'}</button>
