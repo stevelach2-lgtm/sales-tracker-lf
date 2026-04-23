@@ -2910,8 +2910,8 @@
           style="width:100%;display:flex;align-items:center;gap:10px;background:#F9FAFB;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;margin-bottom:8px;cursor:pointer;user-select:none;font-family:'Inter',sans-serif;text-align:left">
           <div id="qcOverageChk" style="width:20px;height:20px;border:2px solid var(--border);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;transition:.15s"></div>
           <div>
-            <div style="font-size:12px;font-weight:700;color:var(--text)">Include Overage</div>
-            <div style="font-size:10px;color:var(--muted)">Apply opening % markup and count overage commission</div>
+            <div style="font-size:12px;font-weight:700;color:var(--text)">Include Overage Markup</div>
+            <div style="font-size:10px;color:var(--muted)">Apply opening % markup to opening price</div>
           </div>
         </button>
         <!-- Min-to-PAR indicator -->
@@ -5805,9 +5805,9 @@
         if (!isUnderPar) {
           const parComm = par * 0.08;
           const overage = Math.max(0, effectiveNet - par);
-          const overComm = qcOverageEnabled ? overage * 0.40 : 0;
+          const overComm = overage * 0.40;
           commTotal = parComm + overComm;
-          tierLabel = `${netPct.toFixed(1)}% net — at/above par${qcOverageEnabled ? '' : ' (no overage)'}`;
+          tierLabel = `${netPct.toFixed(1)}% net — at/above par`;
         } else {
           let tierRate, tierDesc;
           if (netPct >= 60) {
