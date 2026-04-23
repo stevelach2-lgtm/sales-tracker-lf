@@ -4428,7 +4428,7 @@
       // Not-sold fields
       document.getElementById('esNsDate').value = l.sales_date || '';
       const nsRetail = l.retail_price || '';
-      const nsLeftAt = l.sale_amount && l.status === 'not_sold' ? l.sale_amount : '';
+      const nsLeftAt = l.status === 'not_sold' ? (l.sale_amount || '') : '';
       document.getElementById('esNsRetail').value = nsRetail;
       document.getElementById('esNsLeftAt').value = nsLeftAt;
       esCalcPar();
