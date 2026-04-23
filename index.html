@@ -2107,13 +2107,6 @@
 
 
 
-      <!-- LOG LEAD -->
-      <div id="p-log" class="page">
-        <div class="log-hero">
-          <h2>Log a Lead</h2>
-          <p>Tap Log Lead to open the calculator</p>
-        </div>
-      </div>
 
       <!-- HISTORY -->
       <div id="p-hist" class="page">
@@ -2421,15 +2414,7 @@
         </svg>
         <span>Dashboard</span>
       </button>
-      <button class="ni" id="n-log" onclick="goTo('log')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-          stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="16" />
-          <line x1="8" y1="12" x2="16" y2="12" />
-        </svg>
-        <span>Log Lead</span>
-      </button>
+
       <button class="ni" id="n-hist" onclick="goTo('hist')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
           stroke-linejoin="round">
@@ -2577,108 +2562,7 @@
           <!-- rows injected by JS -->
         </div>
 
-        <!-- Log Outcome Section — shown only when opened from Log Lead -->
-        <div id="ccLogSection" style="display:none;margin-top:10px;border-top:2px solid var(--border);padding-top:12px">
-          <div style="font-size:10px;font-weight:800;letter-spacing:.6px;color:var(--muted);margin-bottom:8px;text-transform:uppercase">Log Outcome</div>
-          <div style="display:flex;gap:8px;margin-bottom:14px">
-            <button id="ccOutcomeSold" onclick="ccSetOutcome('sold')"
-              style="flex:1;padding:11px;border:2px solid var(--green);border-radius:10px;background:var(--green);color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">✅ SOLD</button>
-            <button id="ccOutcomeNot" onclick="ccSetOutcome('not_sold')"
-              style="flex:1;padding:11px;border:2px solid #E53935;border-radius:10px;background:#fff;color:#E53935;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">❌ NOT SOLD</button>
-          </div>
 
-          <!-- SOLD panel -->
-          <div id="ccSoldPanel">
-            <input type="hidden" id="saleAmt">
-            <input type="hidden" id="retailPct">
-            <input type="hidden" id="commPct">
-            <div class="chk-row" style="margin-bottom:10px">
-              <div class="chk-box" id="chkCombo" onclick="toggleChk('chkCombo')">
-                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Combo</span></div>
-                <div class="chk-sub">Gutter + LeafFilter</div>
-              </div>
-              <div class="chk-box" id="chkRehash" onclick="toggleChk('chkRehash')">
-                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Rehash</span></div>
-                <div class="chk-sub">Not in SLG%</div>
-              </div>
-              <div class="chk-box" id="chkSelfGen" onclick="toggleChk('chkSelfGen')">
-                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Self Gen</span></div>
-                <div class="chk-sub">Counts as issued</div>
-              </div>
-            </div>
-            <div class="fg2" style="margin-bottom:8px">
-              <div>
-                <label class="fl">Job #</label>
-                <input type="text" class="fi" id="jobNum" placeholder="Job number" style="font-size:14px;padding:11px 13px">
-              </div>
-              <div>
-                <label class="fl">Sales Date</label>
-                <input type="date" class="fi" id="salesDate" style="font-size:13px;padding:11px 13px">
-              </div>
-            </div>
-            <div class="fg2" style="margin-bottom:8px">
-              <div>
-                <label class="fl">Install Date</label>
-                <input type="date" class="fi" id="installDate" style="font-size:13px;padding:11px 13px">
-              </div>
-              <div>
-                <label class="fl">Commission ($)</label>
-                <input type="number" class="fi" id="commAmt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px">
-              </div>
-            </div>
-            <div class="paid-row" onclick="togglePaid()" style="margin-bottom:10px">
-              <div class="paid-chk" id="paidChk"></div>
-              <span class="paid-lbl">Commission Paid</span>
-            </div>
-            <div class="fg" style="margin-bottom:10px">
-              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-              <textarea class="fi" id="soldNotes" placeholder="e.g. 180ft, financing used..."></textarea>
-            </div>
-            <button class="sbtn sold" onclick="submitLeadFromCalc('sold')">✅ Log Sale</button>
-          </div>
-
-          <!-- NOT SOLD panel -->
-          <div id="ccNotPanel" style="display:none">
-            <div class="fg">
-              <label class="fl">Reason</label>
-              <div class="rl" id="ccReasonList"></div>
-            </div>
-            <div class="fg2" style="margin-bottom:8px">
-              <div>
-                <label class="fl">Last Price Given</label>
-                <div class="amt-wrap"><span class="amt-pre">$</span><input type="number" class="fi" id="ccNotLeftAt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px"></div>
-              </div>
-              <div>
-                <label class="fl">Visit Date</label>
-                <input type="date" class="fi" id="ccNotSoldDate" style="font-size:13px;padding:11px 13px">
-              </div>
-            </div>
-            <div class="fg" style="margin-bottom:12px">
-              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-              <textarea class="fi" id="ccNotNotes" placeholder="e.g. Call back in spring, left card..."></textarea>
-            </div>
-            <div style="background:#F9FAFB;border:1.5px dashed var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
-              <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
-                📞 Quick Follow-Up <span style="font-weight:400;text-transform:none">(optional)</span>
-              </div>
-              <div class="fg2" style="margin-bottom:8px">
-                <div>
-                  <label class="fl" style="font-size:10px">Customer First Name</label>
-                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px">
-                </div>
-                <div>
-                  <label class="fl" style="font-size:10px">Phone Number</label>
-                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555..." style="padding:8px 10px;font-size:12px">
-                </div>
-              </div>
-              <div class="fg" style="margin-bottom:0">
-                <label class="fl" style="font-size:10px">Follow-Up Date</label>
-                <input type="date" class="fi" id="ccNotFuDate" style="padding:8px 10px;font-size:12px">
-              </div>
-            </div>
-            <button class="sbtn ns" onclick="submitLeadFromCalc('not_sold')">❌ Log Not Sold</button>
-          </div>
-        </div>
 
       </div>
       <!-- Sticky footer with math -->
@@ -2821,6 +2705,111 @@
       <div class="es-body" style="padding-bottom:340px">
         <div id="qcItems" style="display:flex;flex-direction:column;gap:6px">
           <!-- rows injected by JS -->
+        </div>
+
+        <!-- Log Outcome Section — Moved from Log Lead into Quote Tool -->
+        <div id="ccLogSection" style="display:block;margin-top:20px;border-top:2.5px solid var(--border);padding-top:16px">
+          <div style="font-size:11px;font-weight:800;letter-spacing:.6px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;display:flex;align-items:center;gap:6px">📝 Log Lead Outcome</div>
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <button id="ccOutcomeSold" onclick="ccSetOutcome('sold')"
+              style="flex:1;padding:11px;border:2px solid var(--green);border-radius:10px;background:#fff;color:var(--green);font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">✅ SALE</button>
+            <button id="ccOutcomeNot" onclick="ccSetOutcome('not_sold')"
+              style="flex:1;padding:11px;border:2px solid #E53935;border-radius:10px;background:#fff;color:#E53935;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">❌ NO SALE</button>
+          </div>
+
+          <!-- SOLD panel -->
+          <div id="ccSoldPanel" style="display:none">
+            <input type="hidden" id="saleAmt">
+            <input type="hidden" id="retailPct">
+            <input type="hidden" id="commPct">
+            <input type="hidden" id="qcRetailHidden">
+            <input type="hidden" id="qcParHidden">
+            <div class="chk-row" style="margin-bottom:10px">
+              <div class="chk-box" id="chkCombo" onclick="toggleChk('chkCombo')">
+                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Combo</span></div>
+                <div class="chk-sub">Gutter + LeafFilter</div>
+              </div>
+              <div class="chk-box" id="chkRehash" onclick="toggleChk('chkRehash')">
+                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Rehash</span></div>
+                <div class="chk-sub">Not in SLG%</div>
+              </div>
+              <div class="chk-box" id="chkSelfGen" onclick="toggleChk('chkSelfGen')">
+                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Self Gen</span></div>
+                <div class="chk-sub">Counts as issued</div>
+              </div>
+            </div>
+            <div class="fg2" style="margin-bottom:8px">
+              <div>
+                <label class="fl">Job #</label>
+                <input type="text" class="fi" id="jobNum" placeholder="Job number" style="font-size:14px;padding:11px 13px">
+              </div>
+              <div>
+                <label class="fl">Sales Date</label>
+                <input type="date" class="fi" id="salesDate" style="font-size:13px;padding:11px 13px">
+              </div>
+            </div>
+            <div class="fg2" style="margin-bottom:8px">
+              <div>
+                <label class="fl">Install Date</label>
+                <input type="date" class="fi" id="installDate" style="font-size:13px;padding:11px 13px">
+              </div>
+              <div>
+                <label class="fl">Commission ($)</label>
+                <input type="number" class="fi" id="commAmt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px">
+              </div>
+            </div>
+            <div class="paid-row" onclick="togglePaid()" style="margin-bottom:10px">
+              <div class="paid-chk" id="paidChk"></div>
+              <span class="paid-lbl">Commission Paid</span>
+            </div>
+            <div class="fg" style="margin-bottom:10px">
+              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <textarea class="fi" id="soldNotes" placeholder="e.g. 180ft, financing used..."></textarea>
+            </div>
+            <button class="sbtn sold" onclick="submitLeadFromCalc('sold')">✅ Log Sale</button>
+          </div>
+
+          <!-- NOT SOLD panel -->
+          <div id="ccNotPanel" style="display:none">
+            <div class="fg">
+              <label class="fl">Reason</label>
+              <div class="rl" id="ccReasonList"></div>
+            </div>
+            <div class="fg2" style="margin-bottom:8px">
+              <div>
+                <label class="fl">Last Price Given</label>
+                <div class="amt-wrap"><span class="amt-pre">$</span><input type="number" class="fi" id="ccNotLeftAt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px"></div>
+              </div>
+              <div>
+                <label class="fl">Visit Date</label>
+                <input type="date" class="fi" id="ccNotSoldDate" style="font-size:13px;padding:11px 13px">
+              </div>
+            </div>
+            <div class="fg" style="margin-bottom:12px">
+              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <textarea class="fi" id="ccNotNotes" placeholder="e.g. Call back in spring, left card..."></textarea>
+            </div>
+            <div style="background:#F9FAFB;border:1.5px dashed var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
+              <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
+                📞 Quick Follow-Up <span style="font-weight:400;text-transform:none">(optional)</span>
+              </div>
+              <div class="fg2" style="margin-bottom:8px">
+                <div>
+                  <label class="fl" style="font-size:10px">Customer First Name</label>
+                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px">
+                </div>
+                <div>
+                  <label class="fl" style="font-size:10px">Phone Number</label>
+                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555..." style="padding:8px 10px;font-size:12px">
+                </div>
+              </div>
+              <div class="fg" style="margin-bottom:0">
+                <label class="fl" style="font-size:10px">Follow-Up Date</label>
+                <input type="date" class="fi" id="ccNotFuDate" style="padding:8px 10px;font-size:12px">
+              </div>
+            </div>
+            <button class="sbtn ns" onclick="submitLeadFromCalc('not_sold')">❌ Log Not Sold</button>
+          </div>
         </div>
       </div>
       <!-- Sticky footer -->
@@ -3368,7 +3357,7 @@
         else filterHist('today', document.querySelector('.ftab'));
       }
       if (id === 'set') loadSettings();
-      if (id === 'log') openCommCalc('log');
+
       if (id === 'comm') loadComm();
     }
 
@@ -5095,20 +5084,11 @@
       renderCCItems();
       calcComm();
 
-      const logSection = document.getElementById('ccLogSection');
       const esBody = document.querySelector('#commCalcSheet .es-body');
       const applyBtn = document.getElementById('ccApplyBtn');
-
-      if (target === 'log') {
-        logSection.style.display = '';
-        esBody.style.paddingBottom = '460px';
-        applyBtn.style.display = 'none';
-        ccResetLogPanel();
-      } else {
-        logSection.style.display = 'none';
-        esBody.style.paddingBottom = '180px';
-        applyBtn.style.display = '';
-      }
+      
+      esBody.style.paddingBottom = '180px';
+      applyBtn.style.display = '';
 
       document.getElementById('commCalcOverlay').classList.add('open');
     }
@@ -5497,17 +5477,12 @@
       const sold = parseFloat(document.getElementById('ccSoldAt').value) || 0;
       const retailPct = document.getElementById('ccRetailPctVal').value;
       const commPct = document.getElementById('ccCommPctVal').value;
-      if (ccTarget === 'log') {
-        document.getElementById('commAmt').value = total.toFixed(2);
-        document.getElementById('retailPct').value = retailPct;
-        document.getElementById('commPct').value = commPct;
-        if (sold > 0) document.getElementById('saleAmt').value = sold.toFixed(2);
-      } else {
-        document.getElementById('esCommAmt').value = total.toFixed(2);
-        document.getElementById('esRetailPct').value = retailPct;
-        document.getElementById('esCommPct').value = commPct;
-        if (sold > 0) document.getElementById('esSaleAmt').value = sold.toFixed(2);
-      }
+      
+      document.getElementById('esCommAmt').value = total.toFixed(2);
+      document.getElementById('esRetailPct').value = retailPct;
+      document.getElementById('esCommPct').value = commPct;
+      if (sold > 0) document.getElementById('esSaleAmt').value = sold.toFixed(2);
+      
       document.getElementById('commCalcOverlay').classList.remove('open');
       toast('Commission applied ✓', 'ok');
     }
@@ -5520,8 +5495,11 @@
       const notPanel  = document.getElementById('ccNotPanel');
       const soldBtn   = document.getElementById('ccOutcomeSold');
       const notBtn    = document.getElementById('ccOutcomeNot');
-      const esBody    = document.querySelector('#commCalcSheet .es-body');
-      const soldAtLabel = document.getElementById('ccSoldAtLabel');
+      const esBody    = document.querySelector('#quoteCalcSheet .es-body');
+      
+      // Expand padding when picking an outcome so it doesn't get hidden behind footer
+      esBody.style.paddingBottom = type === 'sold' ? '640px' : '720px';
+      
       if (type === 'sold') {
         soldPanel.style.display = '';
         notPanel.style.display  = 'none';
@@ -5531,8 +5509,6 @@
         notBtn.style.background = '#fff';
         notBtn.style.color = '#E53935';
         notBtn.style.borderColor = '#E53935';
-        esBody.style.paddingBottom = '460px';
-        if (soldAtLabel) soldAtLabel.textContent = 'Sold At $';
       } else {
         soldPanel.style.display  = 'none';
         notPanel.style.display   = '';
@@ -5542,23 +5518,12 @@
         notBtn.style.background  = '#E53935';
         notBtn.style.color = '#fff';
         notBtn.style.borderColor = '#E53935';
-        esBody.style.paddingBottom = '560px';
-        if (soldAtLabel) soldAtLabel.textContent = 'Last Price Given $';
+        
         // auto-fill last price given from Sold At field
-        const soldAt = document.getElementById('ccSoldAt').value;
+        const soldAt = document.getElementById('qcSoldAt').value;
         const leftAtEl = document.getElementById('ccNotLeftAt');
         if (soldAt && !leftAtEl.value) leftAtEl.value = soldAt;
         buildCcReasonList();
-      }
-    }
-
-
-    // Keep footer "Last Price Given" in sync with the panel field when not_sold is active
-    function syncLeftAt() {
-      const notPanel = document.getElementById('ccNotPanel');
-      if (notPanel && notPanel.style.display !== 'none') {
-        const val = document.getElementById('ccSoldAt').value;
-        document.getElementById('ccNotLeftAt').value = val;
       }
     }
 
@@ -5604,30 +5569,37 @@
 
     async function submitLeadFromCalc(type) {
       if (type === 'sold') {
-        const soldAt = parseFloat(document.getElementById('ccSoldAt').value);
+        const soldAt = parseFloat(document.getElementById('qcSoldAt').value);
         if (!soldAt || soldAt <= 0) { toast('Enter a sale price in "Sold At $"', 'err'); return; }
         document.getElementById('saleAmt').value = soldAt.toFixed(2);
-        const commTotal = parseFloat(document.getElementById('ccTotal').textContent.replace(/[$,]/g, '')) || 0;
-        document.getElementById('commAmt').value = commTotal.toFixed(2);
-        document.getElementById('retailPct').value = document.getElementById('ccRetailPctVal').value;
-        document.getElementById('commPct').value   = document.getElementById('ccCommPctVal').value;
+        
+        const commAmtVal = parseFloat(document.getElementById('commAmt').value);
+        if (isNaN(commAmtVal)) {
+           const commTotal = parseFloat(document.getElementById('qcComm').textContent.replace(/[$,]/g, '')) || 0;
+           document.getElementById('commAmt').value = commTotal.toFixed(2);
+        }
+
         const ok = await submitLead('sold');
         if (ok) {
-          document.getElementById('commCalcOverlay').classList.remove('open');
+          document.getElementById('quoteCalcOverlay').classList.remove('open');
           ccResetLogPanel();
+          document.getElementById('ccSoldPanel').style.display = 'none';
+          document.getElementById('ccOutcomeSold').style.background = '#fff';
+          document.getElementById('ccOutcomeSold').style.color = 'var(--green)';
         }
       } else {
         if (!selCcReason) { toast('Please select a reason', 'err'); return; }
         const notes   = document.getElementById('ccNotNotes').value.trim();
         const nsDate  = document.getElementById('ccNotSoldDate').value || null;
-        const leftAt = parseFloat(document.getElementById('ccSoldAt').value) ||
+        const leftAt = parseFloat(document.getElementById('qcSoldAt').value) ||
                        parseFloat(document.getElementById('ccNotLeftAt').value) || null;
         const fuName  = document.getElementById('ccNotFuName').value.trim();
         const fuPhone = document.getElementById('ccNotFuPhone').value.trim();
         const fuDate  = document.getElementById('ccNotFuDate').value || null;
-        // Pull retail and par from the calculator footer displays
-        const retailVal = parseFloat((document.getElementById('ccRetail').textContent || '').replace(/[$,]/g, '')) || null;
-        const parVal    = parseFloat((document.getElementById('ccPar').textContent    || '').replace(/[$,]/g, '')) || null;
+        
+        const retailVal = parseFloat(document.getElementById('qcRetailHidden').value) || null;
+        const parVal    = parseFloat(document.getElementById('qcParHidden').value) || null;
+        
         const payload = {
           status: 'not_sold',
           reason_id: selCcReason,
@@ -5644,7 +5616,6 @@
           payload.followup_done = false;
         }
         let { data, error } = await sb.from('leads').insert(payload).select().single();
-        // If columns don't exist yet (migration not run), retry without them
         if (error && (error.message || '').includes('retail_price') || (error && (error.message || '').includes('par_price'))) {
           const fallback = { ...payload };
           delete fallback.retail_price;
@@ -5657,9 +5628,12 @@
           return;
         }
         lastId = data.id;
-        document.getElementById('commCalcOverlay').classList.remove('open');
+        document.getElementById('quoteCalcOverlay').classList.remove('open');
         showUndo('Not sold lead logged' + (fuDate ? ' + Follow-up scheduled' : ''));
         ccResetLogPanel();
+        document.getElementById('ccNotPanel').style.display = 'none';
+        document.getElementById('ccOutcomeNot').style.background = '#fff';
+        document.getElementById('ccOutcomeNot').style.color = '#E53935';
       }
     }
 
@@ -5798,6 +5772,9 @@
         const finalComm = Math.max(0, commTotal);
         document.getElementById('qcComm').textContent = fmt(finalComm);
         document.getElementById('qcComm').style.color = isUnderPar ? 'var(--red)' : 'var(--green-dark)';
+        document.getElementById('commPct').value = (netPct > 0 ? (finalComm / effectiveNet) * 100 : 0).toFixed(1);
+        document.getElementById('retailPct').value = netPct.toFixed(1);
+        
         const gap = effectiveNet - par;
         const gapEl = document.getElementById('qcParGapLine');
         if (gap >= 0) {
@@ -5828,6 +5805,16 @@
         }
       } else {
         minParBox.style.display = 'none';
+      }
+      
+      document.getElementById('qcRetailHidden').value = retail.toFixed(2);
+      document.getElementById('qcParHidden').value = par.toFixed(2);
+      
+      // Auto-update Log Outcome sold inputs
+      const qcSold = document.getElementById('qcSoldAt').value;
+      if(qcSold) {
+        document.getElementById('ccNotLeftAt').value = qcSold;
+        document.getElementById('commAmt').value = document.getElementById('qcComm').textContent.replace(/[$,]/g, '') || 0;
       }
     }
 
