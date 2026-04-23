@@ -2777,8 +2777,8 @@
             </div>
             <div class="fg2" style="margin-bottom:8px">
               <div>
-                <label class="fl">Last Price Given</label>
-                <div class="amt-wrap"><span class="amt-pre">$</span><input type="number" class="fi" id="ccNotLeftAt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px"></div>
+                <label class="fl">Last Price Given $</label>
+                <input type="number" class="fi" id="ccNotLeftAt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px">
               </div>
               <div>
                 <label class="fl">Visit Date</label>
@@ -5548,6 +5548,20 @@
       document.getElementById('ccNotFuDate').value = '';
       selCcReason = null;
       document.querySelectorAll('#ccReasonList .ro').forEach(r => r.classList.remove('sel'));
+      if (document.getElementById('qcSoldAt')) document.getElementById('qcSoldAt').value = '';
+      if (document.getElementById('qcFinPlan')) document.getElementById('qcFinPlan').value = '';
+      // Un-select the big buttons
+      document.getElementById('ccSoldPanel').style.display = 'none';
+      const soldBtn   = document.getElementById('ccOutcomeSold');
+      const notBtn    = document.getElementById('ccOutcomeNot');
+      if(soldBtn) {
+        soldBtn.style.background = '#fff';
+        soldBtn.style.color = 'var(--green)';
+      }
+      if(notBtn) {
+        notBtn.style.background = '#fff';
+        notBtn.style.color = '#E53935';
+      }
     }
 
     function buildCcReasonList() {
@@ -5647,6 +5661,7 @@
     function openQuoteCalc() {
       qcAdminIncluded = localStorage.getItem('cc_admin_default') !== 'false';
       qcAdminInOpening = localStorage.getItem('cc_admin_in_opening') === 'true';
+      ccResetLogPanel(); // Ensures the whole form is blank each time it is opened
       renderQCItems();
       updateQcOverageChk();
       calcQuote();
@@ -5656,6 +5671,7 @@
     function closeQuoteCalc(e) {
       if (e && e.target !== document.getElementById('quoteCalcOverlay')) return;
       document.getElementById('quoteCalcOverlay').classList.remove('open');
+      ccResetLogPanel();
     }
 
     function renderQCItems() {
