@@ -2707,8 +2707,12 @@
           <!-- rows injected by JS -->
         </div>
 
+      </div>
+      <!-- Sticky footer -->
+      <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1.5px solid var(--border);padding:16px 14px 20px;max-height:85vh;overflow-y:auto;box-shadow:0 -4px 16px rgba(0,0,0,0.08);">
+        
         <!-- Log Outcome Section — Moved from Log Lead into Quote Tool -->
-        <div id="ccLogSection" style="display:block;margin-top:20px;border-top:2.5px solid var(--border);padding-top:16px">
+        <div id="ccLogSection" style="display:block;margin-bottom:16px;border-bottom:2.5px solid var(--border);padding-bottom:16px">
           <div style="font-size:11px;font-weight:800;letter-spacing:.6px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;display:flex;align-items:center;gap:6px">📝 Log Lead Outcome</div>
           <div style="display:flex;gap:8px;margin-bottom:14px">
             <button id="ccOutcomeSold" onclick="ccSetOutcome('sold')"
@@ -2811,9 +2815,7 @@
             <button class="sbtn ns" onclick="submitLeadFromCalc('not_sold')">❌ Log Not Sold</button>
           </div>
         </div>
-      </div>
-      <!-- Sticky footer -->
-      <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1.5px solid var(--border);padding:12px 14px 20px">
+
         <!-- Opening Price + PAR+Admin -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
           <div style="background:#FEF9C3;border:1.5px solid #FDE047;border-radius:9px;padding:9px 11px">
