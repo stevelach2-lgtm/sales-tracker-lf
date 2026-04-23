@@ -2695,7 +2695,7 @@
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <label style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap">Sold At $</label>
+          <label id="ccSoldAtLabel" style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap">Sold At $</label>
           <input type="number" id="ccSoldAt" inputmode="decimal" placeholder="Enter sale price"
             style="flex:1;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;color:var(--text);outline:none"
             oninput="calcComm()">
@@ -5520,6 +5520,7 @@
       const soldBtn   = document.getElementById('ccOutcomeSold');
       const notBtn    = document.getElementById('ccOutcomeNot');
       const esBody    = document.querySelector('#commCalcSheet .es-body');
+      const soldAtLabel = document.getElementById('ccSoldAtLabel');
       if (type === 'sold') {
         soldPanel.style.display = '';
         notPanel.style.display  = 'none';
@@ -5530,6 +5531,7 @@
         notBtn.style.color = '#E53935';
         notBtn.style.borderColor = '#E53935';
         esBody.style.paddingBottom = '460px';
+        if (soldAtLabel) soldAtLabel.textContent = 'Sold At $';
       } else {
         soldPanel.style.display  = 'none';
         notPanel.style.display   = '';
@@ -5540,6 +5542,7 @@
         notBtn.style.color = '#fff';
         notBtn.style.borderColor = '#E53935';
         esBody.style.paddingBottom = '560px';
+        if (soldAtLabel) soldAtLabel.textContent = 'Last Price Given $';
         // auto-fill last price given from Sold At field
         const soldAt = document.getElementById('ccSoldAt').value;
         const leftAtEl = document.getElementById('ccNotLeftAt');
