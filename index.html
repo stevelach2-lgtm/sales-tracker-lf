@@ -2141,6 +2141,9 @@
                 style="flex:1; border:1.5px solid var(--border); border-radius:8px; padding:6px 10px; font-family:'Inter',sans-serif; font-size:12px; outline:none">
             </div>
           </div>
+          <div style="padding:10px 14px 0; display:flex; justify-content:flex-end;">
+            <button onclick="exportKML()" style="background:#EFF6FF; border:1px solid #BFDBFE; color:#1D4ED8; font-weight:700; font-size:11px; padding:6px 12px; border-radius:6px; cursor:pointer">📍 Export Map Data (KML)</button>
+          </div>
           <div id="histList" class="hlist">
             <div class="loading">
               <div class="spinner"></div>
@@ -4251,7 +4254,19 @@
       // forms removed — calc handles reset via ccResetLogPanel()
     }
 
+    function getGPS() {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          (err) => resolve(null),
+          { timeout: 5000, maximumAge: 60000 }
+        );
+      });
+    }
+
     async function submitLead(type) {
+      const gps = await getGPS();
       if (type === 'sold') {
         const amt = parseFloat(document.getElementById('saleAmt').value);
         if (!amt || amt <= 0) { toast('Enter a valid sale amount', 'err'); return; }
@@ -4272,6 +4287,11 @@
           commission_paid: isPaid,
           notes: document.getElementById('soldNotes').value.trim() || null
         };
+
+        if (gps) {
+          payload.lat = gps.lat;
+          payload.lng = gps.lng;
+        }
         const { data, error } = await sb.from('leads').insert(payload).select().single();
         if (error) { toast('Error saving lead', 'err'); console.error(error); return false; }
         lastId = data.id;
@@ -4300,6 +4320,11 @@
           payload.followup_name = fuName || 'Customer';
           payload.followup_phone = fuPhone || null;
           payload.followup_done = false;
+        }
+
+        if (gps) {
+          payload.lat = gps.lat;
+          payload.lng = gps.lng;
         }
 
         const { data, error } = await sb.from('leads').insert(payload).select().single();
@@ -4427,8 +4452,62 @@
 
       const { data: d, error } = await query;
       if (error) { el.innerHTML = '<p style="color:var(--red);padding:12px">Error loading</p>'; return; }
-      data = sortByDate(d || []);
-      renderHist(data);
+      window._currentHistLeads = sortByDate(d || []);
+      renderHist(window._currentHistLeads);
+    }
+
+    function exportKML() {
+      const leads = window._currentHistLeads || [];
+      const withLoc = leads.filter(l => l.lat && l.lng);
+      if (withLoc.length === 0) {
+        toast('No leads with location data to export in this range.', 'err');
+        return;
+      }
+
+      let kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Sales Tracker Export</name>
+    <Style id="soldStyle">
+      <IconStyle>
+        <Icon><href>http://maps.google.com/mapfiles/kml/pushpin/grn-pushpin.png</href></Icon>
+      </IconStyle>
+    </Style>
+    <Style id="nsStyle">
+      <IconStyle>
+        <Icon><href>http://maps.google.com/mapfiles/kml/pushpin/red-pushpin.png</href></Icon>
+      </IconStyle>
+    </Style>
+`;
+
+      withLoc.forEach(l => {
+        const isSold = l.status === 'sold';
+        const name = isSold ? `Sold: $${parseFloat(l.sale_amount||0).toLocaleString()}` : `Not Sold: ${l.not_sold_reasons?.label || 'Unknown'}`;
+        const desc = `Date: ${l.sales_date}\\nNotes: ${l.notes || ''}`;
+        
+        kml += `
+    <Placemark>
+      <name><![CDATA[${name}]]></name>
+      <description><![CDATA[${desc}]]></description>
+      <styleUrl>#${isSold ? 'soldStyle' : 'nsStyle'}</styleUrl>
+      <Point>
+        <coordinates>${l.lng},${l.lat},0</coordinates>
+      </Point>
+    </Placemark>`;
+      });
+
+      kml += `
+  </Document>
+</kml>`;
+
+      const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sales_export_${new Date().toISOString().split('T')[0]}.kml`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast(`Exported ${withLoc.length} map pins!`, 'ok');
     }
 
     function renderHist(leads) {

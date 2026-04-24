@@ -415,6 +415,12 @@ alter table public.leads add column if not exists draw_sheet_url text;
 alter table public.leads add column if not exists retail_price numeric(10,2);
 alter table public.leads add column if not exists par_price    numeric(10,2);
 
+-- ============================================================
+-- MIGRATION: GPS Location Tracking (lat & lng) for map export
+-- ============================================================
+alter table public.leads add column if not exists lat numeric;
+alter table public.leads add column if not exists lng numeric;
+
 -- Storage bucket 'draw-sheets' must be created manually in Supabase Dashboard → Storage
 -- Set as Public bucket so images can be viewed without auth tokens
 
