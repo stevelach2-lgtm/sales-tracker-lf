@@ -3978,6 +3978,11 @@
       default: `Hi [Name], [RepName] from LeafFilter — this is my last follow-up! If now isn't the right time, no worries at all. But if you're ever ready to talk gutter protection, don't hesitate to reach out. 😊`,
     };
 
+    // Step 4 templates (Cold Leads Defibrillator — 60+ days)
+    const DEFAULT_FU_MSGS_S4 = {
+      default: `Hey [Name], [RepName] from LeafFilter! My manager just gave me some promotional pricing to fill our install board for next week. Have you solved your gutter problem yet? 😊`
+    };
+
     let FU_MSGS = JSON.parse(localStorage.getItem('cc_fu_msgs')) || DEFAULT_FU_MSGS;
     if (FU_MSGS.price || FU_MSGS.nothome || FU_MSGS.think) {
       FU_MSGS = DEFAULT_FU_MSGS;
@@ -3991,7 +3996,7 @@
       const repName = _repName || 'Your Rep';
 
       // Pick the right template set based on which step we're on
-      const tplSet = step === 3 ? DEFAULT_FU_MSGS_S3 : step === 2 ? DEFAULT_FU_MSGS_S2 : FU_MSGS;
+      const tplSet = step === 4 ? DEFAULT_FU_MSGS_S4 : step === 3 ? DEFAULT_FU_MSGS_S3 : step === 2 ? DEFAULT_FU_MSGS_S2 : FU_MSGS;
       const tpl = tplSet[angle] || tplSet.default;
 
       let msg = typeof tpl === 'function' ? tpl(name) : tpl
@@ -4054,18 +4059,42 @@
         list.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
         const showDone = document.getElementById('fuShowDone')?.checked;
 
-        // Select necessary columns
-        let q = sb.from('leads').select('id,followup_name,followup_phone,followup_date,followup_done,status,notes,is_cancelled,sales_date,not_sold_reasons(label)')
+        const sixtyDaysAgo = new Date();
+        sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+        const sixtyStr = sixtyDaysAgo.toISOString().split('T')[0];
+
+        // Query 1: Active follow-ups
+        let qActive = sb.from('leads').select('id,followup_name,followup_phone,followup_date,followup_done,status,notes,is_cancelled,sales_date,not_sold_reasons(label)')
           .not('followup_date', 'is', null)
           .order('followup_date', { ascending: true });
 
-        if (!showDone) q = q.neq('followup_done', true);
+        if (!showDone) qActive = qActive.neq('followup_done', true);
 
-        const { data, error } = await q;
-        if (error) throw error;
+        // Query 2: Cold Leads (60+ days old)
+        let qCold = sb.from('leads').select('id,followup_name,followup_phone,followup_date,followup_done,status,notes,is_cancelled,sales_date,not_sold_reasons(label)')
+          .eq('status', 'not_sold')
+          .lte('sales_date', sixtyStr)
+          .order('sales_date', { ascending: false })
+          .limit(30);
 
-        if (!data || data.length === 0) {
-          list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">No follow-ups yet.<br><span style="font-size:11px;opacity:.7">Tap 📞 Follow Up on any not-sold lead.</span></div>';
+        const [resActive, resCold] = await Promise.all([qActive, qCold]);
+        if (resActive.error) throw resActive.error;
+        if (resCold.error) throw resCold.error;
+
+        const dataActive = resActive.data || [];
+        const dataCold = resCold.data || [];
+
+        // Deduplicate: Don't show cold leads if they are already in the active list
+        const activeIds = new Set(dataActive.map(l => l.id));
+        const finalCold = dataCold.filter(l => !activeIds.has(l.id));
+
+        dataActive.forEach(l => l._isCold = false);
+        finalCold.forEach(l => l._isCold = true);
+
+        const data = [...dataActive, ...finalCold];
+
+        if (data.length === 0) {
+          list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">No follow-ups or cold leads found.<br><span style="font-size:11px;opacity:.7">Tap 📞 Follow Up on any not-sold lead.</span></div>';
           return;
         }
 
@@ -4073,9 +4102,16 @@
         today.setHours(12, 0, 0, 0);
         const todayStr = localDate(new Date());
 
-        const groups = { overdue: [], today: [], upcoming: [], done: [] };
+        const groups = { overdue: [], today: [], upcoming: [], done: [], cold: [] };
 
         data.forEach(l => {
+          if (l._isCold) {
+            l.active_followup_date = l.sales_date;
+            l.step_num = 4;
+            groups.cold.push(l);
+            return;
+          }
+
           if (l.followup_done) { groups.done.push(l); return; }
 
           const d1 = new Date(l.followup_date + 'T12:00:00');
@@ -4145,6 +4181,7 @@
         html += renderGroup('Today', groups.today, '#F59E0B', '🟡');
         html += renderGroup('Upcoming', groups.upcoming, '#10B981', '🟢');
         html += renderGroup('Completed', groups.done, 'var(--muted)', '✅');
+        html += renderGroup('Cold Leads (60+ Days)', groups.cold, '#3B82F6', '❄️');
         list.innerHTML = html;
       } catch (err) {
         console.error('loadFollowUps Error:', err);
