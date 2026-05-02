@@ -2786,6 +2786,19 @@
               <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
               <textarea class="fi" id="soldNotes" placeholder="e.g. 180ft, financing used..."></textarea>
             </div>
+            <div class="fg" style="margin-bottom:10px">
+              <label class="fl">📋 Draw Sheet <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <input type="file" id="ccDrawFile" accept="image/*,application/pdf" style="display:none" onchange="ccHandleDrawUpload(this)">
+              <div id="ccDrawPreview" style="display:none;margin-bottom:8px;position:relative">
+                <img id="ccDrawThumb" src="" style="width:100%;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;max-height:180px;object-fit:cover" onclick="viewDrawSheet(document.getElementById('ccDrawThumb').src)">
+                <button type="button" onclick="ccRemoveDrawSheet()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer">Remove</button>
+              </div>
+              <button type="button" id="ccDrawBtn" onclick="document.getElementById('ccDrawFile').click()"
+                style="width:100%;background:#F9FAFB;border:1.5px dashed var(--border);border-radius:10px;padding:11px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">
+                📸 Upload Draw Sheet
+              </button>
+              <div id="ccDrawUploading" style="display:none;font-size:11px;color:var(--muted);margin-top:4px;text-align:center">Uploading…</div>
+            </div>
             <button class="sbtn sold" onclick="submitLeadFromCalc('sold')">✅ Log Sale</button>
           </div>
 
@@ -4310,7 +4323,8 @@
           retail_percentage: parseFloat(document.getElementById('retailPct').value) || null,
           commission_percentage: parseFloat(document.getElementById('commPct').value) || null,
           commission_paid: isPaid,
-          notes: document.getElementById('soldNotes').value.trim() || null
+          notes: document.getElementById('soldNotes').value.trim() || null,
+          draw_sheet_url: ccDrawSheetUrl || null
         };
 
         if (gps) {
@@ -4572,7 +4586,7 @@
         <div class="hcard-detail">
           ${sub.length ? sub.join(' &nbsp;·&nbsp; ') + '<br>' : ''}
           ${l.notes ? '<strong>Notes:</strong> ' + l.notes + '<br>' : ''}
-          ${!sold && l.draw_sheet_url ? `<div style="margin:6px 0 2px"><button onclick="viewDrawSheet('${l.draw_sheet_url}');event.stopPropagation()" style="background:#EFF6FF;border:1.5px solid #BFDBFE;color:#1D4ED8;border-radius:8px;padding:5px 12px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;cursor:pointer">📋 View Draw Sheet</button></div>` : ''}
+          ${l.draw_sheet_url ? `<div style="margin:6px 0 2px"><button onclick="viewDrawSheet('${l.draw_sheet_url}');event.stopPropagation()" style="background:#EFF6FF;border:1.5px solid #BFDBFE;color:#1D4ED8;border-radius:8px;padding:5px 12px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;cursor:pointer">📋 View Draw Sheet</button></div>` : ''}
           Tap to collapse
         </div>
       </div>
@@ -4740,6 +4754,46 @@
     }
 
     let esDrawSheetUrl = null;
+    let ccDrawSheetUrl = null;
+
+    function ccShowDrawPreview(url) {
+      document.getElementById('ccDrawThumb').src = url;
+      document.getElementById('ccDrawPreview').style.display = 'block';
+      document.getElementById('ccDrawBtn').style.display = 'none';
+    }
+
+    function ccRemoveDrawSheet() {
+      ccDrawSheetUrl = null;
+      document.getElementById('ccDrawThumb').src = '';
+      document.getElementById('ccDrawPreview').style.display = 'none';
+      document.getElementById('ccDrawBtn').style.display = 'block';
+      document.getElementById('ccDrawFile').value = '';
+    }
+
+    async function ccHandleDrawUpload(input) {
+      const file = input.files[0];
+      if (!file) return;
+      document.getElementById('ccDrawUploading').style.display = 'block';
+      document.getElementById('ccDrawBtn').style.display = 'none';
+      try {
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) { toast('Sign in to upload', 'err'); document.getElementById('ccDrawBtn').style.display = 'block'; return; }
+        const compressed = await compressImage(file, 1200, 0.70);
+        const ext = file.type === 'application/pdf' ? 'pdf' : 'jpg';
+        const path = `${user.id}/log-${crypto.randomUUID()}.${ext}`;
+        const { error } = await sb.storage.from('draw-sheets').upload(path, compressed, { upsert: true, contentType: ext === 'pdf' ? 'application/pdf' : 'image/jpeg' });
+        if (error) { toast('Upload failed: ' + error.message, 'err'); document.getElementById('ccDrawBtn').style.display = 'block'; return; }
+        const { data: { publicUrl } } = sb.storage.from('draw-sheets').getPublicUrl(path);
+        ccDrawSheetUrl = publicUrl;
+        ccShowDrawPreview(publicUrl);
+        toast('Draw sheet uploaded ✓', 'ok');
+      } catch (e) {
+        toast('Upload failed', 'err');
+        document.getElementById('ccDrawBtn').style.display = 'block';
+      } finally {
+        document.getElementById('ccDrawUploading').style.display = 'none';
+      }
+    }
 
     function esShowDrawPreview(url) {
       document.getElementById('esDrawThumb').src = url;
@@ -4780,9 +4834,11 @@
       document.getElementById('esDrawBtn').style.display = 'none';
       try {
         const { data: { user } } = await sb.auth.getUser();
+        if (!user) { toast('Sign in to upload', 'err'); document.getElementById('esDrawBtn').style.display = 'block'; return; }
         const compressed = await compressImage(file, 1200, 0.70);
         const ext = file.type === 'application/pdf' ? 'pdf' : 'jpg';
-        const path = `${user.id}/${editLeadId}.${ext}`;
+        const idPart = editLeadId || crypto.randomUUID();
+        const path = `${user.id}/${idPart}.${ext}`;
         const { error } = await sb.storage.from('draw-sheets').upload(path, compressed, { upsert: true, contentType: ext === 'pdf' ? 'application/pdf' : 'image/jpeg' });
         if (error) { toast('Upload failed: ' + error.message, 'err'); document.getElementById('esDrawBtn').style.display = 'block'; return; }
         const { data: { publicUrl } } = sb.storage.from('draw-sheets').getPublicUrl(path);
@@ -5841,6 +5897,7 @@
         notBtn.style.background = '#fff';
         notBtn.style.color = '#E53935';
       }
+      ccRemoveDrawSheet();
     }
 
     function buildCcReasonList() {
