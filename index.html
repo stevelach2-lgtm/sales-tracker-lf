@@ -2729,12 +2729,15 @@
         
         <!-- Log Outcome Section — Moved from Log Lead into Quote Tool -->
         <div id="ccLogSection" style="display:block;margin-bottom:16px;border-bottom:2.5px solid var(--border);padding-bottom:16px">
-          <div style="font-size:11px;font-weight:800;letter-spacing:.6px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;display:flex;align-items:center;gap:6px">📝 Log Lead Outcome</div>
-          <div style="display:flex;gap:8px;margin-bottom:14px">
+          <div id="ccLogOutcomeHeading" style="font-size:11px;font-weight:800;letter-spacing:.6px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;display:flex;align-items:center;gap:6px">📝 Log Lead Outcome</div>
+          <div id="ccOutcomeBtnRow" style="display:flex;gap:8px;margin-bottom:14px">
             <button id="ccOutcomeSold" onclick="ccSetOutcome('sold')"
               style="flex:1;padding:11px;border:2px solid var(--green);border-radius:10px;background:#fff;color:var(--green);font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">✅ SALE</button>
             <button id="ccOutcomeNot" onclick="ccSetOutcome('not_sold')"
               style="flex:1;padding:11px;border:2px solid #E53935;border-radius:10px;background:#fff;color:#E53935;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">❌ NO SALE</button>
+          </div>
+          <div id="ccSwitchToSaleWrap" style="display:none;margin:-6px 0 12px">
+            <button type="button" onclick="ccSetOutcome('sold')" style="background:transparent;border:none;padding:0;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--green);text-decoration:underline;cursor:pointer">← Switch to sale</button>
           </div>
 
           <!-- SOLD panel -->
@@ -5895,10 +5898,22 @@
       const soldBtn   = document.getElementById('ccOutcomeSold');
       const notBtn    = document.getElementById('ccOutcomeNot');
       const esBody    = document.querySelector('#quoteCalcSheet .es-body');
-      
+      const outcomeRow = document.getElementById('ccOutcomeBtnRow');
+      const switchSale = document.getElementById('ccSwitchToSaleWrap');
+      const heading = document.getElementById('ccLogOutcomeHeading');
+
       // Expand padding when picking an outcome so it doesn't get hidden behind footer
       esBody.style.paddingBottom = type === 'sold' ? '640px' : '720px';
-      
+
+      // After choosing not sold, hide SALE/NO SALE toggles (already committed); offer one link to switch back
+      if (outcomeRow) outcomeRow.style.display = type === 'not_sold' ? 'none' : 'flex';
+      if (switchSale) switchSale.style.display = type === 'not_sold' ? 'block' : 'none';
+      if (heading) {
+        heading.textContent = type === 'not_sold'
+          ? '📝 Not sold — complete below'
+          : '📝 Log Lead Outcome';
+      }
+
       if (type === 'sold') {
         soldPanel.style.display = '';
         notPanel.style.display  = 'none';
@@ -5917,7 +5932,7 @@
         notBtn.style.background  = '#E53935';
         notBtn.style.color = '#fff';
         notBtn.style.borderColor = '#E53935';
-        
+
         // auto-fill last price given from Sold At field
         const soldAt = document.getElementById('qcSoldAt').value;
         const leftAtEl = document.getElementById('ccNotLeftAt');
