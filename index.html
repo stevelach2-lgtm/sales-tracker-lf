@@ -2840,6 +2840,18 @@
                 <input type="date" class="fi" id="ccNotFuDate" style="padding:8px 10px;font-size:12px">
               </div>
             </div>
+            <div class="fg" style="margin-bottom:12px">
+              <label class="fl">📋 Draw Sheet <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <input type="file" id="ccNsDrawFile" accept="image/*,application/pdf" style="display:none" onchange="ccNsOnDrawFileSelected(this)">
+              <div id="ccNsDrawPreview" style="display:none;margin-bottom:8px;position:relative">
+                <img id="ccNsDrawThumb" src="" style="width:100%;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;max-height:180px;object-fit:cover" onclick="viewDrawSheet(document.getElementById('ccNsDrawThumb').src)">
+                <button type="button" onclick="ccNsRemoveDrawSheet()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer">Remove</button>
+              </div>
+              <button type="button" id="ccNsDrawBtn" onclick="document.getElementById('ccNsDrawFile').click()"
+                style="width:100%;background:#F9FAFB;border:1.5px dashed var(--border);border-radius:10px;padding:11px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">
+                📸 Upload Draw Sheet
+              </button>
+            </div>
             <button class="sbtn ns" onclick="submitLeadFromCalc('not_sold')">❌ Log Not Sold</button>
           </div>
         </div>
@@ -4771,6 +4783,9 @@
     /** Pending file for new sale — uploaded after insert so storage key matches not-sold edit: {uid}/{lead_id}.{ext} */
     let ccDrawPendingFile = null;
     let ccDrawPreviewObjUrl = null;
+    /** Pending draw sheet for Quote Calculator → Not Sold panel (separate from Sold panel state). */
+    let ccNsDrawPendingFile = null;
+    let ccNsDrawPreviewObjUrl = null;
 
     function ccShowDrawPreview(url) {
       document.getElementById('ccDrawThumb').src = url;
@@ -4801,6 +4816,40 @@
       ccDrawPendingFile = file;
       ccDrawPreviewObjUrl = URL.createObjectURL(file);
       ccShowDrawPreview(ccDrawPreviewObjUrl);
+    }
+
+    function ccNsShowDrawPreview(url) {
+      document.getElementById('ccNsDrawThumb').src = url;
+      document.getElementById('ccNsDrawPreview').style.display = 'block';
+      document.getElementById('ccNsDrawBtn').style.display = 'none';
+    }
+
+    function ccNsRemoveDrawSheet() {
+      if (ccNsDrawPreviewObjUrl) {
+        URL.revokeObjectURL(ccNsDrawPreviewObjUrl);
+        ccNsDrawPreviewObjUrl = null;
+      }
+      ccNsDrawPendingFile = null;
+      const thumb = document.getElementById('ccNsDrawThumb');
+      const prev = document.getElementById('ccNsDrawPreview');
+      const btn = document.getElementById('ccNsDrawBtn');
+      const fin = document.getElementById('ccNsDrawFile');
+      if (thumb) thumb.src = '';
+      if (prev) prev.style.display = 'none';
+      if (btn) btn.style.display = 'block';
+      if (fin) fin.value = '';
+    }
+
+    function ccNsOnDrawFileSelected(input) {
+      const file = input.files[0];
+      if (!file) return;
+      if (ccNsDrawPreviewObjUrl) {
+        URL.revokeObjectURL(ccNsDrawPreviewObjUrl);
+        ccNsDrawPreviewObjUrl = null;
+      }
+      ccNsDrawPendingFile = file;
+      ccNsDrawPreviewObjUrl = URL.createObjectURL(file);
+      ccNsShowDrawPreview(ccNsDrawPreviewObjUrl);
     }
 
     function esShowDrawPreview(url) {
@@ -5913,6 +5962,7 @@
         notBtn.style.color = '#E53935';
       }
       ccRemoveDrawSheet();
+      ccNsRemoveDrawSheet();
     }
 
     function buildCcReasonList() {
@@ -5993,6 +6043,21 @@
           return;
         }
         lastId = data.id;
+
+        if (ccNsDrawPendingFile && data.id) {
+          const { data: auth } = await sb.auth.getUser();
+          const user = auth?.user;
+          if (user) {
+            const res = await uploadDrawSheetFile(ccNsDrawPendingFile, user.id, data.id);
+            if (res.error) {
+              toast('Lead saved; draw sheet upload failed — add it from History (edit).', 'err');
+            } else {
+              const { error: linkErr } = await sb.from('leads').update({ draw_sheet_url: res.publicUrl }).eq('id', data.id);
+              if (linkErr) console.error(linkErr);
+            }
+          }
+        }
+
         document.getElementById('quoteCalcOverlay').classList.remove('open');
         showUndo('Not sold lead logged' + (fuDate ? ' + Follow-up scheduled' : ''));
         ccResetLogPanel();
