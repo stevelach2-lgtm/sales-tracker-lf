@@ -4436,15 +4436,10 @@
       window.open('sms:?&body=' + encodeURIComponent(msg));
     }
 
-    async function buildInstallCheckMsg(name) {
+    function buildInstallCheckMsg(name) {
       const first = (name || '').trim().split(/\s+/)[0] || 'there';
       const rep = _repName || 'your LeafFilter rep';
-      const phoneDisp = formatRepPhone(await getRepPhoneFresh());
-      const intro = phoneDisp
-        ? `Hi ${first}! This is ${rep} from LeafFilter — my number is ${phoneDisp} 👋`
-        : `Hi ${first}! This is ${rep} from LeafFilter 👋`;
-      const body = `\n\nHope your install went well today! I wanted to check in — hope the crew took great care of you and you're happy with how everything looks.\n\nIf you have any questions, or know anyone who could use LeafFilter, I'd really appreciate a referral — just call or text me! Thank you!`;
-      return `${intro}${body}`;
+      return `Hi ${first}! This is ${rep} from LeafFilter 👋\n\nHope your install went well today! Just wanted to check in and make sure everything went smoothly and you're happy with how it looks.\n\nIf you know a neighbor, family member, or friend who could use LeafFilter, we'd really appreciate the referral — they can mention your name when they call, or have them reach out to me directly.\n\nAny questions, feel free to give me a call or shoot me a text. Thank you!`;
     }
 
     async function sendInstallCheckSMS(phone, name, leadId) {
@@ -4454,13 +4449,7 @@
         if (leadId) openLeadEdit(leadId);
         return;
       }
-      const myPhone = formatRepPhone(await getRepPhoneFresh());
-      if (!myPhone) {
-        toast('Save your phone in Settings → My Profile', 'err');
-        return;
-      }
-      const msg = await buildInstallCheckMsg(name);
-      window.open(`sms:+1${clean}?&body=${encodeURIComponent(msg)}`);
+      window.open(`sms:+1${clean}?&body=${encodeURIComponent(buildInstallCheckMsg(name))}`);
     }
 
     function toggleSetSec(id, iconId) {
