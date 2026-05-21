@@ -2109,8 +2109,7 @@
             <div>
               <div id="instActionTitle" style="font-size:13px; font-weight:800; color:#166534">Installs scheduled today
               </div>
-              <div id="instActionSub" style="font-size:11px; color:#15803D; font-weight:600">Tap to view your installs
-                in history</div>
+              <div id="instActionSub" style="font-size:11px; color:#15803D; font-weight:600">Tap to view installs &amp; send check-in texts</div>
             </div>
           </div>
           <div id="instActionBadge"
@@ -2837,6 +2836,16 @@
             </div>
             <div class="fg2" style="margin-bottom:8px">
               <div>
+                <label class="fl">Customer Name</label>
+                <input type="text" class="fi" id="soldCustName" placeholder="Michael" style="font-size:13px;padding:11px 13px">
+              </div>
+              <div>
+                <label class="fl">Phone Number</label>
+                <input type="tel" class="fi" id="soldCustPhone" placeholder="555-555-5555" maxlength="14" style="font-size:13px;padding:11px 13px">
+              </div>
+            </div>
+            <div class="fg2" style="margin-bottom:8px">
+              <div>
                 <label class="fl">Install Date</label>
                 <input type="date" class="fi" id="installDate" style="font-size:13px;padding:11px 13px">
               </div>
@@ -3135,6 +3144,12 @@
             <div><label class="fl">Job #</label><input type="text" class="fi" id="esJobNum" placeholder="Job number"
                 style="font-size:14px;padding:11px 13px"></div>
             <div><label class="fl">Sales Date</label><input type="date" class="fi" id="esSalesDate"
+                style="font-size:13px;padding:11px 13px"></div>
+          </div>
+          <div class="fg2">
+            <div><label class="fl">Customer Name</label><input type="text" class="fi" id="esSoldCustName" placeholder="Michael"
+                style="font-size:13px;padding:11px 13px"></div>
+            <div><label class="fl">Phone Number</label><input type="tel" class="fi" id="esSoldCustPhone" placeholder="555-555-5555" maxlength="14"
                 style="font-size:13px;padding:11px 13px"></div>
           </div>
           <div class="fg2">
@@ -4377,6 +4392,22 @@
       window.open('sms:?&body=' + encodeURIComponent(msg));
     }
 
+    function buildInstallCheckMsg(name) {
+      const first = (name || '').trim().split(/\s+/)[0] || 'there';
+      const rep = _repName || 'your LeafFilter rep';
+      return `Hi ${first}! This is ${rep} from LeafFilter 👋\n\nYour installation was scheduled for today — I wanted to check in and see how everything went! Hope the crew took great care of you and you're happy with how everything looks.\n\nIf you have any questions at all, just reply here. Thank you!`;
+    }
+
+    function sendInstallCheckSMS(phone, name, leadId) {
+      const clean = (phone || '').replace(/\D/g, '');
+      if (clean.length < 10) {
+        toast('Add customer phone in edit to send SMS', 'err');
+        if (leadId) openLeadEdit(leadId);
+        return;
+      }
+      window.open(`sms:+1${clean}?&body=${encodeURIComponent(buildInstallCheckMsg(name))}`);
+    }
+
     function toggleSetSec(id, iconId) {
       const el = document.getElementById(id);
       const icon = document.getElementById(iconId);
@@ -4442,7 +4473,9 @@
           retail_percentage: parseFloat(document.getElementById('retailPct').value) || null,
           commission_percentage: parseFloat(document.getElementById('commPct').value) || null,
           commission_paid: isPaid,
-          notes: document.getElementById('soldNotes').value.trim() || null
+          notes: document.getElementById('soldNotes').value.trim() || null,
+          followup_name: document.getElementById('soldCustName')?.value?.trim() || null,
+          followup_phone: (document.getElementById('soldCustPhone')?.value || '').trim().replace(/\D/g, '') || null
         };
 
         if (gps) {
@@ -4565,6 +4598,7 @@
     // ─────────────────────────────────────────
     async function filterHist(range, btn, filterReason = null) {
       window._lastHistArgs = [range, btn, filterReason];
+      window._histRange = range;
       document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
       if (btn) btn.classList.add('active');
       const el = document.getElementById('histList');
@@ -4690,8 +4724,12 @@
     function renderHist(leads) {
       const el = document.getElementById('histList');
       if (!leads.length) { el.innerHTML = '<div class="empty"><div class="ei">📋</div><p>No leads in this range yet</p></div>'; return; }
+      const todayStr = localDate(new Date());
       el.innerHTML = leads.map(l => {
         const sold = l.status === 'sold';
+        const installToday = sold && !l.is_cancelled && l.install_date === todayStr;
+        const custPhone = (l.followup_phone || '').replace(/\D/g, '');
+        const custName = l.followup_name || '';
         // Top-right: show sales_date
         const displayDate = l.sales_date
           ? new Date(l.sales_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -4704,6 +4742,7 @@
         if (l.commission_paid) tags.push('<span style="font-size:9px;font-weight:700;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 5px">COMM PAID</span>');
         if (l.is_cancelled) tags.push('<span style="font-size:9px;font-weight:700;background:#FEE2E2;color:#DC2626;border-radius:4px;padding:1px 5px">CANCELLED</span>');
         if (l.is_btd) tags.push('<span style="font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 5px">BANK TURN DOWN</span>');
+        if (installToday) tags.push('<span style="font-size:9px;font-weight:700;background:#DCFCE7;color:#166534;border-radius:4px;padding:1px 5px">INSTALL TODAY</span>');
         const sub = [];
         if (l.job_number) sub.push('Job #' + l.job_number);
         if (l.install_date) sub.push('Install ' + new Date(l.install_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
@@ -4725,11 +4764,13 @@
           ${sub.length ? sub.join(' &nbsp;·&nbsp; ') + '<br>' : ''}
           ${l.notes ? '<strong>Notes:</strong> ' + l.notes + '<br>' : ''}
           ${l.draw_sheet_url ? `<div style="margin:6px 0 2px"><button onclick="viewDrawSheet('${l.draw_sheet_url}');event.stopPropagation()" style="background:#EFF6FF;border:1.5px solid #BFDBFE;color:#1D4ED8;border-radius:8px;padding:5px 12px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;cursor:pointer">📋 View Draw Sheet</button></div>` : ''}
+          ${installToday ? `<div style="margin:8px 0 4px"><button onclick="sendInstallCheckSMS(${JSON.stringify(custPhone)}, ${JSON.stringify(custName)}, '${l.id}');event.stopPropagation()" style="width:100%;background:linear-gradient(135deg,#F0FDF4,#DCFCE7);border:1.5px solid #86EFAC;color:#166534;border-radius:10px;padding:10px 12px;font-family:'Inter',sans-serif;font-size:12px;font-weight:800;cursor:pointer">📱 How did the install go?</button></div>` : ''}
           Tap to collapse
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;align-items:center">
         <button class="edit-btn" onclick="openLeadEdit('${l.id}')">✏️</button>
+        ${installToday ? `<button class="edit-btn" onclick="sendInstallCheckSMS(${JSON.stringify(custPhone)}, ${JSON.stringify(custName)}, '${l.id}'); event.stopPropagation()" style="font-size:12px" title="How did install go?">🛠️</button>` : ''}
         ${sold ? `<button class="edit-btn" onclick="sendReviewSMS(); event.stopPropagation()" style="font-size:12px" title="Request Google Review">⭐</button>` : `<button class="edit-btn" onclick="openFu('${l.id}','${(l.not_sold_reasons?.label || '').replace(/'/g, "\\'")}'); event.stopPropagation()" style="font-size:12px" title="Set Follow-Up">📞</button>`}
       </div>
     </div>`;
@@ -4808,7 +4849,11 @@
         document.getElementById('esNsFuPhone').value = l.followup_phone || '';
         document.getElementById('esNsFuDate').value = l.followup_date || '';
         document.getElementById('esNsFuDone').checked = !!l.followup_done;
+        document.getElementById('esSoldCustName').value = '';
+        document.getElementById('esSoldCustPhone').value = '';
       } else {
+        document.getElementById('esSoldCustName').value = l.followup_name || '';
+        document.getElementById('esSoldCustPhone').value = l.followup_phone || '';
         document.getElementById('esNsFuName').value = '';
         document.getElementById('esNsFuPhone').value = '';
         document.getElementById('esNsFuDate').value = '';
@@ -5080,6 +5125,8 @@
         payload.is_cancelled = esCancelled;
         payload.is_btd = esBtd;
         payload.reason_id = null;
+        payload.followup_name = document.getElementById('esSoldCustName').value.trim() || null;
+        payload.followup_phone = document.getElementById('esSoldCustPhone').value.trim().replace(/\D/g, '') || null;
         // If cancelled, wipe install date & commission so it drops off the commissions page
         if (esCancelled) {
           payload.install_date = null;
@@ -6159,6 +6206,8 @@
       document.getElementById('ccNotFuName').value = '';
       document.getElementById('ccNotFuPhone').value = '';
       document.getElementById('ccNotFuDate').value = '';
+      if (document.getElementById('soldCustName')) document.getElementById('soldCustName').value = '';
+      if (document.getElementById('soldCustPhone')) document.getElementById('soldCustPhone').value = '';
       selCcReason = null;
       document.querySelectorAll('#ccReasonList .ro').forEach(r => r.classList.remove('sel'));
       if (document.getElementById('qcSoldAt')) document.getElementById('qcSoldAt').value = '';
