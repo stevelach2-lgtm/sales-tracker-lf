@@ -4260,11 +4260,36 @@
       loadFollowUps();
     }
 
+    function isAppleSmsLink() {
+      const ua = navigator.userAgent || '';
+      const platform = navigator.platform || '';
+      return /iPad|iPhone|iPod|Macintosh|Mac OS X/.test(ua) || /^Mac/.test(platform);
+    }
+
+    function normalizeSmsRecipient(phone) {
+      const digits = (phone || '').replace(/\D/g, '');
+      if (!digits) return '';
+      if (digits.length === 11 && digits.startsWith('1')) return '+' + digits;
+      if (digits.length >= 10) return '+1' + digits.slice(-10);
+      return '+' + digits;
+    }
+
+    function openSmsComposer(phone, msg) {
+      window.location.href = buildSmsHref(phone, msg);
+    }
+
+    function buildSmsHref(phone, msg) {
+      const recipient = normalizeSmsRecipient(phone);
+      const body = encodeURIComponent(msg || '');
+      const sep = isAppleSmsLink() ? '&' : '?';
+      return `sms:${recipient}${body ? sep + 'body=' + body : ''}`;
+    }
+
     function sendFuSMS() {
       const phone = document.getElementById('fuPhone').value.trim().replace(/\D/g, '');
       const msg = document.getElementById('fuMsg').value;
       if (!phone) { toast('Enter a phone number first', 'err'); return; }
-      window.open(`sms:+1${phone}?&body=${encodeURIComponent(msg)}`);
+      openSmsComposer(phone, msg);
     }
 
     function copyFuMsg() {
@@ -4428,12 +4453,12 @@
       else if (r.includes('already has') || r.includes('has gutter') || r.includes('existing')) angle = 'existing';
       const fn = FU_MSGS[angle] || FU_MSGS.default;
       const msg = fn(name && name.trim() ? name.trim() : 'there');
-      window.open(`sms:+1${clean}?&body=${encodeURIComponent(msg)}`);
+      openSmsComposer(clean, msg);
     }
 
     function sendReviewSMS() {
       const msg = `Hi! It was a pleasure working with you — we hope you're loving your new LeafFilter! 😊\n\nIf you have a moment, we'd really appreciate it if you could leave us a quick Google review. It means the world to us and helps other homeowners find us!\n\nThank you so much! 🙏`;
-      window.open('sms:?&body=' + encodeURIComponent(msg));
+      openSmsComposer('', msg);
     }
 
     function buildInstallCheckMsg(name) {
@@ -4442,14 +4467,14 @@
       return `Hi ${first}! This is ${rep} from LeafFilter 👋\n\nHope your install went well today! Just wanted to check in and make sure everything went smoothly and you're happy with how it looks.\n\nIf you know a neighbor, family member, or friend who could use LeafFilter, we'd really appreciate the referral — they can mention your name when they call, or have them reach out to me directly.\n\nAny questions, feel free to give me a call or shoot me a text. Thank you!`;
     }
 
-    async function sendInstallCheckSMS(phone, name, leadId) {
+    function sendInstallCheckSMS(phone, name, leadId) {
       const clean = (phone || '').replace(/\D/g, '');
       if (clean.length < 10) {
         toast('Add customer phone in edit to send SMS', 'err');
         if (leadId) openLeadEdit(leadId);
         return;
       }
-      window.open(`sms:+1${clean}?&body=${encodeURIComponent(buildInstallCheckMsg(name))}`);
+      openSmsComposer(clean, buildInstallCheckMsg(name));
     }
 
     function toggleSetSec(id, iconId) {
@@ -4489,16 +4514,36 @@
     function getGPS() {
       return new Promise((resolve) => {
         if (!navigator.geolocation) return resolve(null);
+        let settled = false;
+        const done = (value) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(fallbackTimer);
+          resolve(value);
+        };
+        const fallbackTimer = setTimeout(() => done(null), 2500);
         navigator.geolocation.getCurrentPosition(
-          (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-          (err) => resolve(null),
-          { timeout: 5000, maximumAge: 60000 }
+          (pos) => done({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => done(null),
+          { timeout: 2000, maximumAge: 60000 }
         );
       });
     }
 
+    function saveGPSForLead(leadId) {
+      if (!leadId) return;
+      getGPS()
+        .then((gps) => {
+          if (!gps) return;
+          return sb.from('leads').update({ lat: gps.lat, lng: gps.lng }).eq('id', leadId);
+        })
+        .then((res) => {
+          if (res?.error) console.warn('GPS save failed:', res.error);
+        })
+        .catch((e) => console.warn('GPS save failed:', e));
+    }
+
     async function submitLead(type) {
-      const gps = await getGPS();
       if (type === 'sold') {
         const amt = parseFloat(document.getElementById('saleAmt').value);
         if (!amt || amt <= 0) { toast('Enter a valid sale amount', 'err'); return; }
@@ -4527,13 +4572,14 @@
           followup_phone: contact.phone
         };
 
-        if (gps) {
-          payload.lat = gps.lat;
-          payload.lng = gps.lng;
-        }
         const { data, error } = await sb.from('leads').insert(payload).select().single();
-        if (error) { toast('Error saving lead', 'err'); console.error(error); return false; }
+        if (error) {
+          toast('Save failed: ' + (error.message || 'unknown error'), 'err');
+          console.error('[sold save]', error);
+          return false;
+        }
         lastId = data.id;
+        saveGPSForLead(data.id);
 
         // Same Supabase path as edit flow: bucket draw-sheets → {user_id}/{lead_id}.{ext}, then leads.draw_sheet_url
         if (ccDrawPendingFile && data.id) {
@@ -4581,14 +4627,10 @@
           followup_done: false
         };
 
-        if (gps) {
-          payload.lat = gps.lat;
-          payload.lng = gps.lng;
-        }
-
         const { data, error } = await sb.from('leads').insert(payload).select().single();
         if (error) { toast('Error saving lead', 'err'); return; }
         lastId = data.id;
+        saveGPSForLead(data.id);
         showUndo('Not sold lead logged + Follow-up scheduled');
         resetLog();
       }
@@ -4642,6 +4684,11 @@
 
       const btn = document.getElementById(tabId);
       if (typeof filterHist === 'function') filterHist(range, btn, reasonId);
+    }
+
+    function toggleHistCard(event, bodyEl) {
+      if (event?.target?.closest('a,button,input,textarea,select,label,[data-no-card-toggle]')) return;
+      bodyEl.closest('.hcard')?.classList.toggle('expanded');
     }
 
     // ─────────────────────────────────────────
@@ -4796,10 +4843,20 @@
         if (l.job_number) sub.push('Job #' + l.job_number);
         if (l.install_date) sub.push('Install ' + new Date(l.install_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
         if (l.commission_amount && !l.is_cancelled) sub.push('$' + parseFloat(l.commission_amount).toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' comm');
+        const installCheckStyle = "width:100%;background:linear-gradient(135deg,#F0FDF4,#DCFCE7);border:1.5px solid #86EFAC;color:#166534;border-radius:10px;padding:10px 12px;font-family:'Inter',sans-serif;font-size:12px;font-weight:800;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center";
+        const installSmsHref = installToday && custPhone.length >= 10
+          ? buildSmsHref(custPhone, buildInstallCheckMsg(custName))
+          : '';
+        const installSmsHrefAttr = installSmsHref.replace(/&/g, '&amp;');
+        const installCheckControl = !installToday
+          ? ''
+          : installSmsHref
+            ? `<a href="${installSmsHrefAttr}" data-no-card-toggle onclick="event.stopPropagation()" style="${installCheckStyle}">📱 How did the install go?</a>`
+            : `<button data-no-card-toggle onclick="event.stopPropagation(); sendInstallCheckSMS(${JSON.stringify(custPhone)}, ${JSON.stringify(custName)}, ${JSON.stringify(l.id)})" style="${installCheckStyle}">📱 How did the install go?</button>`;
         return `
     <div class="hcard ${sold ? 'sold' : 'ns'}">
       <div class="hcard-ico" onclick="openLeadEdit('${l.id}')" style="cursor:pointer">${sold ? '✅' : '❌'}</div>
-      <div class="hcard-body" onclick="this.closest('.hcard').classList.toggle('expanded')" style="cursor:pointer">
+      <div class="hcard-body" onclick="toggleHistCard(event, this)" style="cursor:pointer">
         <div class="hcard-top">
           <span class="hbadge ${sold ? 'sold' : 'ns'}">${sold ? 'SOLD' : 'NOT SOLD'}</span>
           <span class="hcard-time">${displayDate}</span>
@@ -4813,14 +4870,14 @@
           ${sub.length ? sub.join(' &nbsp;·&nbsp; ') + '<br>' : ''}
           ${l.notes ? '<strong>Notes:</strong> ' + l.notes + '<br>' : ''}
           ${l.draw_sheet_url ? `<div style="margin:6px 0 2px"><button onclick="viewDrawSheet('${l.draw_sheet_url}');event.stopPropagation()" style="background:#EFF6FF;border:1.5px solid #BFDBFE;color:#1D4ED8;border-radius:8px;padding:5px 12px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;cursor:pointer">📋 View Draw Sheet</button></div>` : ''}
-          ${installToday ? `<div style="margin:8px 0 4px"><button onclick="sendInstallCheckSMS(${JSON.stringify(custPhone)}, ${JSON.stringify(custName)}, '${l.id}');event.stopPropagation()" style="width:100%;background:linear-gradient(135deg,#F0FDF4,#DCFCE7);border:1.5px solid #86EFAC;color:#166534;border-radius:10px;padding:10px 12px;font-family:'Inter',sans-serif;font-size:12px;font-weight:800;cursor:pointer">📱 How did the install go?</button></div>` : ''}
+          ${installToday ? `<div style="margin:8px 0 4px">${installCheckControl}</div>` : ''}
           Tap to collapse
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;align-items:center">
         <button class="edit-btn" onclick="openLeadEdit('${l.id}')">✏️</button>
-        ${installToday ? `<button class="edit-btn" onclick="sendInstallCheckSMS(${JSON.stringify(custPhone)}, ${JSON.stringify(custName)}, '${l.id}'); event.stopPropagation()" style="font-size:12px" title="How did install go?">🛠️</button>` : ''}
-        ${sold ? `<button class="edit-btn" onclick="sendReviewSMS(); event.stopPropagation()" style="font-size:12px" title="Request Google Review">⭐</button>` : `<button class="edit-btn" onclick="openFu('${l.id}','${(l.not_sold_reasons?.label || '').replace(/'/g, "\\'")}'); event.stopPropagation()" style="font-size:12px" title="Set Follow-Up">📞</button>`}
+        ${installToday ? (installSmsHref ? `<a class="edit-btn" href="${installSmsHrefAttr}" data-no-card-toggle onclick="event.stopPropagation()" style="font-size:12px;text-decoration:none" title="How did install go?">🛠️</a>` : `<button class="edit-btn" data-no-card-toggle onclick="event.stopPropagation(); sendInstallCheckSMS(${JSON.stringify(custPhone)}, ${JSON.stringify(custName)}, ${JSON.stringify(l.id)})" style="font-size:12px" title="How did install go?">🛠️</button>`) : ''}
+        ${sold ? `<button class="edit-btn" onclick="event.stopPropagation(); sendReviewSMS()" style="font-size:12px" title="Request Google Review">⭐</button>` : `<button class="edit-btn" onclick="event.stopPropagation(); openFu('${l.id}','${(l.not_sold_reasons?.label || '').replace(/'/g, "\\'")}')" style="font-size:12px" title="Set Follow-Up">📞</button>`}
       </div>
     </div>`;
 
@@ -6336,13 +6393,18 @@
            document.getElementById('commAmt').value = commTotal.toFixed(2);
         }
 
-        const ok = await submitLead('sold');
-        if (ok) {
-          document.getElementById('quoteCalcOverlay').classList.remove('open');
-          ccResetLogPanel();
-          document.getElementById('ccSoldPanel').style.display = 'none';
-          document.getElementById('ccOutcomeSold').style.background = '#fff';
-          document.getElementById('ccOutcomeSold').style.color = 'var(--green)';
+        try {
+          const ok = await submitLead('sold');
+          if (ok) {
+            document.getElementById('quoteCalcOverlay').classList.remove('open');
+            ccResetLogPanel();
+            document.getElementById('ccSoldPanel').style.display = 'none';
+            document.getElementById('ccOutcomeSold').style.background = '#fff';
+            document.getElementById('ccOutcomeSold').style.color = 'var(--green)';
+          }
+        } catch (e) {
+          console.error('[sold save]', e);
+          toast('Save failed: ' + (e?.message || 'unknown error'), 'err');
         }
       } else {
         if (!selCcReason) { toast('Please select a reason', 'err'); return; }
@@ -6707,7 +6769,7 @@
     }
 
     function sendBizCardSMS() {
-      window.open('sms:?body=' + encodeURIComponent(_bizCardText));
+      openSmsComposer('', _bizCardText);
     }
 
     function copyBizCard() {
