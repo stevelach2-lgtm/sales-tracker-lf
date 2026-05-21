@@ -4395,7 +4395,7 @@
     function buildInstallCheckMsg(name) {
       const first = (name || '').trim().split(/\s+/)[0] || 'there';
       const rep = _repName || 'your LeafFilter rep';
-      return `Hi ${first}! This is ${rep} from LeafFilter 👋\n\nYour installation was scheduled for today — I wanted to check in and see how everything went! Hope the crew took great care of you and you're happy with how everything looks.\n\nIf you have any questions at all, just reply here. Thank you!`;
+      return `Hi ${first}! This is ${rep} from LeafFilter 👋\n\nHope your install went well today! I wanted to check in — hope the crew took great care of you and you're happy with how everything looks.\n\nIf you have any questions at all, just reply here. Thank you!`;
     }
 
     function sendInstallCheckSMS(phone, name, leadId) {
