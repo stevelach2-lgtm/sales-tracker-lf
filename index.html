@@ -1989,6 +1989,7 @@
               <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
                 <div id="streakBadge" class="streak-badge cold" style="display:none; margin-top:0;"></div>
                 <div id="dashCommDue" class="streak-badge" style="display:none; margin-top:0; background:rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);"></div>
+                <div id="dashYtdPct" class="streak-badge" style="display:none; margin-top:0; background:rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);"></div>
               </div>
             </div>
             <button onclick="openRecap()"
@@ -3773,29 +3774,64 @@
       } catch (e) { badge.style.display = 'none'; }
     }
 
+    function avgPctField(arr, field) {
+      const vals = (arr || []).map(l => parseFloat(l[field])).filter(v => !isNaN(v));
+      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    }
+
     async function calcCommissionsDue() {
-      const badge = document.getElementById('dashCommDue');
-      if (!badge) return;
+      const dueBadge = document.getElementById('dashCommDue');
+      const pctBadge = document.getElementById('dashYtdPct');
+      if (!dueBadge) return;
       try {
-        const { data, error } = await sb
-          .from('leads')
-          .select('commission_amount')
-          .eq('status', 'sold')
-          .neq('is_cancelled', true)
-          .not('install_date', 'is', null)
-          .eq('commission_paid', false);
+        const ytdStartDate = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
+        const [{ data: dueData, error: dueErr }, { data: ytdLeads, error: ytdErr }] = await Promise.all([
+          sb.from('leads')
+            .select('commission_amount')
+            .eq('status', 'sold')
+            .neq('is_cancelled', true)
+            .not('install_date', 'is', null)
+            .eq('commission_paid', false),
+          sb.from('leads')
+            .select('retail_percentage,commission_percentage')
+            .eq('status', 'sold')
+            .neq('is_cancelled', true)
+            .not('sales_date', 'is', null)
+            .gte('sales_date', ytdStartDate)
+        ]);
 
-        if (error || !data) { badge.style.display = 'none'; return; }
-
-        const unpaid = data.reduce((s, j) => s + (parseFloat(j.commission_amount) || 0), 0);
-        if (unpaid > 0) {
-          badge.style.display = 'inline-flex';
-          badge.innerHTML = `💰 $${unpaid.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})} Due`;
+        if (!dueErr && dueData) {
+          const unpaid = dueData.reduce((s, j) => s + (parseFloat(j.commission_amount) || 0), 0);
+          if (unpaid > 0) {
+            dueBadge.style.display = 'inline-flex';
+            dueBadge.textContent = `💰 $${unpaid.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} Due`;
+          } else {
+            dueBadge.style.display = 'none';
+          }
         } else {
-          badge.style.display = 'none';
+          dueBadge.style.display = 'none';
         }
-      } catch(e) {
-        badge.style.display = 'none';
+
+        if (pctBadge) {
+          if (!ytdErr && ytdLeads && ytdLeads.length) {
+            const avgRetail = avgPctField(ytdLeads, 'retail_percentage');
+            const avgComm = avgPctField(ytdLeads, 'commission_percentage');
+            const parts = [];
+            if (avgRetail != null) parts.push(`Retail ${avgRetail.toFixed(1)}%`);
+            if (avgComm != null) parts.push(`Comm ${avgComm.toFixed(1)}%`);
+            if (parts.length) {
+              pctBadge.style.display = 'inline-flex';
+              pctBadge.textContent = `📊 ${parts.join(' · ')} YTD`;
+            } else {
+              pctBadge.style.display = 'none';
+            }
+          } else {
+            pctBadge.style.display = 'none';
+          }
+        }
+      } catch (e) {
+        dueBadge.style.display = 'none';
+        if (pctBadge) pctBadge.style.display = 'none';
       }
     }
 
