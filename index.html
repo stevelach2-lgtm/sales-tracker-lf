@@ -3449,15 +3449,45 @@
       return (phone || '').trim();
     }
 
-    function getRepPhone() {
-      return _repPhone || (document.getElementById('profPhone')?.value || '').trim();
+    async function getRepPhoneFresh() {
+      const el = document.getElementById('profPhone');
+      const fromDom = (el?.value || '').trim();
+      if (fromDom) {
+        _repPhone = fromDom;
+        return fromDom;
+      }
+      if (_repPhone) return _repPhone;
+      try {
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) return '';
+        const { data: profile, error } = await sb.from('profiles')
+          .select('first_name, last_name, full_name, phone, office')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (error) console.warn('Profile phone load:', error);
+        if (profile) {
+          if (profile.first_name) _repName = profile.first_name;
+          if (profile.phone) {
+            _repPhone = profile.phone;
+            if (el) el.value = profile.phone;
+            return profile.phone;
+          }
+        }
+      } catch (e) {
+        console.warn('getRepPhoneFresh', e);
+      }
+      return '';
     }
 
     async function loadRepProfile() {
       try {
         const { data: { user } } = await sb.auth.getUser();
         if (!user) return;
-        const { data: profile } = await sb.from('profiles').select('first_name, last_name, full_name, phone, office').eq('id', user.id).single();
+        const { data: profile, error } = await sb.from('profiles')
+          .select('first_name, last_name, full_name, phone, office')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (error) console.warn('Could not load rep profile', error);
         if (profile) {
           if (profile.first_name) _repName = profile.first_name;
           _repPhone = profile.phone || '';
@@ -4406,24 +4436,33 @@
       window.open('sms:?&body=' + encodeURIComponent(msg));
     }
 
-    function buildInstallCheckMsg(name) {
+    async function buildInstallCheckMsg(name) {
       const first = (name || '').trim().split(/\s+/)[0] || 'there';
       const rep = _repName || 'your LeafFilter rep';
-      const phoneDisp = formatRepPhone(getRepPhone());
+      const phoneDisp = formatRepPhone(await getRepPhoneFresh());
+      const intro = phoneDisp
+        ? `Hi ${first}! This is ${rep} from LeafFilter — my number is ${phoneDisp} 👋`
+        : `Hi ${first}! This is ${rep} from LeafFilter 👋`;
       const contactLine = phoneDisp
-        ? `\n\nIf you have any questions, or know anyone who could use LeafFilter, call or text me at ${phoneDisp} — referrals mean a lot! Thank you!`
-        : `\n\nIf you know any neighbors, family, or friends who could use LeafFilter, we'd really appreciate a referral — it means a lot!\n\nIf you have any questions at all, just reply here. Thank you!`;
-      return `Hi ${first}! This is ${rep} from LeafFilter 👋\n\nHope your install went well today! I wanted to check in — hope the crew took great care of you and you're happy with how everything looks.${contactLine}`;
+        ? `\n\nHope your install went well today! I wanted to check in — hope the crew took great care of you and you're happy with how everything looks.\n\nIf you have any questions, or know anyone who could use LeafFilter, I'd really appreciate a referral — just call or text me! Thank you!`
+        : `\n\nHope your install went well today! I wanted to check in — hope the crew took great care of you and you're happy with how everything looks.\n\nIf you know any neighbors, family, or friends who could use LeafFilter, we'd really appreciate a referral!\n\n(Add your phone in Settings → My Profile so customers can reach you.)`;
+      return `${intro}${contactLine}`;
     }
 
-    function sendInstallCheckSMS(phone, name, leadId) {
+    async function sendInstallCheckSMS(phone, name, leadId) {
       const clean = (phone || '').replace(/\D/g, '');
       if (clean.length < 10) {
         toast('Add customer phone in edit to send SMS', 'err');
         if (leadId) openLeadEdit(leadId);
         return;
       }
-      window.open(`sms:+1${clean}?&body=${encodeURIComponent(buildInstallCheckMsg(name))}`);
+      const msg = await buildInstallCheckMsg(name);
+      const myPhone = formatRepPhone(await getRepPhoneFresh());
+      if (!myPhone) {
+        toast('Save your phone in Settings → My Profile', 'err');
+        return;
+      }
+      window.open(`sms:+1${clean}?&body=${encodeURIComponent(msg)}`);
     }
 
     function toggleSetSec(id, iconId) {
@@ -5286,6 +5325,7 @@
     // SETTINGS
     // ─────────────────────────────────────────
     async function loadSettings() {
+      await loadRepProfile();
       loadBaselines();
       loadQuoteSettings();
       await loadReasons();
