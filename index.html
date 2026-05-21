@@ -2836,12 +2836,12 @@
             </div>
             <div class="fg2" style="margin-bottom:8px">
               <div>
-                <label class="fl">Customer Name</label>
-                <input type="text" class="fi" id="soldCustName" placeholder="Michael" style="font-size:13px;padding:11px 13px">
+                <label class="fl">Customer Name <span style="color:#E53935">*</span></label>
+                <input type="text" class="fi" id="soldCustName" placeholder="Michael" required style="font-size:13px;padding:11px 13px">
               </div>
               <div>
-                <label class="fl">Phone Number</label>
-                <input type="tel" class="fi" id="soldCustPhone" placeholder="555-555-5555" maxlength="14" style="font-size:13px;padding:11px 13px">
+                <label class="fl">Phone Number <span style="color:#E53935">*</span></label>
+                <input type="tel" class="fi" id="soldCustPhone" placeholder="555-555-5555" maxlength="14" required style="font-size:13px;padding:11px 13px">
               </div>
             </div>
             <div class="fg2" style="margin-bottom:8px">
@@ -3147,9 +3147,9 @@
                 style="font-size:13px;padding:11px 13px"></div>
           </div>
           <div class="fg2">
-            <div><label class="fl">Customer Name</label><input type="text" class="fi" id="esSoldCustName" placeholder="Michael"
+            <div><label class="fl">Customer Name <span style="color:#E53935">*</span></label><input type="text" class="fi" id="esSoldCustName" placeholder="Michael" required
                 style="font-size:13px;padding:11px 13px"></div>
-            <div><label class="fl">Phone Number</label><input type="tel" class="fi" id="esSoldCustPhone" placeholder="555-555-5555" maxlength="14"
+            <div><label class="fl">Phone Number <span style="color:#E53935">*</span></label><input type="tel" class="fi" id="esSoldCustPhone" placeholder="555-555-5555" maxlength="14" required
                 style="font-size:13px;padding:11px 13px"></div>
           </div>
           <div class="fg2">
@@ -4458,6 +4458,11 @@
       if (type === 'sold') {
         const amt = parseFloat(document.getElementById('saleAmt').value);
         if (!amt || amt <= 0) { toast('Enter a valid sale amount', 'err'); return; }
+        const contact = validateSoldContact({
+          nameEl: document.getElementById('soldCustName'),
+          phoneEl: document.getElementById('soldCustPhone')
+        });
+        if (!contact) return false;
         const isCombo = document.getElementById('chkCombo').classList.contains('active');
         const isRehash = document.getElementById('chkRehash').classList.contains('active');
         const isSelfGen = document.getElementById('chkSelfGen').classList.contains('active');
@@ -4474,8 +4479,8 @@
           commission_percentage: parseFloat(document.getElementById('commPct').value) || null,
           commission_paid: isPaid,
           notes: document.getElementById('soldNotes').value.trim() || null,
-          followup_name: document.getElementById('soldCustName')?.value?.trim() || null,
-          followup_phone: (document.getElementById('soldCustPhone')?.value || '').trim().replace(/\D/g, '') || null
+          followup_name: contact.name,
+          followup_phone: contact.phone
         };
 
         if (gps) {
@@ -5110,6 +5115,11 @@
       if (esStatus === 'sold') {
         const amt = parseFloat(document.getElementById('esSaleAmt').value);
         if (!amt || amt <= 0) { toast('Enter a valid sale amount', 'err'); return; }
+        const contact = validateSoldContact({
+          nameEl: document.getElementById('esSoldCustName'),
+          phoneEl: document.getElementById('esSoldCustPhone')
+        });
+        if (!contact) return;
         payload.sale_amount = amt;
         payload.sale_type = document.getElementById('esChkCombo').classList.contains('active') ? 'combo' : 'single';
         const isRehash = document.getElementById('esChkRehash').classList.contains('active');
@@ -5125,8 +5135,8 @@
         payload.is_cancelled = esCancelled;
         payload.is_btd = esBtd;
         payload.reason_id = null;
-        payload.followup_name = document.getElementById('esSoldCustName').value.trim() || null;
-        payload.followup_phone = document.getElementById('esSoldCustPhone').value.trim().replace(/\D/g, '') || null;
+        payload.followup_name = contact.name;
+        payload.followup_phone = contact.phone;
         // If cancelled, wipe install date & commission so it drops off the commissions page
         if (esCancelled) {
           payload.install_date = null;
@@ -6100,6 +6110,26 @@
     // ─────────────────────────────────────────
     // IN-CALC LOG HELPERS
     // ─────────────────────────────────────────
+    /** Required on every sold log: customer name and phone. */
+    function validateSoldContact({ nameEl, phoneEl }) {
+      const name = (nameEl?.value || '').trim();
+      const phone = (phoneEl?.value || '').trim().replace(/\D/g, '');
+      const checks = [
+        { ok: !!name, msg: 'Enter customer name', el: nameEl },
+        { ok: phone.length >= 10, msg: 'Enter a valid phone number (10 digits)', el: phoneEl }
+      ];
+      const fail = checks.find(c => !c.ok);
+      if (fail) {
+        toast(fail.msg, 'err');
+        if (fail.el) {
+          fail.el.focus();
+          fail.el.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+        }
+        return null;
+      }
+      return { name, phone };
+    }
+
     /** Required on every not-sold log: last price, customer name, phone, follow-up date. */
     function validateNotSoldRequired({ leftAtEl, fuNameEl, fuPhoneEl, fuDateEl, soldAtEl }) {
       const leftAt = parseFloat(leftAtEl?.value) ||
@@ -6145,7 +6175,7 @@
       if (heading) {
         heading.textContent = type === 'not_sold'
           ? '📝 Not sold — name, phone, price & follow-up required'
-          : '📝 Log Lead Outcome';
+          : '📝 Sale — customer name & phone required';
       }
 
       if (type === 'sold') {
@@ -6157,6 +6187,10 @@
         notBtn.style.background = '#fff';
         notBtn.style.color = '#E53935';
         notBtn.style.borderColor = '#E53935';
+        setTimeout(() => {
+          const nameEl = document.getElementById('soldCustName');
+          if (nameEl && !nameEl.value) nameEl.focus();
+        }, 120);
       } else {
         soldPanel.style.display  = 'none';
         notPanel.style.display   = '';
