@@ -4443,10 +4443,8 @@
       const intro = phoneDisp
         ? `Hi ${first}! This is ${rep} from LeafFilter — my number is ${phoneDisp} 👋`
         : `Hi ${first}! This is ${rep} from LeafFilter 👋`;
-      const contactLine = phoneDisp
-        ? `\n\nHope your install went well today! I wanted to check in — hope the crew took great care of you and you're happy with how everything looks.\n\nIf you have any questions, or know anyone who could use LeafFilter, I'd really appreciate a referral — just call or text me! Thank you!`
-        : `\n\nHope your install went well today! I wanted to check in — hope the crew took great care of you and you're happy with how everything looks.\n\nIf you know any neighbors, family, or friends who could use LeafFilter, we'd really appreciate a referral!\n\n(Add your phone in Settings → My Profile so customers can reach you.)`;
-      return `${intro}${contactLine}`;
+      const body = `\n\nHope your install went well today! I wanted to check in — hope the crew took great care of you and you're happy with how everything looks.\n\nIf you have any questions, or know anyone who could use LeafFilter, I'd really appreciate a referral — just call or text me! Thank you!`;
+      return `${intro}${body}`;
     }
 
     async function sendInstallCheckSMS(phone, name, leadId) {
@@ -4456,12 +4454,12 @@
         if (leadId) openLeadEdit(leadId);
         return;
       }
-      const msg = await buildInstallCheckMsg(name);
       const myPhone = formatRepPhone(await getRepPhoneFresh());
       if (!myPhone) {
         toast('Save your phone in Settings → My Profile', 'err');
         return;
       }
+      const msg = await buildInstallCheckMsg(name);
       window.open(`sms:+1${clean}?&body=${encodeURIComponent(msg)}`);
     }
 
