@@ -502,6 +502,55 @@
       opacity: .6
     }
 
+    .dash-comm-strip {
+      display: inline-flex;
+      align-items: stretch;
+      background: rgba(255, 255, 255, .14);
+      border: 1px solid rgba(255, 255, 255, .22);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 8px;
+      max-width: 100%
+    }
+
+    .dash-comm-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 11px;
+      min-width: 72px;
+      flex: 1
+    }
+
+    .dash-comm-stat.due-stat {
+      background: rgba(255, 255, 255, .08);
+      min-width: 84px
+    }
+
+    .dash-comm-lbl {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .45px;
+      opacity: .72;
+      line-height: 1.2;
+      margin-bottom: 2px
+    }
+
+    .dash-comm-val {
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.15;
+      white-space: nowrap
+    }
+
+    .dash-comm-div {
+      width: 1px;
+      background: rgba(255, 255, 255, .22);
+      flex-shrink: 0
+    }
+
     /* ── GOAL PROGRESS BARS ── */
     .goal-section {
       padding: 8px 10px 4px
@@ -1988,9 +2037,21 @@
               <div class="dash-title">LeafFilter Performance Dashboard</div>
               <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">
                 <div id="streakBadge" class="streak-badge cold" style="display:none;margin-top:0"></div>
-                <div id="dashCommGroup" style="display:inline-flex;gap:6px;align-items:center;flex-wrap:nowrap">
-                  <div id="dashCommDue" class="streak-badge" style="display:none;margin-top:0;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2)"></div>
-                  <div id="dashYtdPct" class="streak-badge" style="display:none;margin-top:0;white-space:nowrap;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2)"></div>
+                <div id="dashCommStrip" class="dash-comm-strip" style="display:none">
+                  <div id="dashCommDueStat" class="dash-comm-stat due-stat" style="display:none">
+                    <span class="dash-comm-lbl">Comm Due</span>
+                    <span class="dash-comm-val" id="dashCommDueVal">—</span>
+                  </div>
+                  <div id="dashCommDueDiv" class="dash-comm-div" style="display:none"></div>
+                  <div id="dashCommRetailStat" class="dash-comm-stat" style="display:none">
+                    <span class="dash-comm-lbl">Retail YTD</span>
+                    <span class="dash-comm-val" id="dashCommRetailVal">—</span>
+                  </div>
+                  <div id="dashCommRetailDiv" class="dash-comm-div" style="display:none"></div>
+                  <div id="dashCommPctStat" class="dash-comm-stat" style="display:none">
+                    <span class="dash-comm-lbl">Comm YTD</span>
+                    <span class="dash-comm-val" id="dashCommPctVal">—</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3782,9 +3843,13 @@
     }
 
     async function calcCommissionsDue() {
-      const dueBadge = document.getElementById('dashCommDue');
-      const pctBadge = document.getElementById('dashYtdPct');
-      if (!dueBadge) return;
+      const strip = document.getElementById('dashCommStrip');
+      const dueStat = document.getElementById('dashCommDueStat');
+      const dueDiv = document.getElementById('dashCommDueDiv');
+      const retailStat = document.getElementById('dashCommRetailStat');
+      const retailDiv = document.getElementById('dashCommRetailDiv');
+      const pctStat = document.getElementById('dashCommPctStat');
+      if (!strip) return;
       try {
         const ytdStartDate = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
         const [{ data: dueData, error: dueErr }, { data: ytdLeads, error: ytdErr }] = await Promise.all([
@@ -3802,38 +3867,40 @@
             .gte('sales_date', ytdStartDate)
         ]);
 
+        let showDue = false;
+        let showRetail = false;
+        let showComm = false;
+
         if (!dueErr && dueData) {
           const unpaid = dueData.reduce((s, j) => s + (parseFloat(j.commission_amount) || 0), 0);
           if (unpaid > 0) {
-            dueBadge.style.display = 'inline-flex';
-            dueBadge.textContent = `💰 $${unpaid.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} Due`;
-          } else {
-            dueBadge.style.display = 'none';
+            showDue = true;
+            document.getElementById('dashCommDueVal').textContent =
+              '$' + unpaid.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
           }
-        } else {
-          dueBadge.style.display = 'none';
         }
 
-        if (pctBadge) {
-          if (!ytdErr && ytdLeads && ytdLeads.length) {
-            const avgRetail = avgPctField(ytdLeads, 'retail_percentage');
-            const avgComm = avgPctField(ytdLeads, 'commission_percentage');
-            const parts = [];
-            if (avgRetail != null) parts.push(`Retail ${avgRetail.toFixed(1)}%`);
-            if (avgComm != null) parts.push(`Comm ${avgComm.toFixed(1)}%`);
-            if (parts.length) {
-              pctBadge.style.display = 'inline-flex';
-              pctBadge.textContent = `📊 ${parts.join(' · ')} YTD`;
-            } else {
-              pctBadge.style.display = 'none';
-            }
-          } else {
-            pctBadge.style.display = 'none';
+        if (!ytdErr && ytdLeads && ytdLeads.length) {
+          const avgRetail = avgPctField(ytdLeads, 'retail_percentage');
+          const avgComm = avgPctField(ytdLeads, 'commission_percentage');
+          if (avgRetail != null) {
+            showRetail = true;
+            document.getElementById('dashCommRetailVal').textContent = avgRetail.toFixed(1) + '%';
+          }
+          if (avgComm != null) {
+            showComm = true;
+            document.getElementById('dashCommPctVal').textContent = avgComm.toFixed(1) + '%';
           }
         }
+
+        dueStat.style.display = showDue ? 'flex' : 'none';
+        dueDiv.style.display = showDue && (showRetail || showComm) ? 'block' : 'none';
+        retailStat.style.display = showRetail ? 'flex' : 'none';
+        retailDiv.style.display = showRetail && showComm ? 'block' : 'none';
+        pctStat.style.display = showComm ? 'flex' : 'none';
+        strip.style.display = (showDue || showRetail || showComm) ? 'inline-flex' : 'none';
       } catch (e) {
-        dueBadge.style.display = 'none';
-        if (pctBadge) pctBadge.style.display = 'none';
+        strip.style.display = 'none';
       }
     }
 
