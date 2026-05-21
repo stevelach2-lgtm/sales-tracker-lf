@@ -5284,7 +5284,7 @@
 
       const { data: leads, error } = await sb
         .from('leads')
-        .select('id,job_number,install_date,sale_amount,commission_amount,commission_paid,is_cancelled')
+        .select('id,job_number,install_date,sale_amount,commission_amount,commission_paid,retail_percentage,commission_percentage,is_cancelled')
         .eq('status', 'sold')
         .neq('is_cancelled', true)
         .not('install_date', 'is', null)
@@ -5298,11 +5298,20 @@
       const fmtMoney = v => '$' + parseFloat(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const fmt = d => d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
       const fmtShort = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const fmtPct = v => v != null ? parseFloat(v).toFixed(1) + '%' : '—';
+      const avgField = (arr, field) => {
+        const vals = arr.map(l => parseFloat(l[field])).filter(v => !isNaN(v));
+        return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+      };
 
       // Totals
       const totalPaid = leads.filter(l => l.commission_paid).reduce((s, l) => s + (parseFloat(l.commission_amount) || 0), 0);
       const totalDue  = leads.filter(l => !l.commission_paid).reduce((s, l) => s + (parseFloat(l.commission_amount) || 0), 0);
       const avgPerDeal = leads.length ? (totalPaid + totalDue) / leads.length : 0;
+      const avgRetailPct = avgField(leads, 'retail_percentage');
+      const avgCommPct = avgField(leads, 'commission_percentage');
+      const retailPctCount = leads.filter(l => l.retail_percentage != null && !isNaN(parseFloat(l.retail_percentage))).length;
+      const commPctCount = leads.filter(l => l.commission_percentage != null && !isNaN(parseFloat(l.commission_percentage))).length;
 
       const fmtInstall = s => new Date(s + 'T12:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
 
@@ -5343,6 +5352,16 @@
           <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Avg Per Deal</div>
           <div style="font-size:18px;font-weight:800;color:var(--text)">${fmtMoney(avgPerDeal)}</div>
           <div style="font-size:10px;color:var(--muted);margin-top:2px">${leads.length} deals total</div>
+        </div>
+        <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Avg Retail %</div>
+          <div style="font-size:18px;font-weight:800;color:var(--text)">${fmtPct(avgRetailPct)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${retailPctCount ? retailPctCount + ' of ' + leads.length + ' deals' : 'no retail % logged'}</div>
+        </div>
+        <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Avg Comm %</div>
+          <div style="font-size:18px;font-weight:800;color:var(--text)">${fmtPct(avgCommPct)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${commPctCount ? commPctCount + ' of ' + leads.length + ' deals' : 'no comm % logged'}</div>
         </div>
       </div>`;
 
