@@ -4824,6 +4824,7 @@
       el.innerHTML = leads.map(l => {
         const sold = l.status === 'sold';
         const installToday = sold && !l.is_cancelled && l.install_date === todayStr;
+        const installComplete = sold && !l.is_cancelled && !!l.install_date && l.install_date <= todayStr;
         const custPhone = (l.followup_phone || '').replace(/\D/g, '');
         const custName = l.followup_name || '';
         // Top-right: show sales_date
@@ -4844,11 +4845,11 @@
         if (l.install_date) sub.push('Install ' + new Date(l.install_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
         if (l.commission_amount && !l.is_cancelled) sub.push('$' + parseFloat(l.commission_amount).toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' comm');
         const installCheckStyle = "width:100%;background:linear-gradient(135deg,#F0FDF4,#DCFCE7);border:1.5px solid #86EFAC;color:#166534;border-radius:10px;padding:10px 12px;font-family:'Inter',sans-serif;font-size:12px;font-weight:800;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center";
-        const installSmsHref = installToday && custPhone.length >= 10
+        const installSmsHref = installComplete && custPhone.length >= 10
           ? buildSmsHref(custPhone, buildInstallCheckMsg(custName))
           : '';
         const installSmsHrefAttr = installSmsHref.replace(/&/g, '&amp;');
-        const installCheckControl = !installToday
+        const installCheckControl = !installComplete
           ? ''
           : installSmsHref
             ? `<a href="${installSmsHrefAttr}" data-no-card-toggle onclick="event.stopPropagation()" style="${installCheckStyle}">📱 How did the install go?</a>`
@@ -4870,13 +4871,13 @@
           ${sub.length ? sub.join(' &nbsp;·&nbsp; ') + '<br>' : ''}
           ${l.notes ? '<strong>Notes:</strong> ' + l.notes + '<br>' : ''}
           ${l.draw_sheet_url ? `<div style="margin:6px 0 2px"><button onclick="viewDrawSheet('${l.draw_sheet_url}');event.stopPropagation()" style="background:#EFF6FF;border:1.5px solid #BFDBFE;color:#1D4ED8;border-radius:8px;padding:5px 12px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;cursor:pointer">📋 View Draw Sheet</button></div>` : ''}
-          ${installToday ? `<div style="margin:8px 0 4px">${installCheckControl}</div>` : ''}
+          ${installComplete ? `<div style="margin:8px 0 4px">${installCheckControl}</div>` : ''}
           Tap to collapse
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;align-items:center">
         <button class="edit-btn" onclick="openLeadEdit('${l.id}')">✏️</button>
-        ${installToday ? (installSmsHref ? `<a class="edit-btn" href="${installSmsHrefAttr}" data-no-card-toggle onclick="event.stopPropagation()" style="font-size:12px;text-decoration:none" title="How did install go?">🛠️</a>` : `<button class="edit-btn" data-no-card-toggle onclick="event.stopPropagation(); sendInstallCheckSMS(${JSON.stringify(custPhone)}, ${JSON.stringify(custName)}, ${JSON.stringify(l.id)})" style="font-size:12px" title="How did install go?">🛠️</button>`) : ''}
+        ${installComplete ? (installSmsHref ? `<a class="edit-btn" href="${installSmsHrefAttr}" data-no-card-toggle onclick="event.stopPropagation()" style="font-size:12px;text-decoration:none" title="How did install go?">🛠️</a>` : `<button class="edit-btn" data-no-card-toggle onclick="event.stopPropagation(); sendInstallCheckSMS(${JSON.stringify(custPhone)}, ${JSON.stringify(custName)}, ${JSON.stringify(l.id)})" style="font-size:12px" title="How did install go?">🛠️</button>`) : ''}
         ${sold ? `<button class="edit-btn" onclick="event.stopPropagation(); sendReviewSMS()" style="font-size:12px" title="Request Google Review">⭐</button>` : `<button class="edit-btn" onclick="event.stopPropagation(); openFu('${l.id}','${(l.not_sold_reasons?.label || '').replace(/'/g, "\\'")}')" style="font-size:12px" title="Set Follow-Up">📞</button>`}
       </div>
     </div>`;
