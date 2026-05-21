@@ -2812,36 +2812,36 @@
             </div>
             <div class="fg2" style="margin-bottom:8px">
               <div>
-                <label class="fl">Last Price Given $</label>
-                <input type="number" class="fi" id="ccNotLeftAt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px">
+                <label class="fl">Last Price Given $ <span style="color:#E53935">*</span></label>
+                <input type="number" class="fi" id="ccNotLeftAt" placeholder="0.00" inputmode="decimal" step="0.01" required style="font-size:14px;padding:11px 13px">
               </div>
               <div>
                 <label class="fl">Visit Date</label>
                 <input type="date" class="fi" id="ccNotSoldDate" style="font-size:13px;padding:11px 13px">
               </div>
             </div>
-            <div class="fg" style="margin-bottom:12px">
-              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-              <textarea class="fi" id="ccNotNotes" placeholder="e.g. Call back in spring, left card..."></textarea>
-            </div>
-            <div style="background:#F9FAFB;border:1.5px dashed var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
-              <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
-                📞 Quick Follow-Up <span style="font-weight:400;text-transform:none">(optional)</span>
+            <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;padding:12px;margin-bottom:12px" id="ccNotContactBlock">
+              <div style="font-size:11px;font-weight:800;color:#991B1B;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
+                📞 Customer &amp; Follow-Up <span style="color:#E53935">*</span>
               </div>
               <div class="fg2" style="margin-bottom:8px">
                 <div>
-                  <label class="fl" style="font-size:10px">Customer First Name</label>
-                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px">
+                  <label class="fl" style="font-size:10px">Customer Name <span style="color:#E53935">*</span></label>
+                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" required style="padding:8px 10px;font-size:12px">
                 </div>
                 <div>
-                  <label class="fl" style="font-size:10px">Phone Number</label>
-                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555..." style="padding:8px 10px;font-size:12px">
+                  <label class="fl" style="font-size:10px">Phone Number <span style="color:#E53935">*</span></label>
+                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555-555-5555" maxlength="14" required style="padding:8px 10px;font-size:12px">
                 </div>
               </div>
               <div class="fg" style="margin-bottom:0">
-                <label class="fl" style="font-size:10px">Follow-Up Date</label>
-                <input type="date" class="fi" id="ccNotFuDate" style="padding:8px 10px;font-size:12px">
+                <label class="fl" style="font-size:10px">Follow-Up Date <span style="color:#E53935">*</span></label>
+                <input type="date" class="fi" id="ccNotFuDate" required style="padding:8px 10px;font-size:12px">
               </div>
+            </div>
+            <div class="fg" style="margin-bottom:12px">
+              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <textarea class="fi" id="ccNotNotes" placeholder="e.g. Call back in spring, left card..."></textarea>
             </div>
             <div class="fg" style="margin-bottom:12px">
               <label class="fl">📋 Draw Sheet <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
@@ -3143,30 +3143,30 @@
             </div>
           </div>
           <div>
-            <label class="fl" style="font-size:10px">Left At $</label>
-            <input type="number" class="fi" id="esNsLeftAt" inputmode="decimal" placeholder="0.00"
+            <label class="fl" style="font-size:10px">Last Price Given $ <span style="color:#E53935">*</span></label>
+            <input type="number" class="fi" id="esNsLeftAt" inputmode="decimal" placeholder="0.00" required
               style="padding:8px 10px;font-size:13px" oninput="esCalcPar()">
           </div>
           <div id="esNsParGap" style="display:none;margin-top:8px;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700"></div>
         </div>
-        <div style="background:#F9FAFB;border:1.5px dashed var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
-          <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
-            📞 Follow-Up <span style="font-weight:400;text-transform:none">(optional)</span>
+        <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;padding:12px;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:800;color:#991B1B;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
+            📞 Customer &amp; Follow-Up <span style="color:#E53935">*</span>
           </div>
           <div class="fg2" style="margin-bottom:8px">
             <div>
-              <label class="fl" style="font-size:10px">Customer First Name</label>
-              <input type="text" class="fi" id="esNsFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px">
+              <label class="fl" style="font-size:10px">Customer Name <span style="color:#E53935">*</span></label>
+              <input type="text" class="fi" id="esNsFuName" placeholder="Michael" required style="padding:8px 10px;font-size:12px">
             </div>
             <div>
-              <label class="fl" style="font-size:10px">Phone Number</label>
-              <input type="tel" class="fi" id="esNsFuPhone" placeholder="555..." style="padding:8px 10px;font-size:12px">
+              <label class="fl" style="font-size:10px">Phone Number <span style="color:#E53935">*</span></label>
+              <input type="tel" class="fi" id="esNsFuPhone" placeholder="555-555-5555" maxlength="14" required style="padding:8px 10px;font-size:12px">
             </div>
           </div>
           <div class="fg2" style="margin-bottom:8px">
             <div>
-              <label class="fl" style="font-size:10px">Follow-Up Date</label>
-              <input type="date" class="fi" id="esNsFuDate" style="padding:8px 10px;font-size:12px">
+              <label class="fl" style="font-size:10px">Follow-Up Date <span style="color:#E53935">*</span></label>
+              <input type="date" class="fi" id="esNsFuDate" required style="padding:8px 10px;font-size:12px">
             </div>
             <label class="paid-row" style="margin-top:22px;padding:8px 10px;border-radius:9px;cursor:pointer">
               <input type="checkbox" id="esNsFuDone" style="width:18px;height:18px;cursor:pointer;accent-color:var(--green)">
@@ -4368,27 +4368,31 @@
         return true;
       } else {
         if (!selReason) { toast('Please select a reason', 'err'); return; }
-        const notes = document.getElementById('notNotes').value.trim();
-        const nsDate = document.getElementById('notSoldDate').value || null;
+        const notesEl = document.getElementById('notNotes');
+        const nsDateEl = document.getElementById('notSoldDate');
+        const contact = validateNotSoldRequired({
+          leftAtEl: document.getElementById('notLeftAt'),
+          fuNameEl: document.getElementById('notFuName'),
+          fuPhoneEl: document.getElementById('notFuPhone'),
+          fuDateEl: document.getElementById('notFuDate'),
+          soldAtEl: document.getElementById('saleAmt')
+        });
+        if (!contact) return;
 
-        // Integrated follow-up values
-        const fuName = document.getElementById('notFuName').value.trim();
-        const fuPhone = document.getElementById('notFuPhone').value.trim();
-        const fuDate = document.getElementById('notFuDate').value || null;
+        const notes = notesEl ? notesEl.value.trim() : '';
+        const nsDate = nsDateEl ? nsDateEl.value || null : null;
 
         const payload = {
           status: 'not_sold',
           reason_id: selReason,
           notes: notes || null,
-          sales_date: nsDate
+          sales_date: nsDate,
+          sale_amount: contact.leftAt,
+          followup_date: contact.fuDate,
+          followup_name: contact.fuName,
+          followup_phone: contact.fuPhone,
+          followup_done: false
         };
-
-        if (fuDate) {
-          payload.followup_date = fuDate;
-          payload.followup_name = fuName || 'Customer';
-          payload.followup_phone = fuPhone || null;
-          payload.followup_done = false;
-        }
 
         if (gps) {
           payload.lat = gps.lat;
@@ -4398,7 +4402,7 @@
         const { data, error } = await sb.from('leads').insert(payload).select().single();
         if (error) { toast('Error saving lead', 'err'); return; }
         lastId = data.id;
-        showUndo('Not sold lead logged' + (fuDate ? ' + Follow-up scheduled' : ''));
+        showUndo('Not sold lead logged + Follow-up scheduled');
         resetLog();
       }
     }
@@ -4979,34 +4983,38 @@
         }
       } else {
         if (!esSelReason) { toast('Select a reason', 'err'); return; }
+        const contact = validateNotSoldRequired({
+          leftAtEl: document.getElementById('esNsLeftAt'),
+          fuNameEl: document.getElementById('esNsFuName'),
+          fuPhoneEl: document.getElementById('esNsFuPhone'),
+          fuDateEl: document.getElementById('esNsFuDate')
+        });
+        if (!contact) return;
+
         payload.reason_id = esSelReason;
         payload.sales_date = document.getElementById('esNsDate').value || null;
         const nsRetail = parseFloat(document.getElementById('esNsRetail').value) || null;
-        const nsLeftAt = parseFloat(document.getElementById('esNsLeftAt').value) || null;
-        payload.sale_amount = nsLeftAt;
+        payload.sale_amount = contact.leftAt;
         payload.retail_price = nsRetail;
         payload.par_price = nsRetail ? Math.round(nsRetail * 0.65 * 100) / 100 : null;
         payload.draw_sheet_url = esDrawSheetUrl || null;
         payload.commission_amount = null;
         payload.commission_paid = false;
 
-        const fuDate = document.getElementById('esNsFuDate').value || null;
-        const fuName = document.getElementById('esNsFuName').value.trim();
-        const fuPhoneDigits = document.getElementById('esNsFuPhone').value.trim().replace(/\D/g, '');
-        payload.followup_date = fuDate || null;
-        payload.followup_phone = fuPhoneDigits || null;
-        payload.followup_name = fuName || (fuDate ? 'Customer' : null);
-        payload.followup_done = !!(fuDate && document.getElementById('esNsFuDone').checked);
+        payload.followup_date = contact.fuDate;
+        payload.followup_phone = contact.fuPhone;
+        payload.followup_name = contact.fuName;
+        payload.followup_done = document.getElementById('esNsFuDone').checked;
 
         // Build quote reference line for notes
         const baseNotes = stripLeadingQuoteRefNotes(document.getElementById('esNotes').value.trim());
         let quoteRef = '';
-        if (nsRetail || nsLeftAt) {
+        if (nsRetail || contact.leftAt) {
           const par = nsRetail ? (nsRetail * 0.65) : null;
           const parts = [];
           if (nsRetail) parts.push(`Retail: $${nsRetail.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
           if (par) parts.push(`Par: $${par.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-          if (nsLeftAt) parts.push(`Left at: $${nsLeftAt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+          if (contact.leftAt) parts.push(`Left at: $${contact.leftAt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
           quoteRef = '📊 ' + parts.join(' | ');
         }
         payload.notes = [quoteRef, baseNotes].filter(Boolean).join('\n') || null;
@@ -5892,6 +5900,32 @@
     // ─────────────────────────────────────────
     // IN-CALC LOG HELPERS
     // ─────────────────────────────────────────
+    /** Required on every not-sold log: last price, customer name, phone, follow-up date. */
+    function validateNotSoldRequired({ leftAtEl, fuNameEl, fuPhoneEl, fuDateEl, soldAtEl }) {
+      const leftAt = parseFloat(leftAtEl?.value) ||
+        parseFloat(soldAtEl?.value) || null;
+      const fuName = (fuNameEl?.value || '').trim();
+      const fuPhone = (fuPhoneEl?.value || '').trim().replace(/\D/g, '');
+      const fuDate = fuDateEl?.value || '';
+
+      const checks = [
+        { ok: leftAt > 0, msg: 'Enter last price given', el: leftAtEl || soldAtEl },
+        { ok: !!fuName, msg: 'Enter customer name', el: fuNameEl },
+        { ok: fuPhone.length >= 10, msg: 'Enter a valid phone number (10 digits)', el: fuPhoneEl },
+        { ok: !!fuDate, msg: 'Select a follow-up date', el: fuDateEl }
+      ];
+      const fail = checks.find(c => !c.ok);
+      if (fail) {
+        toast(fail.msg, 'err');
+        if (fail.el) {
+          fail.el.focus();
+          fail.el.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+        }
+        return null;
+      }
+      return { leftAt, fuName, fuPhone, fuDate };
+    }
+
     function ccSetOutcome(type) {
       const soldPanel = document.getElementById('ccSoldPanel');
       const notPanel  = document.getElementById('ccNotPanel');
@@ -5910,7 +5944,7 @@
       if (switchSale) switchSale.style.display = type === 'not_sold' ? 'block' : 'none';
       if (heading) {
         heading.textContent = type === 'not_sold'
-          ? '📝 Not sold — complete below'
+          ? '📝 Not sold — name, phone, price & follow-up required'
           : '📝 Log Lead Outcome';
       }
 
@@ -5938,6 +5972,18 @@
         const leftAtEl = document.getElementById('ccNotLeftAt');
         if (soldAt && !leftAtEl.value) leftAtEl.value = soldAt;
         buildCcReasonList();
+        // Default follow-up to tomorrow if blank
+        const fuDateEl = document.getElementById('ccNotFuDate');
+        if (fuDateEl && !fuDateEl.value) {
+          const d = new Date();
+          d.setDate(d.getDate() + 1);
+          fuDateEl.value = localDate(d);
+        }
+        setTimeout(() => {
+          const nameEl = document.getElementById('ccNotFuName');
+          if (nameEl && !nameEl.value) nameEl.focus();
+          else document.getElementById('ccNotContactBlock')?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+        }, 120);
       }
     }
 
@@ -6019,13 +6065,17 @@
         }
       } else {
         if (!selCcReason) { toast('Please select a reason', 'err'); return; }
+        const contact = validateNotSoldRequired({
+          leftAtEl: document.getElementById('ccNotLeftAt'),
+          fuNameEl: document.getElementById('ccNotFuName'),
+          fuPhoneEl: document.getElementById('ccNotFuPhone'),
+          fuDateEl: document.getElementById('ccNotFuDate'),
+          soldAtEl: document.getElementById('qcSoldAt')
+        });
+        if (!contact) return;
+
         const notes   = document.getElementById('ccNotNotes').value.trim();
         const nsDate  = document.getElementById('ccNotSoldDate').value || null;
-        const leftAt = parseFloat(document.getElementById('qcSoldAt').value) ||
-                       parseFloat(document.getElementById('ccNotLeftAt').value) || null;
-        const fuName  = document.getElementById('ccNotFuName').value.trim();
-        const fuPhone = document.getElementById('ccNotFuPhone').value.trim();
-        const fuDate  = document.getElementById('ccNotFuDate').value || null;
         
         const retailVal = parseFloat(document.getElementById('qcRetailHidden').value) || null;
         const parVal    = parseFloat(document.getElementById('qcParHidden').value) || null;
@@ -6035,16 +6085,14 @@
           reason_id: selCcReason,
           notes: notes || null,
           sales_date: nsDate,
-          sale_amount: leftAt,
+          sale_amount: contact.leftAt,
           retail_price: retailVal,
-          par_price: parVal
+          par_price: parVal,
+          followup_date: contact.fuDate,
+          followup_name: contact.fuName,
+          followup_phone: contact.fuPhone,
+          followup_done: false
         };
-        if (fuDate) {
-          payload.followup_date = fuDate;
-          payload.followup_name = fuName || 'Customer';
-          payload.followup_phone = fuPhone || null;
-          payload.followup_done = false;
-        }
         let { data, error } = await sb.from('leads').insert(payload).select().single();
         if (error && (error.message || '').includes('retail_price') || (error && (error.message || '').includes('par_price'))) {
           const fallback = { ...payload };
@@ -6074,7 +6122,7 @@
         }
 
         document.getElementById('quoteCalcOverlay').classList.remove('open');
-        showUndo('Not sold lead logged' + (fuDate ? ' + Follow-up scheduled' : ''));
+        showUndo('Not sold lead logged + Follow-up scheduled');
         ccResetLogPanel();
         document.getElementById('ccNotPanel').style.display = 'none';
         document.getElementById('ccOutcomeNot').style.background = '#fff';
