@@ -1986,10 +1986,12 @@
             <div>
               <div class="dash-date" id="heroDate"></div>
               <div class="dash-title">LeafFilter Performance Dashboard</div>
-              <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
-                <div id="streakBadge" class="streak-badge cold" style="display:none; margin-top:0;"></div>
-                <div id="dashCommDue" class="streak-badge" style="display:none; margin-top:0; background:rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);"></div>
-                <div id="dashYtdPct" class="streak-badge" style="display:none; margin-top:0; background:rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);"></div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">
+                <div id="streakBadge" class="streak-badge cold" style="display:none;margin-top:0"></div>
+                <div id="dashCommGroup" style="display:inline-flex;gap:6px;align-items:center;flex-wrap:nowrap">
+                  <div id="dashCommDue" class="streak-badge" style="display:none;margin-top:0;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2)"></div>
+                  <div id="dashYtdPct" class="streak-badge" style="display:none;margin-top:0;white-space:nowrap;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2)"></div>
+                </div>
               </div>
             </div>
             <button onclick="openRecap()"
