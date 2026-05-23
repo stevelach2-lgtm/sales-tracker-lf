@@ -2930,7 +2930,7 @@
             </div>
             <div id="ccFollowUpBox" style="background:#F9FAFB;border:1.5px dashed var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
               <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
-                📞 Quick Follow-Up <span style="font-weight:400;text-transform:none">(required)</span>
+                📞 Quick Follow-Up <span style="font-weight:400;text-transform:none">(optional)</span>
               </div>
               <div id="ccNotContactRow" class="fg2" style="margin-bottom:8px">
                 <div>
@@ -6297,13 +6297,10 @@
         return { leftAt: null, fuName: '', fuPhone: '', fuDate: null };
       }
 
-      // Build all checks including draw sheet
+      // Build all checks — only last price given and draw sheet are required
       const checks = [
-        { ok: leftAt > 0,          msg: 'Enter last price given',              el: leftAtEl || soldAtEl, box: null },
-        { ok: !!fuName,            msg: 'Enter customer name',                  el: fuNameEl,             box: document.getElementById('ccFollowUpBox') },
-        { ok: fuPhone.length >= 10, msg: 'Enter a valid phone number (10 digits)', el: fuPhoneEl,         box: document.getElementById('ccFollowUpBox') },
-        { ok: !!fuDate,            msg: 'Select a follow-up date',              el: fuDateEl,             box: document.getElementById('ccFollowUpBox') },
-        { ok: !!ccNsDrawPendingFile, msg: 'Upload a draw sheet',               el: null,                 box: document.getElementById('ccDrawSheetBox') }
+        { ok: leftAt > 0,           msg: 'Enter last price given', el: leftAtEl || soldAtEl, box: null },
+        { ok: !!ccNsDrawPendingFile, msg: 'Upload a draw sheet',   el: null,                 box: document.getElementById('ccDrawSheetBox') }
       ];
 
       // Highlight ALL failing fields at once
@@ -6355,7 +6352,7 @@
       if (switchSale) switchSale.style.display = type === 'not_sold' ? 'block' : 'none';
       if (heading) {
         heading.textContent = type === 'not_sold'
-          ? '📝 Not sold — name, phone, price & follow-up required'
+          ? '📝 Not sold — last price & draw sheet required'
           : '📝 Sale — customer name & phone required';
       }
 
