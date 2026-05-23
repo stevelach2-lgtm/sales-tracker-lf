@@ -502,6 +502,55 @@
       opacity: .6
     }
 
+    .dash-comm-strip {
+      display: inline-flex;
+      align-items: stretch;
+      background: rgba(255, 255, 255, .14);
+      border: 1px solid rgba(255, 255, 255, .22);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 8px;
+      max-width: 100%
+    }
+
+    .dash-comm-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 11px;
+      min-width: 72px;
+      flex: 1
+    }
+
+    .dash-comm-stat.due-stat {
+      background: rgba(255, 255, 255, .08);
+      min-width: 84px
+    }
+
+    .dash-comm-lbl {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .45px;
+      opacity: .72;
+      line-height: 1.2;
+      margin-bottom: 2px
+    }
+
+    .dash-comm-val {
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.15;
+      white-space: nowrap
+    }
+
+    .dash-comm-div {
+      width: 1px;
+      background: rgba(255, 255, 255, .22);
+      flex-shrink: 0
+    }
+
     /* ── GOAL PROGRESS BARS ── */
     .goal-section {
       padding: 8px 10px 4px
@@ -1986,9 +2035,24 @@
             <div>
               <div class="dash-date" id="heroDate"></div>
               <div class="dash-title">LeafFilter Performance Dashboard</div>
-              <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
-                <div id="streakBadge" class="streak-badge cold" style="display:none; margin-top:0;"></div>
-                <div id="dashCommDue" class="streak-badge" style="display:none; margin-top:0; background:rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);"></div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">
+                <div id="streakBadge" class="streak-badge cold" style="display:none;margin-top:0"></div>
+                <div id="dashCommStrip" class="dash-comm-strip" style="display:none">
+                  <div id="dashCommDueStat" class="dash-comm-stat due-stat" style="display:none">
+                    <span class="dash-comm-lbl">Comm Due</span>
+                    <span class="dash-comm-val" id="dashCommDueVal">—</span>
+                  </div>
+                  <div id="dashCommDueDiv" class="dash-comm-div" style="display:none"></div>
+                  <div id="dashCommRetailStat" class="dash-comm-stat" style="display:none">
+                    <span class="dash-comm-lbl">Retail YTD</span>
+                    <span class="dash-comm-val" id="dashCommRetailVal">—</span>
+                  </div>
+                  <div id="dashCommRetailDiv" class="dash-comm-div" style="display:none"></div>
+                  <div id="dashCommPctStat" class="dash-comm-stat" style="display:none">
+                    <span class="dash-comm-lbl">Comm YTD</span>
+                    <span class="dash-comm-val" id="dashCommPctVal">—</span>
+                  </div>
+                </div>
               </div>
             </div>
             <button onclick="openRecap()"
@@ -2045,8 +2109,7 @@
             <div>
               <div id="instActionTitle" style="font-size:13px; font-weight:800; color:#166534">Installs scheduled today
               </div>
-              <div id="instActionSub" style="font-size:11px; color:#15803D; font-weight:600">Tap to view your installs
-                in history</div>
+              <div id="instActionSub" style="font-size:11px; color:#15803D; font-weight:600">Tap to view installs &amp; send check-in texts</div>
             </div>
           </div>
           <div id="instActionBadge"
@@ -2729,12 +2792,15 @@
         
         <!-- Log Outcome Section — Moved from Log Lead into Quote Tool -->
         <div id="ccLogSection" style="display:block;margin-bottom:16px;border-bottom:2.5px solid var(--border);padding-bottom:16px">
-          <div style="font-size:11px;font-weight:800;letter-spacing:.6px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;display:flex;align-items:center;gap:6px">📝 Log Lead Outcome</div>
-          <div style="display:flex;gap:8px;margin-bottom:14px">
+          <div id="ccLogOutcomeHeading" style="font-size:11px;font-weight:800;letter-spacing:.6px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;display:flex;align-items:center;gap:6px">📝 Log Lead Outcome</div>
+          <div id="ccOutcomeBtnRow" style="display:flex;gap:8px;margin-bottom:14px">
             <button id="ccOutcomeSold" onclick="ccSetOutcome('sold')"
               style="flex:1;padding:11px;border:2px solid var(--green);border-radius:10px;background:#fff;color:var(--green);font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">✅ SALE</button>
             <button id="ccOutcomeNot" onclick="ccSetOutcome('not_sold')"
               style="flex:1;padding:11px;border:2px solid #E53935;border-radius:10px;background:#fff;color:#E53935;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">❌ NO SALE</button>
+          </div>
+          <div id="ccSwitchToSaleWrap" style="display:none;margin:-6px 0 12px">
+            <button type="button" onclick="ccSetOutcome('sold')" style="background:transparent;border:none;padding:0;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--green);text-decoration:underline;cursor:pointer">← Switch to sale</button>
           </div>
 
           <!-- SOLD panel -->
@@ -2770,6 +2836,16 @@
             </div>
             <div class="fg2" style="margin-bottom:8px">
               <div>
+                <label class="fl">Customer Name <span style="color:#E53935">*</span></label>
+                <input type="text" class="fi" id="soldCustName" placeholder="Michael" required style="font-size:13px;padding:11px 13px">
+              </div>
+              <div>
+                <label class="fl">Phone Number <span style="color:#E53935">*</span></label>
+                <input type="tel" class="fi" id="soldCustPhone" placeholder="555-555-5555" maxlength="14" required style="font-size:13px;padding:11px 13px">
+              </div>
+            </div>
+            <div class="fg2" style="margin-bottom:8px">
+              <div>
                 <label class="fl">Install Date</label>
                 <input type="date" class="fi" id="installDate" style="font-size:13px;padding:11px 13px">
               </div>
@@ -2786,6 +2862,18 @@
               <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
               <textarea class="fi" id="soldNotes" placeholder="e.g. 180ft, financing used..."></textarea>
             </div>
+            <div class="fg" style="margin-bottom:10px">
+              <label class="fl">📋 Draw Sheet <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <input type="file" id="ccDrawFile" accept="image/*,application/pdf" style="display:none" onchange="ccOnDrawFileSelected(this)">
+              <div id="ccDrawPreview" style="display:none;margin-bottom:8px;position:relative">
+                <img id="ccDrawThumb" src="" style="width:100%;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;max-height:180px;object-fit:cover" onclick="viewDrawSheet(document.getElementById('ccDrawThumb').src)">
+                <button type="button" onclick="ccRemoveDrawSheet()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer">Remove</button>
+              </div>
+              <button type="button" id="ccDrawBtn" onclick="document.getElementById('ccDrawFile').click()"
+                style="width:100%;background:#F9FAFB;border:1.5px dashed var(--border);border-radius:10px;padding:11px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">
+                📸 Upload Draw Sheet
+              </button>
+            </div>
             <button class="sbtn sold" onclick="submitLeadFromCalc('sold')">✅ Log Sale</button>
           </div>
 
@@ -2797,12 +2885,31 @@
             </div>
             <div id="ccNotPriceRow" class="fg2" style="margin-bottom:8px">
               <div>
-                <label class="fl">Last Price Given $</label>
-                <input type="number" class="fi" id="ccNotLeftAt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px">
+                <label class="fl">Last Price Given $ <span style="color:#E53935">*</span></label>
+                <input type="number" class="fi" id="ccNotLeftAt" placeholder="0.00" inputmode="decimal" step="0.01" required style="font-size:14px;padding:11px 13px">
               </div>
               <div>
                 <label class="fl">Visit Date</label>
                 <input type="date" class="fi" id="ccNotSoldDate" style="font-size:13px;padding:11px 13px">
+              </div>
+            </div>
+            <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;padding:12px;margin-bottom:12px" id="ccNotContactBlock">
+              <div style="font-size:11px;font-weight:800;color:#991B1B;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
+                📞 Customer &amp; Follow-Up <span style="color:#E53935">*</span>
+              </div>
+              <div class="fg2" style="margin-bottom:8px">
+                <div>
+                  <label class="fl" style="font-size:10px">Customer Name <span style="color:#E53935">*</span></label>
+                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" required style="padding:8px 10px;font-size:12px">
+                </div>
+                <div>
+                  <label class="fl" style="font-size:10px">Phone Number <span style="color:#E53935">*</span></label>
+                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555-555-5555" maxlength="14" required style="padding:8px 10px;font-size:12px">
+                </div>
+              </div>
+              <div class="fg" style="margin-bottom:0">
+                <label class="fl" style="font-size:10px">Follow-Up Date <span style="color:#E53935">*</span></label>
+                <input type="date" class="fi" id="ccNotFuDate" required style="padding:8px 10px;font-size:12px">
               </div>
             </div>
             <div class="fg" style="margin-bottom:12px">
@@ -2826,6 +2933,19 @@
               <div class="fg" style="margin-bottom:0">
                 <label class="fl" style="font-size:10px">Follow-Up Date</label>
                 <input type="date" class="fi" id="ccNotFuDate" style="padding:8px 10px;font-size:12px">
+              </div>
+              </div>
+              <div class="fg" style="margin-bottom:12px">
+                <label class="fl">📋 Draw Sheet <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+                <input type="file" id="ccNsDrawFile" accept="image/*,application/pdf" style="display:none" onchange="ccNsOnDrawFileSelected(this)">
+                <div id="ccNsDrawPreview" style="display:none;margin-bottom:8px;position:relative">
+                  <img id="ccNsDrawThumb" src="" style="width:100%;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;max-height:180px;object-fit:cover" onclick="viewDrawSheet(document.getElementById('ccNsDrawThumb').src)">
+                  <button type="button" onclick="ccNsRemoveDrawSheet()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer">Remove</button>
+                </div>
+                <button type="button" id="ccNsDrawBtn" onclick="document.getElementById('ccNsDrawFile').click()"
+                  style="width:100%;background:#F9FAFB;border:1.5px dashed var(--border);border-radius:10px;padding:11px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">
+                  📸 Upload Draw Sheet
+                </button>
               </div>
             </div>
             <button class="sbtn ns" onclick="submitLeadFromCalc('not_sold')">❌ Log Not Sold</button>
@@ -3047,6 +3167,12 @@
                 style="font-size:13px;padding:11px 13px"></div>
           </div>
           <div class="fg2">
+            <div><label class="fl">Customer Name <span style="color:#E53935">*</span></label><input type="text" class="fi" id="esSoldCustName" placeholder="Michael" required
+                style="font-size:13px;padding:11px 13px"></div>
+            <div><label class="fl">Phone Number <span style="color:#E53935">*</span></label><input type="tel" class="fi" id="esSoldCustPhone" placeholder="555-555-5555" maxlength="14" required
+                style="font-size:13px;padding:11px 13px"></div>
+          </div>
+          <div class="fg2">
             <div><label class="fl">Install Date</label><input type="date" class="fi" id="esInstallDate"
                 style="font-size:13px;padding:11px 13px"></div>
             <div>
@@ -3116,11 +3242,36 @@
             </div>
           </div>
           <div>
-            <label class="fl" style="font-size:10px">Left At $</label>
-            <input type="number" class="fi" id="esNsLeftAt" inputmode="decimal" placeholder="0.00"
+            <label class="fl" style="font-size:10px">Last Price Given $ <span style="color:#E53935">*</span></label>
+            <input type="number" class="fi" id="esNsLeftAt" inputmode="decimal" placeholder="0.00" required
               style="padding:8px 10px;font-size:13px" oninput="esCalcPar()">
           </div>
           <div id="esNsParGap" style="display:none;margin-top:8px;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700"></div>
+        </div>
+        <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;padding:12px;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:800;color:#991B1B;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
+            📞 Customer &amp; Follow-Up <span style="color:#E53935">*</span>
+          </div>
+          <div class="fg2" style="margin-bottom:8px">
+            <div>
+              <label class="fl" style="font-size:10px">Customer Name <span style="color:#E53935">*</span></label>
+              <input type="text" class="fi" id="esNsFuName" placeholder="Michael" required style="padding:8px 10px;font-size:12px">
+            </div>
+            <div>
+              <label class="fl" style="font-size:10px">Phone Number <span style="color:#E53935">*</span></label>
+              <input type="tel" class="fi" id="esNsFuPhone" placeholder="555-555-5555" maxlength="14" required style="padding:8px 10px;font-size:12px">
+            </div>
+          </div>
+          <div class="fg2" style="margin-bottom:8px">
+            <div>
+              <label class="fl" style="font-size:10px">Follow-Up Date <span style="color:#E53935">*</span></label>
+              <input type="date" class="fi" id="esNsFuDate" required style="padding:8px 10px;font-size:12px">
+            </div>
+            <label class="paid-row" style="margin-top:22px;padding:8px 10px;border-radius:9px;cursor:pointer">
+              <input type="checkbox" id="esNsFuDone" style="width:18px;height:18px;cursor:pointer;accent-color:var(--green)">
+              <span class="paid-lbl" style="font-size:12px">Follow-up done</span>
+            </label>
+          </div>
         </div>
         <!-- Draw Sheet Upload -->
         <div class="fg" style="margin-bottom:4px">
@@ -3309,21 +3460,64 @@
     // REP PROFILE
     // ─────────────────────────────────────────
     let _repName = 'Your Rep'; // default until profile loads
+    let _repPhone = '';
+
+    function formatRepPhone(phone) {
+      const d = (phone || '').replace(/\D/g, '');
+      if (d.length === 10) return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+      if (d.length === 11 && d[0] === '1') return `(${d.slice(1, 4)}) ${d.slice(4, 7)}-${d.slice(7)}`;
+      return (phone || '').trim();
+    }
+
+    async function getRepPhoneFresh() {
+      const el = document.getElementById('profPhone');
+      const fromDom = (el?.value || '').trim();
+      if (fromDom) {
+        _repPhone = fromDom;
+        return fromDom;
+      }
+      if (_repPhone) return _repPhone;
+      try {
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) return '';
+        const { data: profile, error } = await sb.from('profiles')
+          .select('first_name, last_name, full_name, phone, office')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (error) console.warn('Profile phone load:', error);
+        if (profile) {
+          if (profile.first_name) _repName = profile.first_name;
+          if (profile.phone) {
+            _repPhone = profile.phone;
+            if (el) el.value = profile.phone;
+            return profile.phone;
+          }
+        }
+      } catch (e) {
+        console.warn('getRepPhoneFresh', e);
+      }
+      return '';
+    }
 
     async function loadRepProfile() {
       try {
         const { data: { user } } = await sb.auth.getUser();
         if (!user) return;
-        const { data: profile } = await sb.from('profiles').select('first_name, last_name, full_name, phone, office').eq('id', user.id).single();
-        if (profile?.first_name) {
-          _repName = profile.first_name;
-          // Pre-fill the settings form fields
+        const { data: profile, error } = await sb.from('profiles')
+          .select('first_name, last_name, full_name, phone, office')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (error) console.warn('Could not load rep profile', error);
+        if (profile) {
+          if (profile.first_name) _repName = profile.first_name;
+          _repPhone = profile.phone || '';
           if (document.getElementById('profFirst')) document.getElementById('profFirst').value = profile.first_name || '';
           if (document.getElementById('profLast')) document.getElementById('profLast').value = profile.last_name || '';
           if (document.getElementById('profPhone')) document.getElementById('profPhone').value = profile.phone || '';
           if (document.getElementById('profOffice')) document.getElementById('profOffice').value = profile.office || '';
         } else if (user.email) {
           _repName = user.email.split('@')[0];
+          _repPhone = '';
         }
       } catch (e) {
         console.warn('Could not load rep profile', e);
@@ -3353,6 +3547,7 @@
       if (error) { toast('Error saving profile', 'err'); console.error(error); return; }
 
       _repName = first;
+      _repPhone = phone;
       toast('Profile saved ✓', 'ok');
     }
 
@@ -3721,29 +3916,70 @@
       } catch (e) { badge.style.display = 'none'; }
     }
 
+    function avgPctField(arr, field) {
+      const vals = (arr || []).map(l => parseFloat(l[field])).filter(v => !isNaN(v));
+      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    }
+
     async function calcCommissionsDue() {
-      const badge = document.getElementById('dashCommDue');
-      if (!badge) return;
+      const strip = document.getElementById('dashCommStrip');
+      const dueStat = document.getElementById('dashCommDueStat');
+      const dueDiv = document.getElementById('dashCommDueDiv');
+      const retailStat = document.getElementById('dashCommRetailStat');
+      const retailDiv = document.getElementById('dashCommRetailDiv');
+      const pctStat = document.getElementById('dashCommPctStat');
+      if (!strip) return;
       try {
-        const { data, error } = await sb
-          .from('leads')
-          .select('commission_amount')
-          .eq('status', 'sold')
-          .neq('is_cancelled', true)
-          .not('install_date', 'is', null)
-          .eq('commission_paid', false);
+        const ytdStartDate = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
+        const [{ data: dueData, error: dueErr }, { data: ytdLeads, error: ytdErr }] = await Promise.all([
+          sb.from('leads')
+            .select('commission_amount')
+            .eq('status', 'sold')
+            .neq('is_cancelled', true)
+            .not('install_date', 'is', null)
+            .eq('commission_paid', false),
+          sb.from('leads')
+            .select('retail_percentage,commission_percentage')
+            .eq('status', 'sold')
+            .neq('is_cancelled', true)
+            .not('sales_date', 'is', null)
+            .gte('sales_date', ytdStartDate)
+        ]);
 
-        if (error || !data) { badge.style.display = 'none'; return; }
+        let showDue = false;
+        let showRetail = false;
+        let showComm = false;
 
-        const unpaid = data.reduce((s, j) => s + (parseFloat(j.commission_amount) || 0), 0);
-        if (unpaid > 0) {
-          badge.style.display = 'inline-flex';
-          badge.innerHTML = `💰 $${unpaid.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})} Due`;
-        } else {
-          badge.style.display = 'none';
+        if (!dueErr && dueData) {
+          const unpaid = dueData.reduce((s, j) => s + (parseFloat(j.commission_amount) || 0), 0);
+          if (unpaid > 0) {
+            showDue = true;
+            document.getElementById('dashCommDueVal').textContent =
+              '$' + unpaid.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+          }
         }
-      } catch(e) {
-        badge.style.display = 'none';
+
+        if (!ytdErr && ytdLeads && ytdLeads.length) {
+          const avgRetail = avgPctField(ytdLeads, 'retail_percentage');
+          const avgComm = avgPctField(ytdLeads, 'commission_percentage');
+          if (avgRetail != null) {
+            showRetail = true;
+            document.getElementById('dashCommRetailVal').textContent = avgRetail.toFixed(1) + '%';
+          }
+          if (avgComm != null) {
+            showComm = true;
+            document.getElementById('dashCommPctVal').textContent = avgComm.toFixed(1) + '%';
+          }
+        }
+
+        dueStat.style.display = showDue ? 'flex' : 'none';
+        dueDiv.style.display = showDue && (showRetail || showComm) ? 'block' : 'none';
+        retailStat.style.display = showRetail ? 'flex' : 'none';
+        retailDiv.style.display = showRetail && showComm ? 'block' : 'none';
+        pctStat.style.display = showComm ? 'flex' : 'none';
+        strip.style.display = (showDue || showRetail || showComm) ? 'inline-flex' : 'none';
+      } catch (e) {
+        strip.style.display = 'none';
       }
     }
 
@@ -4044,11 +4280,36 @@
       loadFollowUps();
     }
 
+    function isAppleSmsLink() {
+      const ua = navigator.userAgent || '';
+      const platform = navigator.platform || '';
+      return /iPad|iPhone|iPod|Macintosh|Mac OS X/.test(ua) || /^Mac/.test(platform);
+    }
+
+    function normalizeSmsRecipient(phone) {
+      const digits = (phone || '').replace(/\D/g, '');
+      if (!digits) return '';
+      if (digits.length === 11 && digits.startsWith('1')) return '+' + digits;
+      if (digits.length >= 10) return '+1' + digits.slice(-10);
+      return '+' + digits;
+    }
+
+    function openSmsComposer(phone, msg) {
+      window.location.href = buildSmsHref(phone, msg);
+    }
+
+    function buildSmsHref(phone, msg) {
+      const recipient = normalizeSmsRecipient(phone);
+      const body = encodeURIComponent(msg || '');
+      const sep = isAppleSmsLink() ? '&' : '?';
+      return `sms:${recipient}${body ? sep + 'body=' + body : ''}`;
+    }
+
     function sendFuSMS() {
       const phone = document.getElementById('fuPhone').value.trim().replace(/\D/g, '');
       const msg = document.getElementById('fuMsg').value;
       if (!phone) { toast('Enter a phone number first', 'err'); return; }
-      window.open(`sms:+1${phone}?&body=${encodeURIComponent(msg)}`);
+      openSmsComposer(phone, msg);
     }
 
     function copyFuMsg() {
@@ -4212,12 +4473,28 @@
       else if (r.includes('already has') || r.includes('has gutter') || r.includes('existing')) angle = 'existing';
       const fn = FU_MSGS[angle] || FU_MSGS.default;
       const msg = fn(name && name.trim() ? name.trim() : 'there');
-      window.open(`sms:+1${clean}?&body=${encodeURIComponent(msg)}`);
+      openSmsComposer(clean, msg);
     }
 
     function sendReviewSMS() {
       const msg = `Hi! It was a pleasure working with you — we hope you're loving your new LeafFilter! 😊\n\nIf you have a moment, we'd really appreciate it if you could leave us a quick Google review. It means the world to us and helps other homeowners find us!\n\nThank you so much! 🙏`;
-      window.open('sms:?&body=' + encodeURIComponent(msg));
+      openSmsComposer('', msg);
+    }
+
+    function buildInstallCheckMsg(name) {
+      const first = (name || '').trim().split(/\s+/)[0] || 'there';
+      const rep = _repName || 'your LeafFilter rep';
+      return `Hi ${first}! This is ${rep} from LeafFilter 👋\n\nHope your install went smoothly and everything looks great.\n\nIf you have any questions, text me here. And if you know a neighbor, friend, or family member who could use LeafFilter, I'd really appreciate the referral. Thank you!`;
+    }
+
+    function sendInstallCheckSMS(phone, name, leadId) {
+      const clean = (phone || '').replace(/\D/g, '');
+      if (clean.length < 10) {
+        toast('Add customer phone in edit to send SMS', 'err');
+        if (leadId) openLeadEdit(leadId);
+        return;
+      }
+      openSmsComposer(clean, buildInstallCheckMsg(name));
     }
 
     function toggleSetSec(id, iconId) {
@@ -4257,19 +4534,44 @@
     function getGPS() {
       return new Promise((resolve) => {
         if (!navigator.geolocation) return resolve(null);
+        let settled = false;
+        const done = (value) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(fallbackTimer);
+          resolve(value);
+        };
+        const fallbackTimer = setTimeout(() => done(null), 2500);
         navigator.geolocation.getCurrentPosition(
-          (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-          (err) => resolve(null),
-          { timeout: 5000, maximumAge: 60000 }
+          (pos) => done({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => done(null),
+          { timeout: 2000, maximumAge: 60000 }
         );
       });
     }
 
+    function saveGPSForLead(leadId) {
+      if (!leadId) return;
+      getGPS()
+        .then((gps) => {
+          if (!gps) return;
+          return sb.from('leads').update({ lat: gps.lat, lng: gps.lng }).eq('id', leadId);
+        })
+        .then((res) => {
+          if (res?.error) console.warn('GPS save failed:', res.error);
+        })
+        .catch((e) => console.warn('GPS save failed:', e));
+    }
+
     async function submitLead(type) {
-      const gps = await getGPS();
       if (type === 'sold') {
         const amt = parseFloat(document.getElementById('saleAmt').value);
         if (!amt || amt <= 0) { toast('Enter a valid sale amount', 'err'); return; }
+        const contact = validateSoldContact({
+          nameEl: document.getElementById('soldCustName'),
+          phoneEl: document.getElementById('soldCustPhone')
+        });
+        if (!contact) return false;
         const isCombo = document.getElementById('chkCombo').classList.contains('active');
         const isRehash = document.getElementById('chkRehash').classList.contains('active');
         const isSelfGen = document.getElementById('chkSelfGen').classList.contains('active');
@@ -4285,52 +4587,71 @@
           retail_percentage: parseFloat(document.getElementById('retailPct').value) || null,
           commission_percentage: parseFloat(document.getElementById('commPct').value) || null,
           commission_paid: isPaid,
-          notes: document.getElementById('soldNotes').value.trim() || null
+          notes: document.getElementById('soldNotes').value.trim() || null,
+          followup_name: contact.name,
+          followup_phone: contact.phone
         };
 
-        if (gps) {
-          payload.lat = gps.lat;
-          payload.lng = gps.lng;
-        }
         const { data, error } = await sb.from('leads').insert(payload).select().single();
-        if (error) { toast('Error saving lead', 'err'); console.error(error); return false; }
+        if (error) {
+          toast('Save failed: ' + (error.message || 'unknown error'), 'err');
+          console.error('[sold save]', error);
+          return false;
+        }
         lastId = data.id;
+        saveGPSForLead(data.id);
+
+        // Same Supabase path as edit flow: bucket draw-sheets → {user_id}/{lead_id}.{ext}, then leads.draw_sheet_url
+        if (ccDrawPendingFile && data.id) {
+          const { data: auth } = await sb.auth.getUser();
+          const user = auth?.user;
+          if (user) {
+            const res = await uploadDrawSheetFile(ccDrawPendingFile, user.id, data.id);
+            if (res.error) {
+              toast('Sale saved; draw sheet upload failed — add it from History (edit).', 'err');
+            } else {
+              const { error: linkErr } = await sb.from('leads').update({ draw_sheet_url: res.publicUrl }).eq('id', data.id);
+              if (linkErr) console.error(linkErr);
+            }
+          }
+        }
+
         showUndo('Sale of $' + amt.toLocaleString() + ' logged!');
         resetLog();
         return true;
       } else {
         if (!selReason) { toast('Please select a reason', 'err'); return; }
-        const notes = document.getElementById('notNotes').value.trim();
-        const nsDate = document.getElementById('notSoldDate').value || null;
+        const notesEl = document.getElementById('notNotes');
+        const nsDateEl = document.getElementById('notSoldDate');
+        const contact = validateNotSoldRequired({
+          leftAtEl: document.getElementById('notLeftAt'),
+          fuNameEl: document.getElementById('notFuName'),
+          fuPhoneEl: document.getElementById('notFuPhone'),
+          fuDateEl: document.getElementById('notFuDate'),
+          soldAtEl: document.getElementById('saleAmt')
+        });
+        if (!contact) return;
 
-        // Integrated follow-up values
-        const fuName = document.getElementById('notFuName').value.trim();
-        const fuPhone = document.getElementById('notFuPhone').value.trim();
-        const fuDate = document.getElementById('notFuDate').value || null;
+        const notes = notesEl ? notesEl.value.trim() : '';
+        const nsDate = nsDateEl ? nsDateEl.value || null : null;
 
         const payload = {
           status: 'not_sold',
           reason_id: selReason,
           notes: notes || null,
-          sales_date: nsDate
+          sales_date: nsDate,
+          sale_amount: contact.leftAt,
+          followup_date: contact.fuDate,
+          followup_name: contact.fuName,
+          followup_phone: contact.fuPhone,
+          followup_done: false
         };
-
-        if (fuDate) {
-          payload.followup_date = fuDate;
-          payload.followup_name = fuName || 'Customer';
-          payload.followup_phone = fuPhone || null;
-          payload.followup_done = false;
-        }
-
-        if (gps) {
-          payload.lat = gps.lat;
-          payload.lng = gps.lng;
-        }
 
         const { data, error } = await sb.from('leads').insert(payload).select().single();
         if (error) { toast('Error saving lead', 'err'); return; }
         lastId = data.id;
-        showUndo('Not sold lead logged' + (fuDate ? ' + Follow-up scheduled' : ''));
+        saveGPSForLead(data.id);
+        showUndo('Not sold lead logged + Follow-up scheduled');
         resetLog();
       }
     }
@@ -4385,9 +4706,15 @@
       if (typeof filterHist === 'function') filterHist(range, btn, reasonId);
     }
 
+    function toggleHistCard(event, bodyEl) {
+      if (event?.target?.closest('a,button,input,textarea,select,label,[data-no-card-toggle]')) return;
+      bodyEl.closest('.hcard')?.classList.toggle('expanded');
+    }
+
     // ─────────────────────────────────────────
     async function filterHist(range, btn, filterReason = null) {
       window._lastHistArgs = [range, btn, filterReason];
+      window._histRange = range;
       document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
       if (btn) btn.classList.add('active');
       const el = document.getElementById('histList');
@@ -4513,8 +4840,13 @@
     function renderHist(leads) {
       const el = document.getElementById('histList');
       if (!leads.length) { el.innerHTML = '<div class="empty"><div class="ei">📋</div><p>No leads in this range yet</p></div>'; return; }
+      const todayStr = localDate(new Date());
       el.innerHTML = leads.map(l => {
         const sold = l.status === 'sold';
+        const installToday = sold && !l.is_cancelled && l.install_date === todayStr;
+        const installComplete = sold && !l.is_cancelled && !!l.install_date && l.install_date <= todayStr;
+        const custPhone = (l.followup_phone || '').replace(/\D/g, '');
+        const custName = l.followup_name || '';
         // Top-right: show sales_date
         const displayDate = l.sales_date
           ? new Date(l.sales_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -4527,14 +4859,25 @@
         if (l.commission_paid) tags.push('<span style="font-size:9px;font-weight:700;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 5px">COMM PAID</span>');
         if (l.is_cancelled) tags.push('<span style="font-size:9px;font-weight:700;background:#FEE2E2;color:#DC2626;border-radius:4px;padding:1px 5px">CANCELLED</span>');
         if (l.is_btd) tags.push('<span style="font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 5px">BANK TURN DOWN</span>');
+        if (installToday) tags.push('<span style="font-size:9px;font-weight:700;background:#DCFCE7;color:#166534;border-radius:4px;padding:1px 5px">INSTALL TODAY</span>');
         const sub = [];
         if (l.job_number) sub.push('Job #' + l.job_number);
         if (l.install_date) sub.push('Install ' + new Date(l.install_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
         if (l.commission_amount && !l.is_cancelled) sub.push('$' + parseFloat(l.commission_amount).toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' comm');
+        const installCheckStyle = "width:100%;background:linear-gradient(135deg,#F0FDF4,#DCFCE7);border:1.5px solid #86EFAC;color:#166534;border-radius:10px;padding:10px 12px;font-family:'Inter',sans-serif;font-size:12px;font-weight:800;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center";
+        const installSmsHref = installComplete && custPhone.length >= 10
+          ? buildSmsHref(custPhone, buildInstallCheckMsg(custName))
+          : '';
+        const installSmsHrefAttr = installSmsHref.replace(/&/g, '&amp;');
+        const installCheckControl = !installComplete
+          ? ''
+          : installSmsHref
+            ? `<a href="${installSmsHrefAttr}" data-no-card-toggle onclick="event.stopPropagation()" style="${installCheckStyle}">📱 How did the install go?</a>`
+            : `<button data-no-card-toggle onclick="event.stopPropagation(); sendInstallCheckSMS(${JSON.stringify(custPhone)}, ${JSON.stringify(custName)}, ${JSON.stringify(l.id)})" style="${installCheckStyle}">📱 How did the install go?</button>`;
         return `
     <div class="hcard ${sold ? 'sold' : 'ns'}">
       <div class="hcard-ico" onclick="openLeadEdit('${l.id}')" style="cursor:pointer">${sold ? '✅' : '❌'}</div>
-      <div class="hcard-body" onclick="this.closest('.hcard').classList.toggle('expanded')" style="cursor:pointer">
+      <div class="hcard-body" onclick="toggleHistCard(event, this)" style="cursor:pointer">
         <div class="hcard-top">
           <span class="hbadge ${sold ? 'sold' : 'ns'}">${sold ? 'SOLD' : 'NOT SOLD'}</span>
           <span class="hcard-time">${displayDate}</span>
@@ -4547,13 +4890,15 @@
         <div class="hcard-detail">
           ${sub.length ? sub.join(' &nbsp;·&nbsp; ') + '<br>' : ''}
           ${l.notes ? '<strong>Notes:</strong> ' + l.notes + '<br>' : ''}
-          ${!sold && l.draw_sheet_url ? `<div style="margin:6px 0 2px"><button onclick="viewDrawSheet('${l.draw_sheet_url}');event.stopPropagation()" style="background:#EFF6FF;border:1.5px solid #BFDBFE;color:#1D4ED8;border-radius:8px;padding:5px 12px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;cursor:pointer">📋 View Draw Sheet</button></div>` : ''}
+          ${l.draw_sheet_url ? `<div style="margin:6px 0 2px"><button onclick="viewDrawSheet('${l.draw_sheet_url}');event.stopPropagation()" style="background:#EFF6FF;border:1.5px solid #BFDBFE;color:#1D4ED8;border-radius:8px;padding:5px 12px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;cursor:pointer">📋 View Draw Sheet</button></div>` : ''}
+          ${installComplete ? `<div style="margin:8px 0 4px">${installCheckControl}</div>` : ''}
           Tap to collapse
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;align-items:center">
         <button class="edit-btn" onclick="openLeadEdit('${l.id}')">✏️</button>
-        ${sold ? `<button class="edit-btn" onclick="sendReviewSMS(); event.stopPropagation()" style="font-size:12px" title="Request Google Review">⭐</button>` : `<button class="edit-btn" onclick="openFu('${l.id}','${(l.not_sold_reasons?.label || '').replace(/'/g, "\\'")}'); event.stopPropagation()" style="font-size:12px" title="Set Follow-Up">📞</button>`}
+        ${installComplete ? (installSmsHref ? `<a class="edit-btn" href="${installSmsHrefAttr}" data-no-card-toggle onclick="event.stopPropagation()" style="font-size:12px;text-decoration:none" title="How did install go?">🛠️</a>` : `<button class="edit-btn" data-no-card-toggle onclick="event.stopPropagation(); sendInstallCheckSMS(${JSON.stringify(custPhone)}, ${JSON.stringify(custName)}, ${JSON.stringify(l.id)})" style="font-size:12px" title="How did install go?">🛠️</button>`) : ''}
+        ${sold ? `<button class="edit-btn" onclick="event.stopPropagation(); sendReviewSMS()" style="font-size:12px" title="Request Google Review">⭐</button>` : `<button class="edit-btn" onclick="event.stopPropagation(); openFu('${l.id}','${(l.not_sold_reasons?.label || '').replace(/'/g, "\\'")}')" style="font-size:12px" title="Set Follow-Up">📞</button>`}
       </div>
     </div>`;
 
@@ -4570,6 +4915,14 @@
     let esStatus = 'sold';
     let esInitialStatus = 'sold';
     let esSelReason = null;
+
+    /** Removes auto-prepended 📊 quote summary lines so notes edit cleanly and save does not duplicate them. */
+    function stripLeadingQuoteRefNotes(notes) {
+      if (!notes) return '';
+      const lines = notes.split('\n');
+      while (lines.length && /^\s*📊/.test(lines[0])) lines.shift();
+      return lines.join('\n').trim();
+    }
 
     async function openLeadEdit(id) {
       editLeadId = id;
@@ -4588,7 +4941,8 @@
       document.getElementById('esCommAmt').value = l.commission_amount || '';
       document.getElementById('esRetailPct').value = l.retail_percentage || '';
       document.getElementById('esCommPct').value = l.commission_percentage || '';
-      document.getElementById('esNotes').value = l.notes || '';
+      document.getElementById('esNotes').value =
+        l.status === 'not_sold' ? stripLeadingQuoteRefNotes(l.notes || '') : (l.notes || '');
       esIsPaid = l.commission_paid || false;
       document.getElementById('esPaidChk').classList.toggle('on', esIsPaid);
       esCancelled = l.is_cancelled || false;
@@ -4615,6 +4969,22 @@
         esShowDrawPreview(esDrawSheetUrl);
       } else {
         esRemoveDrawSheet();
+      }
+
+      if (l.status === 'not_sold') {
+        document.getElementById('esNsFuName').value = l.followup_name || '';
+        document.getElementById('esNsFuPhone').value = l.followup_phone || '';
+        document.getElementById('esNsFuDate').value = l.followup_date || '';
+        document.getElementById('esNsFuDone').checked = !!l.followup_done;
+        document.getElementById('esSoldCustName').value = '';
+        document.getElementById('esSoldCustPhone').value = '';
+      } else {
+        document.getElementById('esSoldCustName').value = l.followup_name || '';
+        document.getElementById('esSoldCustPhone').value = l.followup_phone || '';
+        document.getElementById('esNsFuName').value = '';
+        document.getElementById('esNsFuPhone').value = '';
+        document.getElementById('esNsFuDate').value = '';
+        document.getElementById('esNsFuDone').checked = false;
       }
 
       // Not-sold reason
@@ -4694,6 +5064,77 @@
     }
 
     let esDrawSheetUrl = null;
+    /** Pending file for new sale — uploaded after insert so storage key matches not-sold edit: {uid}/{lead_id}.{ext} */
+    let ccDrawPendingFile = null;
+    let ccDrawPreviewObjUrl = null;
+    /** Pending draw sheet for Quote Calculator → Not Sold panel (separate from Sold panel state). */
+    let ccNsDrawPendingFile = null;
+    let ccNsDrawPreviewObjUrl = null;
+
+    function ccShowDrawPreview(url) {
+      document.getElementById('ccDrawThumb').src = url;
+      document.getElementById('ccDrawPreview').style.display = 'block';
+      document.getElementById('ccDrawBtn').style.display = 'none';
+    }
+
+    function ccRemoveDrawSheet() {
+      if (ccDrawPreviewObjUrl) {
+        URL.revokeObjectURL(ccDrawPreviewObjUrl);
+        ccDrawPreviewObjUrl = null;
+      }
+      ccDrawPendingFile = null;
+      document.getElementById('ccDrawThumb').src = '';
+      document.getElementById('ccDrawPreview').style.display = 'none';
+      document.getElementById('ccDrawBtn').style.display = 'block';
+      const fin = document.getElementById('ccDrawFile');
+      if (fin) fin.value = '';
+    }
+
+    function ccOnDrawFileSelected(input) {
+      const file = input.files[0];
+      if (!file) return;
+      if (ccDrawPreviewObjUrl) {
+        URL.revokeObjectURL(ccDrawPreviewObjUrl);
+        ccDrawPreviewObjUrl = null;
+      }
+      ccDrawPendingFile = file;
+      ccDrawPreviewObjUrl = URL.createObjectURL(file);
+      ccShowDrawPreview(ccDrawPreviewObjUrl);
+    }
+
+    function ccNsShowDrawPreview(url) {
+      document.getElementById('ccNsDrawThumb').src = url;
+      document.getElementById('ccNsDrawPreview').style.display = 'block';
+      document.getElementById('ccNsDrawBtn').style.display = 'none';
+    }
+
+    function ccNsRemoveDrawSheet() {
+      if (ccNsDrawPreviewObjUrl) {
+        URL.revokeObjectURL(ccNsDrawPreviewObjUrl);
+        ccNsDrawPreviewObjUrl = null;
+      }
+      ccNsDrawPendingFile = null;
+      const thumb = document.getElementById('ccNsDrawThumb');
+      const prev = document.getElementById('ccNsDrawPreview');
+      const btn = document.getElementById('ccNsDrawBtn');
+      const fin = document.getElementById('ccNsDrawFile');
+      if (thumb) thumb.src = '';
+      if (prev) prev.style.display = 'none';
+      if (btn) btn.style.display = 'block';
+      if (fin) fin.value = '';
+    }
+
+    function ccNsOnDrawFileSelected(input) {
+      const file = input.files[0];
+      if (!file) return;
+      if (ccNsDrawPreviewObjUrl) {
+        URL.revokeObjectURL(ccNsDrawPreviewObjUrl);
+        ccNsDrawPreviewObjUrl = null;
+      }
+      ccNsDrawPendingFile = file;
+      ccNsDrawPreviewObjUrl = URL.createObjectURL(file);
+      ccNsShowDrawPreview(ccNsDrawPreviewObjUrl);
+    }
 
     function esShowDrawPreview(url) {
       document.getElementById('esDrawThumb').src = url;
@@ -4727,6 +5168,17 @@
       });
     }
 
+    /** Storage bucket `draw-sheets`, object path `{userId}/{leadId}.{jpg|pdf}` — same as original not-sold edit feature. */
+    async function uploadDrawSheetFile(file, userId, leadIdForPath) {
+      const compressed = await compressImage(file, 1200, 0.70);
+      const ext = file.type === 'application/pdf' ? 'pdf' : 'jpg';
+      const path = `${userId}/${leadIdForPath}.${ext}`;
+      const { error } = await sb.storage.from('draw-sheets').upload(path, compressed, { upsert: true, contentType: ext === 'pdf' ? 'application/pdf' : 'image/jpeg' });
+      if (error) return { error };
+      const { data: { publicUrl } } = sb.storage.from('draw-sheets').getPublicUrl(path);
+      return { publicUrl };
+    }
+
     async function esHandleDrawUpload(input) {
       const file = input.files[0];
       if (!file) return;
@@ -4734,16 +5186,14 @@
       document.getElementById('esDrawBtn').style.display = 'none';
       try {
         const { data: { user } } = await sb.auth.getUser();
-        const compressed = await compressImage(file, 1200, 0.70);
-        const ext = file.type === 'application/pdf' ? 'pdf' : 'jpg';
-        const path = `${user.id}/${editLeadId}.${ext}`;
-        const { error } = await sb.storage.from('draw-sheets').upload(path, compressed, { upsert: true, contentType: ext === 'pdf' ? 'application/pdf' : 'image/jpeg' });
-        if (error) { toast('Upload failed: ' + error.message, 'err'); document.getElementById('esDrawBtn').style.display = 'block'; return; }
-        const { data: { publicUrl } } = sb.storage.from('draw-sheets').getPublicUrl(path);
-        esDrawSheetUrl = publicUrl;
-        esShowDrawPreview(publicUrl);
+        if (!user) { toast('Sign in to upload', 'err'); document.getElementById('esDrawBtn').style.display = 'block'; return; }
+        const idPart = editLeadId || crypto.randomUUID();
+        const res = await uploadDrawSheetFile(file, user.id, idPart);
+        if (res.error) { toast('Upload failed: ' + res.error.message, 'err'); document.getElementById('esDrawBtn').style.display = 'block'; return; }
+        esDrawSheetUrl = res.publicUrl;
+        esShowDrawPreview(res.publicUrl);
         toast('Draw sheet uploaded ✓', 'ok');
-      } catch(e) {
+      } catch (e) {
         toast('Upload failed', 'err');
         document.getElementById('esDrawBtn').style.display = 'block';
       } finally {
@@ -4787,6 +5237,11 @@
       if (esStatus === 'sold') {
         const amt = parseFloat(document.getElementById('esSaleAmt').value);
         if (!amt || amt <= 0) { toast('Enter a valid sale amount', 'err'); return; }
+        const contact = validateSoldContact({
+          nameEl: document.getElementById('esSoldCustName'),
+          phoneEl: document.getElementById('esSoldCustPhone')
+        });
+        if (!contact) return;
         payload.sale_amount = amt;
         payload.sale_type = document.getElementById('esChkCombo').classList.contains('active') ? 'combo' : 'single';
         const isRehash = document.getElementById('esChkRehash').classList.contains('active');
@@ -4802,6 +5257,8 @@
         payload.is_cancelled = esCancelled;
         payload.is_btd = esBtd;
         payload.reason_id = null;
+        payload.followup_name = contact.name;
+        payload.followup_phone = contact.phone;
         // If cancelled, wipe install date & commission so it drops off the commissions page
         if (esCancelled) {
           payload.install_date = null;
@@ -4810,40 +5267,60 @@
         }
       } else {
         if (!esSelReason) { toast('Select a reason', 'err'); return; }
+        const contact = validateNotSoldRequired({
+          leftAtEl: document.getElementById('esNsLeftAt'),
+          fuNameEl: document.getElementById('esNsFuName'),
+          fuPhoneEl: document.getElementById('esNsFuPhone'),
+          fuDateEl: document.getElementById('esNsFuDate')
+        });
+        if (!contact) return;
+
         payload.reason_id = esSelReason;
         payload.sales_date = document.getElementById('esNsDate').value || null;
         const nsRetail = parseFloat(document.getElementById('esNsRetail').value) || null;
-        const nsLeftAt = parseFloat(document.getElementById('esNsLeftAt').value) || null;
-        payload.sale_amount = nsLeftAt;
+        payload.sale_amount = contact.leftAt;
         payload.retail_price = nsRetail;
+        payload.par_price = nsRetail ? Math.round(nsRetail * 0.65 * 100) / 100 : null;
         payload.draw_sheet_url = esDrawSheetUrl || null;
         payload.commission_amount = null;
         payload.commission_paid = false;
+
+        payload.followup_date = contact.fuDate;
+        payload.followup_phone = contact.fuPhone;
+        payload.followup_name = contact.fuName;
+        payload.followup_done = document.getElementById('esNsFuDone').checked;
+
         // Build quote reference line for notes
-        const baseNotes = document.getElementById('esNotes').value.trim();
+        const baseNotes = stripLeadingQuoteRefNotes(document.getElementById('esNotes').value.trim());
         let quoteRef = '';
-        if (nsRetail || nsLeftAt) {
+        if (nsRetail || contact.leftAt) {
           const par = nsRetail ? (nsRetail * 0.65) : null;
           const parts = [];
           if (nsRetail) parts.push(`Retail: $${nsRetail.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
           if (par) parts.push(`Par: $${par.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-          if (nsLeftAt) parts.push(`Left at: $${nsLeftAt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+          if (contact.leftAt) parts.push(`Left at: $${contact.leftAt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
           quoteRef = '📊 ' + parts.join(' | ');
         }
         payload.notes = [quoteRef, baseNotes].filter(Boolean).join('\n') || null;
-        return (async () => {
-          const { error } = await sb.from('leads').update(payload).eq('id', editLeadId);
-          if (error) { toast('Error saving', 'err'); console.error(error); return; }
-          toast('Lead updated ✓', 'ok');
-          document.getElementById('editOverlay').classList.remove('open');
-          editLeadId = null;
-          if (document.getElementById('n-hist').classList.contains('active')) {
-            const isFu = document.querySelectorAll('.htab')[1].classList.contains('active');
-            if (isFu) loadFollowUps();
-            else if (window._lastHistArgs) filterHist(...window._lastHistArgs);
-            else document.querySelector('.ftab.active')?.click();
-          } else if (document.getElementById('n-dash').classList.contains('active')) loadDash();
-        })();
+
+        let { error } = await sb.from('leads').update(payload).eq('id', editLeadId);
+        if (error && ((error.message || '').includes('par_price') || (error.message || '').includes('retail_price'))) {
+          const fallback = { ...payload };
+          delete fallback.par_price;
+          delete fallback.retail_price;
+          ({ error } = await sb.from('leads').update(fallback).eq('id', editLeadId));
+        }
+        if (error) { toast('Error saving', 'err'); console.error(error); return; }
+        toast('Lead updated ✓', 'ok');
+        document.getElementById('editOverlay').classList.remove('open');
+        editLeadId = null;
+        if (document.getElementById('n-hist').classList.contains('active')) {
+          const isFu = document.querySelectorAll('.htab')[1].classList.contains('active');
+          if (isFu) loadFollowUps();
+          else if (window._lastHistArgs) filterHist(...window._lastHistArgs);
+          else document.querySelector('.ftab.active')?.click();
+        } else if (document.getElementById('n-dash').classList.contains('active')) loadDash();
+        return;
       }
       payload.notes = document.getElementById('esNotes').value.trim() || null;
       const { error } = await sb.from('leads').update(payload).eq('id', editLeadId);
@@ -4913,6 +5390,7 @@
     // SETTINGS
     // ─────────────────────────────────────────
     async function loadSettings() {
+      await loadRepProfile();
       loadBaselines();
       loadQuoteSettings();
       await loadReasons();
@@ -5091,7 +5569,7 @@
 
       const { data: leads, error } = await sb
         .from('leads')
-        .select('id,job_number,install_date,commission_amount,commission_paid,is_cancelled')
+        .select('id,job_number,install_date,sale_amount,commission_amount,commission_paid,retail_percentage,commission_percentage,is_cancelled')
         .eq('status', 'sold')
         .neq('is_cancelled', true)
         .not('install_date', 'is', null)
@@ -5105,19 +5583,34 @@
       const fmtMoney = v => '$' + parseFloat(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const fmt = d => d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
       const fmtShort = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const fmtPct = v => v != null ? parseFloat(v).toFixed(1) + '%' : '—';
+      const avgField = (arr, field) => {
+        const vals = arr.map(l => parseFloat(l[field])).filter(v => !isNaN(v));
+        return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+      };
 
       // Totals
       const totalPaid = leads.filter(l => l.commission_paid).reduce((s, l) => s + (parseFloat(l.commission_amount) || 0), 0);
       const totalDue  = leads.filter(l => !l.commission_paid).reduce((s, l) => s + (parseFloat(l.commission_amount) || 0), 0);
       const avgPerDeal = leads.length ? (totalPaid + totalDue) / leads.length : 0;
+      const avgRetailPct = avgField(leads, 'retail_percentage');
+      const avgCommPct = avgField(leads, 'commission_percentage');
+      const retailPctCount = leads.filter(l => l.retail_percentage != null && !isNaN(parseFloat(l.retail_percentage))).length;
+      const commPctCount = leads.filter(l => l.commission_percentage != null && !isNaN(parseFloat(l.commission_percentage))).length;
 
-      // Group into paid weeks
+      const fmtInstall = s => new Date(s + 'T12:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+
+      // Group into paid weeks (keep lead list for drill-down)
       const paidWeeks = {};
       leads.filter(l => l.commission_paid).forEach(l => {
         const w = weekKey(l.install_date);
-        if (!paidWeeks[w.key]) paidWeeks[w.key] = { start: w.start, end: w.end, total: 0, jobs: 0 };
+        if (!paidWeeks[w.key]) paidWeeks[w.key] = { start: w.start, end: w.end, total: 0, jobs: 0, leads: [] };
         paidWeeks[w.key].total += parseFloat(l.commission_amount) || 0;
         paidWeeks[w.key].jobs++;
+        paidWeeks[w.key].leads.push(l);
+      });
+      Object.values(paidWeeks).forEach(w => {
+        w.leads.sort((a, b) => (b.install_date || '').localeCompare(a.install_date || ''));
       });
 
       const sortedWeeks = Object.keys(paidWeeks).sort().reverse();
@@ -5145,23 +5638,47 @@
           <div style="font-size:18px;font-weight:800;color:var(--text)">${fmtMoney(avgPerDeal)}</div>
           <div style="font-size:10px;color:var(--muted);margin-top:2px">${leads.length} deals total</div>
         </div>
+        <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Avg Retail %</div>
+          <div style="font-size:18px;font-weight:800;color:var(--text)">${fmtPct(avgRetailPct)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${retailPctCount ? retailPctCount + ' of ' + leads.length + ' deals' : 'no retail % logged'}</div>
+        </div>
+        <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Avg Comm %</div>
+          <div style="font-size:18px;font-weight:800;color:var(--text)">${fmtPct(avgCommPct)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${commPctCount ? commPctCount + ' of ' + leads.length + ' deals' : 'no comm % logged'}</div>
+        </div>
       </div>`;
 
       if (sortedWeeks.length) {
-        html += `<div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Weekly Paychecks</div>`;
+        html += `<div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Weekly Paychecks <span style="font-weight:500;text-transform:none">(tap a week for leads)</span></div>`;
         html += `<div style="background:#fff;border:1.5px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px">`;
-        html += `<div style="display:grid;grid-template-columns:1fr auto auto;padding:7px 14px 5px;font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.5px;border-bottom:1px solid #F3F4F6"><span>WEEK</span><span style="text-align:center;padding:0 12px">DEALS</span><span style="text-align:right">PAYCHECK</span></div>`;
+        html += `<div style="display:grid;grid-template-columns:1fr auto auto auto;padding:7px 14px 5px;font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.5px;border-bottom:1px solid #F3F4F6"><span>WEEK</span><span style="text-align:center;padding:0 12px">DEALS</span><span style="text-align:right">PAYCHECK</span><span style="width:18px"></span></div>`;
         sortedWeeks.forEach((key, i) => {
           const w = paidWeeks[key];
           const isTop4 = i < 4;
+          const safeKey = key.replace(/[^a-zA-Z0-9-]/g, '');
           html += `
-          <div style="display:grid;grid-template-columns:1fr auto auto;padding:11px 14px;border-bottom:1px solid #F9FAFB;align-items:center${isTop4 ? ';background:#FAFFF7' : ''}">
+          <div onclick="toggleCommSummaryWeek('${safeKey}')" style="display:grid;grid-template-columns:1fr auto auto auto;padding:11px 14px;border-bottom:1px solid #F9FAFB;align-items:center;cursor:pointer${isTop4 ? ';background:#FAFFF7' : ''}">
             <div>
               <div style="font-size:12px;font-weight:700;color:var(--text)">${fmtShort(w.start)} – ${fmtShort(w.end)}</div>
               ${isTop4 ? '<div style="font-size:9px;color:var(--green-dark);font-weight:700">IN 4-WK AVG</div>' : ''}
             </div>
             <span style="font-size:13px;color:var(--muted);text-align:center;padding:0 12px">${w.jobs}</span>
             <span style="font-size:14px;font-weight:800;color:var(--green-dark);text-align:right">${fmtMoney(w.total)}</span>
+            <span id="csWeekChev-${safeKey}" style="font-size:10px;color:var(--muted);text-align:center;width:18px">▶</span>
+          </div>
+          <div id="csWeekDetail-${safeKey}" style="display:none;border-bottom:1px solid #F3F4F6;background:#F9FAFB">
+            <div style="display:grid;grid-template-columns:88px 1fr 72px 80px;padding:6px 12px 4px;font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.4px">
+              <span>INSTALL</span><span>JOB #</span><span style="text-align:right">SALE</span><span style="text-align:right">COMM</span>
+            </div>
+            ${w.leads.map(j => `
+            <div style="display:grid;grid-template-columns:88px 1fr 72px 80px;padding:9px 12px;border-top:1px solid #F3F4F6;align-items:center">
+              <span style="font-size:12px;color:var(--muted)">${fmtInstall(j.install_date)}</span>
+              <span onclick="event.stopPropagation();openLeadEdit('${j.id}')" style="font-size:12px;font-weight:700;color:var(--green-dark);text-decoration:underline;text-underline-offset:2px;cursor:pointer">${j.job_number || '<span style="color:var(--muted);font-weight:400;text-decoration:none">tap to edit</span>'}</span>
+              <span style="font-size:12px;font-weight:600;text-align:right;color:var(--text)">${j.sale_amount ? fmtMoney(j.sale_amount) : '—'}</span>
+              <span style="font-size:12px;font-weight:700;text-align:right;color:var(--green-dark)">${fmtMoney(j.commission_amount)}</span>
+            </div>`).join('')}
           </div>`;
         });
         html += `</div>`;
@@ -5170,6 +5687,15 @@
       }
 
       el.innerHTML = html;
+    }
+
+    function toggleCommSummaryWeek(safeKey) {
+      const detail = document.getElementById('csWeekDetail-' + safeKey);
+      const chev = document.getElementById('csWeekChev-' + safeKey);
+      if (!detail) return;
+      const open = detail.style.display !== 'none';
+      detail.style.display = open ? 'none' : 'block';
+      if (chev) chev.textContent = open ? '▶' : '▼';
     }
 
     async function exportCommPDF() {
@@ -5707,16 +6233,74 @@
     // ─────────────────────────────────────────
     // IN-CALC LOG HELPERS
     // ─────────────────────────────────────────
+    /** Required on every sold log: customer name and phone. */
+    function validateSoldContact({ nameEl, phoneEl }) {
+      const name = (nameEl?.value || '').trim();
+      const phone = (phoneEl?.value || '').trim().replace(/\D/g, '');
+      const checks = [
+        { ok: !!name, msg: 'Enter customer name', el: nameEl },
+        { ok: phone.length >= 10, msg: 'Enter a valid phone number (10 digits)', el: phoneEl }
+      ];
+      const fail = checks.find(c => !c.ok);
+      if (fail) {
+        toast(fail.msg, 'err');
+        if (fail.el) {
+          fail.el.focus();
+          fail.el.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+        }
+        return null;
+      }
+      return { name, phone };
+    }
+
+    /** Required on every not-sold log: last price, customer name, phone, follow-up date. */
+    function validateNotSoldRequired({ leftAtEl, fuNameEl, fuPhoneEl, fuDateEl, soldAtEl }) {
+      const leftAt = parseFloat(leftAtEl?.value) ||
+        parseFloat(soldAtEl?.value) || null;
+      const fuName = (fuNameEl?.value || '').trim();
+      const fuPhone = (fuPhoneEl?.value || '').trim().replace(/\D/g, '');
+      const fuDate = fuDateEl?.value || '';
+
+      const checks = [
+        { ok: leftAt > 0, msg: 'Enter last price given', el: leftAtEl || soldAtEl },
+        { ok: !!fuName, msg: 'Enter customer name', el: fuNameEl },
+        { ok: fuPhone.length >= 10, msg: 'Enter a valid phone number (10 digits)', el: fuPhoneEl },
+        { ok: !!fuDate, msg: 'Select a follow-up date', el: fuDateEl }
+      ];
+      const fail = checks.find(c => !c.ok);
+      if (fail) {
+        toast(fail.msg, 'err');
+        if (fail.el) {
+          fail.el.focus();
+          fail.el.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+        }
+        return null;
+      }
+      return { leftAt, fuName, fuPhone, fuDate };
+    }
+
     function ccSetOutcome(type) {
       const soldPanel = document.getElementById('ccSoldPanel');
       const notPanel  = document.getElementById('ccNotPanel');
       const soldBtn   = document.getElementById('ccOutcomeSold');
       const notBtn    = document.getElementById('ccOutcomeNot');
       const esBody    = document.querySelector('#quoteCalcSheet .es-body');
-      
+      const outcomeRow = document.getElementById('ccOutcomeBtnRow');
+      const switchSale = document.getElementById('ccSwitchToSaleWrap');
+      const heading = document.getElementById('ccLogOutcomeHeading');
+
       // Expand padding when picking an outcome so it doesn't get hidden behind footer
       esBody.style.paddingBottom = type === 'sold' ? '640px' : '720px';
-      
+
+      // After choosing not sold, hide SALE/NO SALE toggles (already committed); offer one link to switch back
+      if (outcomeRow) outcomeRow.style.display = type === 'not_sold' ? 'none' : 'flex';
+      if (switchSale) switchSale.style.display = type === 'not_sold' ? 'block' : 'none';
+      if (heading) {
+        heading.textContent = type === 'not_sold'
+          ? '📝 Not sold — name, phone, price & follow-up required'
+          : '📝 Sale — customer name & phone required';
+      }
+
       if (type === 'sold') {
         soldPanel.style.display = '';
         notPanel.style.display  = 'none';
@@ -5726,6 +6310,10 @@
         notBtn.style.background = '#fff';
         notBtn.style.color = '#E53935';
         notBtn.style.borderColor = '#E53935';
+        setTimeout(() => {
+          const nameEl = document.getElementById('soldCustName');
+          if (nameEl && !nameEl.value) nameEl.focus();
+        }, 120);
       } else {
         soldPanel.style.display  = 'none';
         notPanel.style.display   = '';
@@ -5735,12 +6323,24 @@
         notBtn.style.background  = '#E53935';
         notBtn.style.color = '#fff';
         notBtn.style.borderColor = '#E53935';
-        
+
         // auto-fill last price given from Sold At field
         const soldAt = document.getElementById('qcSoldAt').value;
         const leftAtEl = document.getElementById('ccNotLeftAt');
         if (soldAt && !leftAtEl.value) leftAtEl.value = soldAt;
         buildCcReasonList();
+        // Default follow-up to tomorrow if blank
+        const fuDateEl = document.getElementById('ccNotFuDate');
+        if (fuDateEl && !fuDateEl.value) {
+          const d = new Date();
+          d.setDate(d.getDate() + 1);
+          fuDateEl.value = localDate(d);
+        }
+        setTimeout(() => {
+          const nameEl = document.getElementById('ccNotFuName');
+          if (nameEl && !nameEl.value) nameEl.focus();
+          else document.getElementById('ccNotContactBlock')?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+        }, 120);
       }
     }
 
@@ -5763,6 +6363,8 @@
       document.getElementById('ccNotFuName').value = '';
       document.getElementById('ccNotFuPhone').value = '';
       document.getElementById('ccNotFuDate').value = '';
+      if (document.getElementById('soldCustName')) document.getElementById('soldCustName').value = '';
+      if (document.getElementById('soldCustPhone')) document.getElementById('soldCustPhone').value = '';
       selCcReason = null;
       // Restore hidden rows so they appear fresh on next no-sale entry
       const _pr = document.getElementById('ccNotPriceRow');
@@ -5784,6 +6386,8 @@
         notBtn.style.background = '#fff';
         notBtn.style.color = '#E53935';
       }
+      ccRemoveDrawSheet();
+      ccNsRemoveDrawSheet();
     }
 
     function buildCcReasonList() {
@@ -5830,23 +6434,32 @@
            document.getElementById('commAmt').value = commTotal.toFixed(2);
         }
 
-        const ok = await submitLead('sold');
-        if (ok) {
-          document.getElementById('quoteCalcOverlay').classList.remove('open');
-          ccResetLogPanel();
-          document.getElementById('ccSoldPanel').style.display = 'none';
-          document.getElementById('ccOutcomeSold').style.background = '#fff';
-          document.getElementById('ccOutcomeSold').style.color = 'var(--green)';
+        try {
+          const ok = await submitLead('sold');
+          if (ok) {
+            document.getElementById('quoteCalcOverlay').classList.remove('open');
+            ccResetLogPanel();
+            document.getElementById('ccSoldPanel').style.display = 'none';
+            document.getElementById('ccOutcomeSold').style.background = '#fff';
+            document.getElementById('ccOutcomeSold').style.color = 'var(--green)';
+          }
+        } catch (e) {
+          console.error('[sold save]', e);
+          toast('Save failed: ' + (e?.message || 'unknown error'), 'err');
         }
       } else {
         if (!selCcReason) { toast('Please select a reason', 'err'); return; }
+        const contact = validateNotSoldRequired({
+          leftAtEl: document.getElementById('ccNotLeftAt'),
+          fuNameEl: document.getElementById('ccNotFuName'),
+          fuPhoneEl: document.getElementById('ccNotFuPhone'),
+          fuDateEl: document.getElementById('ccNotFuDate'),
+          soldAtEl: document.getElementById('qcSoldAt')
+        });
+        if (!contact) return;
+
         const notes   = document.getElementById('ccNotNotes').value.trim();
         const nsDate  = document.getElementById('ccNotSoldDate').value || null;
-        const leftAt = parseFloat(document.getElementById('qcSoldAt').value) ||
-                       parseFloat(document.getElementById('ccNotLeftAt').value) || null;
-        const fuName  = document.getElementById('ccNotFuName').value.trim();
-        const fuPhone = document.getElementById('ccNotFuPhone').value.trim();
-        const fuDate  = document.getElementById('ccNotFuDate').value || null;
         
         const retailVal = parseFloat(document.getElementById('qcRetailHidden').value) || null;
         const parVal    = parseFloat(document.getElementById('qcParHidden').value) || null;
@@ -5856,16 +6469,14 @@
           reason_id: selCcReason,
           notes: notes || null,
           sales_date: nsDate,
-          sale_amount: leftAt,
+          sale_amount: contact.leftAt,
           retail_price: retailVal,
-          par_price: parVal
+          par_price: parVal,
+          followup_date: contact.fuDate,
+          followup_name: contact.fuName,
+          followup_phone: contact.fuPhone,
+          followup_done: false
         };
-        if (fuDate) {
-          payload.followup_date = fuDate;
-          payload.followup_name = fuName || 'Customer';
-          payload.followup_phone = fuPhone || null;
-          payload.followup_done = false;
-        }
         let { data, error } = await sb.from('leads').insert(payload).select().single();
         if (error && (error.message || '').includes('retail_price') || (error && (error.message || '').includes('par_price'))) {
           const fallback = { ...payload };
@@ -5879,8 +6490,23 @@
           return;
         }
         lastId = data.id;
+
+        if (ccNsDrawPendingFile && data.id) {
+          const { data: auth } = await sb.auth.getUser();
+          const user = auth?.user;
+          if (user) {
+            const res = await uploadDrawSheetFile(ccNsDrawPendingFile, user.id, data.id);
+            if (res.error) {
+              toast('Lead saved; draw sheet upload failed — add it from History (edit).', 'err');
+            } else {
+              const { error: linkErr } = await sb.from('leads').update({ draw_sheet_url: res.publicUrl }).eq('id', data.id);
+              if (linkErr) console.error(linkErr);
+            }
+          }
+        }
+
         document.getElementById('quoteCalcOverlay').classList.remove('open');
-        showUndo('Not sold lead logged' + (fuDate ? ' + Follow-up scheduled' : ''));
+        showUndo('Not sold lead logged + Follow-up scheduled');
         ccResetLogPanel();
         document.getElementById('ccNotPanel').style.display = 'none';
         document.getElementById('ccOutcomeNot').style.background = '#fff';
@@ -6184,7 +6810,7 @@
     }
 
     function sendBizCardSMS() {
-      window.open('sms:?body=' + encodeURIComponent(_bizCardText));
+      openSmsComposer('', _bizCardText);
     }
 
     function copyBizCard() {
