@@ -2795,7 +2795,7 @@
               <label class="fl">Reason</label>
               <div class="rl" id="ccReasonList"></div>
             </div>
-            <div class="fg2" style="margin-bottom:8px">
+            <div id="ccNotPriceRow" class="fg2" style="margin-bottom:8px">
               <div>
                 <label class="fl">Last Price Given $</label>
                 <input type="number" class="fi" id="ccNotLeftAt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px">
@@ -2813,7 +2813,7 @@
               <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
                 📞 Quick Follow-Up <span style="font-weight:400;text-transform:none">(optional)</span>
               </div>
-              <div class="fg2" style="margin-bottom:8px">
+              <div id="ccNotContactRow" class="fg2" style="margin-bottom:8px">
                 <div>
                   <label class="fl" style="font-size:10px">Customer First Name</label>
                   <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px">
@@ -5764,6 +5764,11 @@
       document.getElementById('ccNotFuPhone').value = '';
       document.getElementById('ccNotFuDate').value = '';
       selCcReason = null;
+      // Restore hidden rows so they appear fresh on next no-sale entry
+      const _pr = document.getElementById('ccNotPriceRow');
+      const _cr = document.getElementById('ccNotContactRow');
+      if (_pr) _pr.style.display = '';
+      if (_cr) _cr.style.display = '';
       document.querySelectorAll('#ccReasonList .ro').forEach(r => r.classList.remove('sel'));
       if (document.getElementById('qcSoldAt')) document.getElementById('qcSoldAt').value = '';
       if (document.getElementById('qcFinPlan')) document.getElementById('qcFinPlan').value = '';
@@ -5796,6 +5801,21 @@
       document.querySelectorAll('#ccReasonList .ro').forEach(r => r.classList.remove('sel'));
       document.getElementById('ccro-' + id)?.classList.add('sel');
       selCcReason = id;
+
+      // Hide price/contact fields for reasons where there was no customer interaction
+      const reasonObj = reasons.find(r => String(r.id) === String(id));
+      const label = (reasonObj?.label || '').toLowerCase();
+      const isNoContact = label.includes('not home') || label.includes('no demo') || label.includes('no one home');
+      const priceRow   = document.getElementById('ccNotPriceRow');
+      const contactRow = document.getElementById('ccNotContactRow');
+      if (priceRow)   priceRow.style.display   = isNoContact ? 'none' : '';
+      if (contactRow) contactRow.style.display = isNoContact ? 'none' : '';
+      // Clear those fields when hidden so stale data isn't submitted
+      if (isNoContact) {
+        document.getElementById('ccNotLeftAt').value  = '';
+        document.getElementById('ccNotFuName').value  = '';
+        document.getElementById('ccNotFuPhone').value = '';
+      }
     }
 
     async function submitLeadFromCalc(type) {
