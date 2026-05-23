@@ -1044,6 +1044,18 @@
       border-color: var(--green)
     }
 
+    .fi-error {
+      border-color: #EF4444 !important;
+      background: #FEF2F2 !important;
+      animation: shake .25s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25%       { transform: translateX(-4px); }
+      75%       { transform: translateX(4px); }
+    }
+
     textarea.fi {
       resize: none;
       height: 80px;
@@ -2886,7 +2898,7 @@
             <div id="ccNotPriceRow" class="fg2" style="margin-bottom:8px">
               <div>
                 <label class="fl">Last Price Given $ <span style="color:#E53935">*</span></label>
-                <input type="number" class="fi" id="ccNotLeftAt" placeholder="0.00" inputmode="decimal" step="0.01" required style="font-size:14px;padding:11px 13px">
+                <input type="number" class="fi" id="ccNotLeftAt" placeholder="0.00" inputmode="decimal" step="0.01" required style="font-size:14px;padding:11px 13px" oninput="this.classList.remove('fi-error')">
               </div>
               <div>
                 <label class="fl">Visit Date</label>
@@ -2916,37 +2928,36 @@
               <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
               <textarea class="fi" id="ccNotNotes" placeholder="e.g. Call back in spring, left card..."></textarea>
             </div>
-            <div style="background:#F9FAFB;border:1.5px dashed var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
+            <div id="ccFollowUpBox" style="background:#F9FAFB;border:1.5px dashed var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
               <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
-                📞 Quick Follow-Up <span style="font-weight:400;text-transform:none">(optional)</span>
+                📞 Quick Follow-Up <span style="font-weight:400;text-transform:none">(required)</span>
               </div>
               <div id="ccNotContactRow" class="fg2" style="margin-bottom:8px">
                 <div>
                   <label class="fl" style="font-size:10px">Customer First Name</label>
-                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px">
+                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px" oninput="this.classList.remove('fi-error')">
                 </div>
                 <div>
                   <label class="fl" style="font-size:10px">Phone Number</label>
-                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555..." style="padding:8px 10px;font-size:12px">
+                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555..." style="padding:8px 10px;font-size:12px" oninput="this.classList.remove('fi-error')">
                 </div>
               </div>
               <div class="fg" style="margin-bottom:0">
                 <label class="fl" style="font-size:10px">Follow-Up Date</label>
-                <input type="date" class="fi" id="ccNotFuDate" style="padding:8px 10px;font-size:12px">
+                <input type="date" class="fi" id="ccNotFuDate" style="padding:8px 10px;font-size:12px" oninput="this.classList.remove('fi-error')">
               </div>
+            </div>
+            <div id="ccDrawSheetBox" class="fg" style="margin-bottom:12px">
+              <label class="fl">📋 Draw Sheet <span id="ccDrawSheetReqLabel" style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <input type="file" id="ccNsDrawFile" accept="image/*,application/pdf" style="display:none" onchange="ccNsOnDrawFileSelected(this)">
+              <div id="ccNsDrawPreview" style="display:none;margin-bottom:8px;position:relative">
+                <img id="ccNsDrawThumb" src="" style="width:100%;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;max-height:180px;object-fit:cover" onclick="viewDrawSheet(document.getElementById('ccNsDrawThumb').src)">
+                <button type="button" onclick="ccNsRemoveDrawSheet()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer">Remove</button>
               </div>
-              <div class="fg" style="margin-bottom:12px">
-                <label class="fl">📋 Draw Sheet <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-                <input type="file" id="ccNsDrawFile" accept="image/*,application/pdf" style="display:none" onchange="ccNsOnDrawFileSelected(this)">
-                <div id="ccNsDrawPreview" style="display:none;margin-bottom:8px;position:relative">
-                  <img id="ccNsDrawThumb" src="" style="width:100%;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;max-height:180px;object-fit:cover" onclick="viewDrawSheet(document.getElementById('ccNsDrawThumb').src)">
-                  <button type="button" onclick="ccNsRemoveDrawSheet()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer">Remove</button>
-                </div>
-                <button type="button" id="ccNsDrawBtn" onclick="document.getElementById('ccNsDrawFile').click()"
-                  style="width:100%;background:#F9FAFB;border:1.5px dashed var(--border);border-radius:10px;padding:11px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">
-                  📸 Upload Draw Sheet
-                </button>
-              </div>
+              <button type="button" id="ccNsDrawBtn" onclick="document.getElementById('ccNsDrawFile').click()"
+                style="width:100%;background:#F9FAFB;border:1.5px dashed var(--border);border-radius:10px;padding:11px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">
+                📸 Upload Draw Sheet
+              </button>
             </div>
             <button class="sbtn ns" onclick="submitLeadFromCalc('not_sold')">❌ Log Not Sold</button>
           </div>
@@ -5134,6 +5145,11 @@
       ccNsDrawPendingFile = file;
       ccNsDrawPreviewObjUrl = URL.createObjectURL(file);
       ccNsShowDrawPreview(ccNsDrawPreviewObjUrl);
+      // Clear error highlight once file is chosen
+      const drawBtn = document.getElementById('ccNsDrawBtn');
+      const drawBox = document.getElementById('ccDrawSheetBox');
+      if (drawBtn) { drawBtn.style.borderColor = ''; drawBtn.style.background = ''; }
+      if (drawBox) drawBox.style.outline = '';
     }
 
     function esShowDrawPreview(url) {
@@ -6254,6 +6270,16 @@
     }
 
     /** Required on every not-sold log: last price, customer name, phone, follow-up date. */
+    function clearFieldErrors() {
+      document.querySelectorAll('.fi-error').forEach(el => el.classList.remove('fi-error'));
+      const drawBtn = document.getElementById('ccNsDrawBtn');
+      const drawBox = document.getElementById('ccDrawSheetBox');
+      if (drawBtn) { drawBtn.style.borderColor = ''; drawBtn.style.background = ''; }
+      if (drawBox) drawBox.style.outline = '';
+      const fuBox = document.getElementById('ccFollowUpBox');
+      if (fuBox) fuBox.style.outline = '';
+    }
+
     function validateNotSoldRequired({ leftAtEl, fuNameEl, fuPhoneEl, fuDateEl, soldAtEl }) {
       const leftAt = parseFloat(leftAtEl?.value) ||
         parseFloat(soldAtEl?.value) || null;
@@ -6261,30 +6287,53 @@
       const fuPhone = (fuPhoneEl?.value || '').trim().replace(/\D/g, '');
       const fuDate = fuDateEl?.value || '';
 
-      // Skip contact/price checks for non-interaction reasons (not home, no demo)
+      // Skip contact/price/draw checks for non-interaction reasons (not home, no demo)
       const reasonObj = reasons.find(r => String(r.id) === String(selCcReason));
       const label = (reasonObj?.label || '').toLowerCase();
       const isNoContact = label.includes('not home') || label.includes('no demo') || label.includes('no one home');
 
       if (isNoContact) {
+        clearFieldErrors();
         return { leftAt: null, fuName: '', fuPhone: '', fuDate: null };
       }
 
+      // Build all checks including draw sheet
       const checks = [
-        { ok: leftAt > 0, msg: 'Enter last price given', el: leftAtEl || soldAtEl },
-        { ok: !!fuName, msg: 'Enter customer name', el: fuNameEl },
-        { ok: fuPhone.length >= 10, msg: 'Enter a valid phone number (10 digits)', el: fuPhoneEl },
-        { ok: !!fuDate, msg: 'Select a follow-up date', el: fuDateEl }
+        { ok: leftAt > 0,          msg: 'Enter last price given',              el: leftAtEl || soldAtEl, box: null },
+        { ok: !!fuName,            msg: 'Enter customer name',                  el: fuNameEl,             box: document.getElementById('ccFollowUpBox') },
+        { ok: fuPhone.length >= 10, msg: 'Enter a valid phone number (10 digits)', el: fuPhoneEl,         box: document.getElementById('ccFollowUpBox') },
+        { ok: !!fuDate,            msg: 'Select a follow-up date',              el: fuDateEl,             box: document.getElementById('ccFollowUpBox') },
+        { ok: !!ccNsDrawPendingFile, msg: 'Upload a draw sheet',               el: null,                 box: document.getElementById('ccDrawSheetBox') }
       ];
-      const fail = checks.find(c => !c.ok);
-      if (fail) {
-        toast(fail.msg, 'err');
-        if (fail.el) {
-          fail.el.focus();
-          fail.el.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+
+      // Highlight ALL failing fields at once
+      clearFieldErrors();
+      const failures = checks.filter(c => !c.ok);
+      failures.forEach(c => {
+        if (c.el) {
+          c.el.classList.add('fi-error');
         }
+        if (c.box) {
+          c.box.style.outline = '2px solid #EF4444';
+        }
+      });
+      // Special highlight for draw sheet button
+      const drawFail = failures.find(c => c.msg === 'Upload a draw sheet');
+      if (drawFail) {
+        const drawBtn = document.getElementById('ccNsDrawBtn');
+        if (drawBtn) {
+          drawBtn.style.borderColor = '#EF4444';
+          drawBtn.style.background = '#FEF2F2';
+        }
+      }
+
+      if (failures.length) {
+        toast(failures[0].msg, 'err');
+        const firstEl = failures[0].el || (failures[0].box);
+        if (firstEl) firstEl.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
         return null;
       }
+
       return { leftAt, fuName, fuPhone, fuDate };
     }
 
@@ -6380,6 +6429,7 @@
       const _cr = document.getElementById('ccNotContactRow');
       if (_pr) _pr.style.display = '';
       if (_cr) _cr.style.display = '';
+      clearFieldErrors();
       document.querySelectorAll('#ccReasonList .ro').forEach(r => r.classList.remove('sel'));
       if (document.getElementById('qcSoldAt')) document.getElementById('qcSoldAt').value = '';
       if (document.getElementById('qcFinPlan')) document.getElementById('qcFinPlan').value = '';
@@ -6421,14 +6471,22 @@
       const isNoContact = label.includes('not home') || label.includes('no demo') || label.includes('no one home');
       const priceRow   = document.getElementById('ccNotPriceRow');
       const contactRow = document.getElementById('ccNotContactRow');
+      const fuBox      = document.getElementById('ccFollowUpBox');
+      const drawBox    = document.getElementById('ccDrawSheetBox');
+      const drawReqLbl = document.getElementById('ccDrawSheetReqLabel');
       if (priceRow)   priceRow.style.display   = isNoContact ? 'none' : '';
       if (contactRow) contactRow.style.display = isNoContact ? 'none' : '';
+      if (fuBox)      fuBox.style.display      = isNoContact ? 'none' : '';
+      if (drawBox)    drawBox.style.display     = isNoContact ? 'none' : '';
+      // Update draw sheet label to show required/optional
+      if (drawReqLbl) drawReqLbl.textContent = isNoContact ? '(optional)' : '(required)';
       // Clear those fields when hidden so stale data isn't submitted
       if (isNoContact) {
         document.getElementById('ccNotLeftAt').value  = '';
         document.getElementById('ccNotFuName').value  = '';
         document.getElementById('ccNotFuPhone').value = '';
       }
+      clearFieldErrors();
     }
 
     async function submitLeadFromCalc(type) {
