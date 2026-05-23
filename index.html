@@ -6261,6 +6261,15 @@
       const fuPhone = (fuPhoneEl?.value || '').trim().replace(/\D/g, '');
       const fuDate = fuDateEl?.value || '';
 
+      // Skip contact/price checks for non-interaction reasons (not home, no demo)
+      const reasonObj = reasons.find(r => String(r.id) === String(selCcReason));
+      const label = (reasonObj?.label || '').toLowerCase();
+      const isNoContact = label.includes('not home') || label.includes('no demo') || label.includes('no one home');
+
+      if (isNoContact) {
+        return { leftAt: null, fuName: '', fuPhone: '', fuDate: null };
+      }
+
       const checks = [
         { ok: leftAt > 0, msg: 'Enter last price given', el: leftAtEl || soldAtEl },
         { ok: !!fuName, msg: 'Enter customer name', el: fuNameEl },
