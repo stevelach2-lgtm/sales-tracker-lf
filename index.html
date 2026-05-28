@@ -2848,12 +2848,12 @@
             </div>
             <div class="fg2" style="margin-bottom:8px">
               <div>
-                <label class="fl">Customer Name <span style="color:#E53935">*</span></label>
-                <input type="text" class="fi" id="soldCustName" placeholder="Michael" required style="font-size:13px;padding:11px 13px">
+                <label class="fl">Customer Name</label>
+                <input type="text" class="fi" id="soldCustName" placeholder="Michael" style="font-size:13px;padding:11px 13px">
               </div>
               <div>
-                <label class="fl">Phone Number <span style="color:#E53935">*</span></label>
-                <input type="tel" class="fi" id="soldCustPhone" placeholder="555-555-5555" maxlength="14" required style="font-size:13px;padding:11px 13px">
+                <label class="fl">Phone Number</label>
+                <input type="tel" class="fi" id="soldCustPhone" placeholder="555-555-5555" maxlength="14" style="font-size:13px;padding:11px 13px">
               </div>
             </div>
             <div class="fg2" style="margin-bottom:8px">
@@ -2907,16 +2907,16 @@
             </div>
             <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;padding:12px;margin-bottom:12px" id="ccNotContactBlock">
               <div style="font-size:11px;font-weight:800;color:#991B1B;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
-                📞 Customer &amp; Follow-Up <span style="color:#E53935">*</span>
+                📞 Customer &amp; Follow-Up
               </div>
               <div class="fg2" style="margin-bottom:8px">
                 <div>
-                  <label class="fl" style="font-size:10px">Customer Name <span style="color:#E53935">*</span></label>
-                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" required style="padding:8px 10px;font-size:12px">
+                  <label class="fl" style="font-size:10px">Customer Name</label>
+                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px">
                 </div>
                 <div>
-                  <label class="fl" style="font-size:10px">Phone Number <span style="color:#E53935">*</span></label>
-                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555-555-5555" maxlength="14" required style="padding:8px 10px;font-size:12px">
+                  <label class="fl" style="font-size:10px">Phone Number</label>
+                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555-555-5555" maxlength="14" style="padding:8px 10px;font-size:12px">
                 </div>
               </div>
               <div class="fg" style="margin-bottom:0">
@@ -3178,9 +3178,9 @@
                 style="font-size:13px;padding:11px 13px"></div>
           </div>
           <div class="fg2">
-            <div><label class="fl">Customer Name <span style="color:#E53935">*</span></label><input type="text" class="fi" id="esSoldCustName" placeholder="Michael" required
+            <div><label class="fl">Customer Name</label><input type="text" class="fi" id="esSoldCustName" placeholder="Michael"
                 style="font-size:13px;padding:11px 13px"></div>
-            <div><label class="fl">Phone Number <span style="color:#E53935">*</span></label><input type="tel" class="fi" id="esSoldCustPhone" placeholder="555-555-5555" maxlength="14" required
+            <div><label class="fl">Phone Number</label><input type="tel" class="fi" id="esSoldCustPhone" placeholder="555-555-5555" maxlength="14"
                 style="font-size:13px;padding:11px 13px"></div>
           </div>
           <div class="fg2">
@@ -3261,16 +3261,16 @@
         </div>
         <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;padding:12px;margin-bottom:12px">
           <div style="font-size:11px;font-weight:800;color:#991B1B;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
-            📞 Customer &amp; Follow-Up <span style="color:#E53935">*</span>
+            📞 Customer &amp; Follow-Up
           </div>
           <div class="fg2" style="margin-bottom:8px">
             <div>
-              <label class="fl" style="font-size:10px">Customer Name <span style="color:#E53935">*</span></label>
-              <input type="text" class="fi" id="esNsFuName" placeholder="Michael" required style="padding:8px 10px;font-size:12px">
+              <label class="fl" style="font-size:10px">Customer Name</label>
+              <input type="text" class="fi" id="esNsFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px">
             </div>
             <div>
-              <label class="fl" style="font-size:10px">Phone Number <span style="color:#E53935">*</span></label>
-              <input type="tel" class="fi" id="esNsFuPhone" placeholder="555-555-5555" maxlength="14" required style="padding:8px 10px;font-size:12px">
+              <label class="fl" style="font-size:10px">Phone Number</label>
+              <input type="tel" class="fi" id="esNsFuPhone" placeholder="555-555-5555" maxlength="14" style="padding:8px 10px;font-size:12px">
             </div>
           </div>
           <div class="fg2" style="margin-bottom:8px">
@@ -6253,19 +6253,6 @@
     function validateSoldContact({ nameEl, phoneEl }) {
       const name = (nameEl?.value || '').trim();
       const phone = (phoneEl?.value || '').trim().replace(/\D/g, '');
-      const checks = [
-        { ok: !!name, msg: 'Enter customer name', el: nameEl },
-        { ok: phone.length >= 10, msg: 'Enter a valid phone number (10 digits)', el: phoneEl }
-      ];
-      const fail = checks.find(c => !c.ok);
-      if (fail) {
-        toast(fail.msg, 'err');
-        if (fail.el) {
-          fail.el.focus();
-          fail.el.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-        }
-        return null;
-      }
       return { name, phone };
     }
 
@@ -6297,10 +6284,9 @@
         return { leftAt: null, fuName: '', fuPhone: '', fuDate: null };
       }
 
-      // Build all checks — only last price given and draw sheet are required
+      // Only last price given is required
       const checks = [
-        { ok: leftAt > 0,           msg: 'Enter last price given', el: leftAtEl || soldAtEl, box: null },
-        { ok: !!ccNsDrawPendingFile, msg: 'Upload a draw sheet',   el: null,                 box: document.getElementById('ccDrawSheetBox') }
+        { ok: leftAt > 0, msg: 'Enter last price given', el: leftAtEl || soldAtEl, box: null }
       ];
 
       // Highlight ALL failing fields at once
@@ -6314,15 +6300,6 @@
           c.box.style.outline = '2px solid #EF4444';
         }
       });
-      // Special highlight for draw sheet button
-      const drawFail = failures.find(c => c.msg === 'Upload a draw sheet');
-      if (drawFail) {
-        const drawBtn = document.getElementById('ccNsDrawBtn');
-        if (drawBtn) {
-          drawBtn.style.borderColor = '#EF4444';
-          drawBtn.style.background = '#FEF2F2';
-        }
-      }
 
       if (failures.length) {
         toast(failures[0].msg, 'err');
@@ -6352,8 +6329,8 @@
       if (switchSale) switchSale.style.display = type === 'not_sold' ? 'block' : 'none';
       if (heading) {
         heading.textContent = type === 'not_sold'
-          ? '📝 Not sold — last price & draw sheet required'
-          : '📝 Sale — customer name & phone required';
+          ? '📝 Not sold — last price required'
+          : '📝 Log sale details';
       }
 
       if (type === 'sold') {
