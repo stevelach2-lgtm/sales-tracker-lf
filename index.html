@@ -3374,6 +3374,7 @@
     // CONFIG & AUTH
     // ─────────────────────────────────────────
 
+    const APP_GCAL_CLIENT_ID = '1037790290805-evbsntr59905775bra6pn343bo6s9a4c.apps.googleusercontent.com';
     const APP_SUPABASE_URL = 'https://gktnrjtmuxhnxggqgpny.supabase.co';
     const APP_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrdG5yanRtdXhobnhnZ3FncG55Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MTM3NjUsImV4cCI6MjA5MDQ4OTc2NX0.oTH6Gd1O2fRH5eaJsVSk2hSTVZmXCApf2_SNPQ5Qb-o';
 
@@ -7009,7 +7010,7 @@
 
     function gcalLoadSettingsUI() {
       const clientIdEl = document.getElementById('gcClientId');
-      if (clientIdEl) clientIdEl.value = localStorage.getItem('gc_client_id') || '';
+      if (clientIdEl) clientIdEl.value = localStorage.getItem('gc_client_id') || APP_GCAL_CLIENT_ID;
       const redirectEl = document.getElementById('gcRedirectUri');
       if (redirectEl) redirectEl.textContent = window.location.origin + window.location.pathname;
       gcalUpdateStatusUI();
@@ -7043,7 +7044,7 @@
 
     function gcalConnect() {
       const clientId = (document.getElementById('gcClientId')?.value || '').trim()
-                     || localStorage.getItem('gc_client_id') || '';
+                     || localStorage.getItem('gc_client_id') || APP_GCAL_CLIENT_ID;
       if (!clientId) { toast('Paste your Google OAuth Client ID first', 'err'); return; }
       localStorage.setItem('gc_client_id', clientId);
       const redirectUri = window.location.origin + window.location.pathname;
