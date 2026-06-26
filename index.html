@@ -1949,6 +1949,17 @@
 <body>
 
   <!-- AUTH & CONFIG SCREEN -->
+  <!-- Set New Password Screen (shown after clicking reset email link) -->
+  <div id="resetPwScreen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:99999;display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px">
+    <img src="logo.png" width="72" height="72" style="object-fit:contain;margin-bottom:16px">
+    <h1 style="font-size:22px;font-weight:900;color:var(--text);margin-bottom:6px;text-align:center">Set New Password</h1>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:24px;text-align:center">Choose a password you'll remember</p>
+    <input type="password" id="newPw1" class="cfg-inp" placeholder="New password (6+ characters)" style="margin-bottom:10px;width:100%;max-width:360px">
+    <input type="password" id="newPw2" class="cfg-inp" placeholder="Confirm new password" style="margin-bottom:16px;width:100%;max-width:360px">
+    <button onclick="doSetNewPassword()" id="setNewPwBtn" style="width:100%;max-width:360px;padding:14px;border:none;border-radius:12px;background:var(--green);color:#fff;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer">Save New Password</button>
+    <p id="setPwError" style="margin-top:12px;font-size:13px;color:var(--red);text-align:center;display:none"></p>
+  </div>
+
   <div class="cfg" id="cfg">
     <div class="cfg-logo">
       <img src="logo.png" alt="LeafFilter Logo" width="80" height="80" style="object-fit: contain;">
@@ -3423,6 +3434,39 @@
       document.getElementById('tabSignup').style.boxShadow = isLogin ? 'none' : '0 1px 3px rgba(0,0,0,.1)';
     }
 
+    function checkPasswordResetToken() {
+      const hash = window.location.hash;
+      if (!hash.includes('type=recovery')) return false;
+      const params = new URLSearchParams(hash.replace(/^#/, ''));
+      const token = params.get('access_token');
+      if (!token) return false;
+      history.replaceState(null, '', window.location.pathname);
+      // Supabase will auto-detect the recovery session from the URL
+      // Show the set-new-password screen
+      document.getElementById('cfg').style.display = 'none';
+      const screen = document.getElementById('resetPwScreen');
+      screen.style.display = 'flex';
+      setTimeout(() => document.getElementById('newPw1').focus(), 200);
+      return true;
+    }
+
+    async function doSetNewPassword() {
+      const pw1 = document.getElementById('newPw1').value;
+      const pw2 = document.getElementById('newPw2').value;
+      const errEl = document.getElementById('setPwError');
+      errEl.style.display = 'none';
+      if (pw1.length < 6) { errEl.textContent = 'Password must be at least 6 characters'; errEl.style.display = 'block'; return; }
+      if (pw1 !== pw2) { errEl.textContent = "Passwords don't match"; errEl.style.display = 'block'; return; }
+      const btn = document.getElementById('setNewPwBtn');
+      btn.textContent = 'Saving...';
+      const { error } = await sb.auth.updateUser({ password: pw1 });
+      btn.textContent = 'Save New Password';
+      if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+      document.getElementById('resetPwScreen').style.display = 'none';
+      toast('Password updated ✓ — you are now signed in', 'ok');
+      boot();
+    }
+
     function showForgotPw() {
       const panel = document.getElementById('forgotPwPanel');
       const emailVal = document.getElementById('authEmail').value.trim();
@@ -3509,12 +3553,12 @@
     async function boot() {
       const url = localStorage.getItem('sb_url') || APP_SUPABASE_URL;
       const key = localStorage.getItem('sb_key') || APP_SUPABASE_KEY;
+      if (!sb) sb = window.supabase.createClient(url, key);
+      if (checkPasswordResetToken()) return;
       const cfg = document.getElementById('cfg');
       const app = document.getElementById('app');
 
       try {
-        if (!sb) sb = window.supabase.createClient(url, key);
-
         // Check Auth Session
         const { data: { session }, error: sessionError } = await sb.auth.getSession();
 
