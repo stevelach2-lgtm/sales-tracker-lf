@@ -4364,7 +4364,8 @@
     }
 
     function refreshFuMsg() {
-      const name = document.getElementById('fuName').value.trim() || 'there';
+      const fullName = document.getElementById('fuName').value.trim();
+      const name = fullName.split(/\s+/)[0] || 'there';
       const angle = document.getElementById('fuMsgAngle').value || 'default';
       const step = _fuLead?.step || 1;
       const repName = _repName || 'Your Rep';
