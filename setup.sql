@@ -425,5 +425,17 @@ alter table public.leads add column if not exists lng numeric;
 -- Set as Public bucket so images can be viewed without auth tokens
 
 -- ============================================================
+-- Google Calendar integration — run once to add lead/customer columns
+-- ============================================================
+alter table public.leads add column if not exists lead_id          text;
+alter table public.leads add column if not exists customer_name    text;
+alter table public.leads add column if not exists customer_address text;
+alter table public.leads add column if not exists customer_phone   text;
+alter table public.leads add column if not exists lead_code        text;
+
+create index if not exists idx_leads_lead_id      on public.leads(lead_id);
+create index if not exists idx_leads_cust_phone   on public.leads(customer_phone);
+
+-- ============================================================
 -- Done! Your tables are ready.
 -- ============================================================

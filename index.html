@@ -2129,6 +2129,15 @@
             0</div>
         </div>
 
+        <!-- Today's Leads from Calendar -->
+        <div id="todaysLeadsCard" style="display:none;background:linear-gradient(135deg,#EEF2FF,#E0E7FF);border:1.5px solid #A5B4FC;border-radius:14px;padding:12px 16px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-size:13px;font-weight:800;color:#3730A3;display:flex;align-items:center;gap:6px">📅 Today's Leads</div>
+            <div id="todaysLeadsCount" style="background:#6366F1;color:#fff;font-size:11px;font-weight:900;padding:3px 9px;border-radius:20px">0</div>
+          </div>
+          <div id="todaysLeadsList"></div>
+        </div>
+
         <!-- Goal Progress Bars -->
         <div class="goal-section" id="goalSection">
           <div class="goal-row">
@@ -2476,6 +2485,19 @@
           </div>
         </div>
 
+        <!-- Google Calendar Integration -->
+        <div class="settings-wrap">
+          <div style="font-size:12px;font-weight:800;color:#1D4ED8;margin-bottom:10px;display:flex;align-items:center;gap:6px">📅 Google Calendar Integration</div>
+          <label class="fl">Google OAuth Client ID</label>
+          <input type="text" class="fi" id="gcClientId" placeholder="xxxxxxxx.apps.googleusercontent.com" style="margin-bottom:10px;font-size:12px" oninput="localStorage.setItem('gc_client_id',this.value.trim())">
+          <div id="gcalStatus" style="font-size:12px;margin-bottom:10px;padding:8px 10px;border-radius:8px;background:#F9FAFB;border:1.5px solid var(--border)">⬜ Not connected</div>
+          <div style="display:flex;gap:8px">
+            <button onclick="gcalConnect()" id="gcalConnectBtn" style="flex:1;padding:11px;border:none;border-radius:10px;background:#1D4ED8;color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">Connect Calendar</button>
+            <button onclick="gcalDisconnect()" id="gcalDisconnectBtn" style="display:none;padding:11px;border:none;border-radius:10px;background:#E5E7EB;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">Disconnect</button>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--muted);line-height:1.5">Need help? <a href="https://console.cloud.google.com" target="_blank" style="color:#1D4ED8">Google Cloud Console</a> → APIs &amp; Services → Credentials → Create OAuth 2.0 Client ID (Web application). Add this as an Authorized redirect URI:<br><span id="gcRedirectUri" style="font-family:monospace;font-size:10px;word-break:break-all;color:var(--text);display:block;margin-top:4px;padding:4px 6px;background:#F3F4F6;border-radius:6px"></span></div>
+        </div>
+
         <!-- Account Settings / Sign Out -->
         <div class="settings-wrap" style="padding-top:0">
           <button onclick="signOut()"
@@ -2815,6 +2837,14 @@
             <button type="button" onclick="ccSetOutcome('sold')" style="background:transparent;border:none;padding:0;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--green);text-decoration:underline;cursor:pointer">← Switch to sale</button>
           </div>
 
+          <!-- Calendar lead banner (shown when opened via Today's Leads) -->
+          <div id="ccCalBanner" style="display:none;background:#EEF2FF;border:1.5px solid #A5B4FC;border-radius:10px;padding:10px 12px;margin-bottom:12px">
+            <div style="font-size:10px;font-weight:800;color:#3730A3;letter-spacing:.5px;margin-bottom:4px">📅 FROM CALENDAR</div>
+            <div id="ccCalBannerName" style="font-size:14px;font-weight:800;color:#1E1B4B"></div>
+            <div id="ccCalBannerAddr" style="font-size:11px;color:#4338CA;margin-top:2px"></div>
+            <div id="ccCalBannerMeta" style="font-size:10px;color:#6366F1;margin-top:2px"></div>
+          </div>
+
           <!-- SOLD panel -->
           <div id="ccSoldPanel" style="display:none">
             <input type="hidden" id="saleAmt">
@@ -2822,12 +2852,17 @@
             <input type="hidden" id="commPct">
             <input type="hidden" id="qcRetailHidden">
             <input type="hidden" id="qcParHidden">
+            <input type="hidden" id="calLeadId">
+            <input type="hidden" id="calCustName">
+            <input type="hidden" id="calCustAddr">
+            <input type="hidden" id="calCustPhone">
+            <input type="hidden" id="calLeadCode">
             <div class="chk-row" style="margin-bottom:10px">
               <div class="chk-box" id="chkCombo" onclick="toggleChk('chkCombo')">
                 <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Combo</span></div>
                 <div class="chk-sub">Gutter + LeafFilter</div>
               </div>
-              <div class="chk-box" id="chkRehash" onclick="toggleChk('chkRehash')">
+              <div class="chk-box" id="chkRehash" onclick="toggleChk('chkRehash');toggleRehashLookup()">
                 <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Rehash</span></div>
                 <div class="chk-sub">Not in SLG%</div>
               </div>
@@ -2835,6 +2870,14 @@
                 <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Self Gen</span></div>
                 <div class="chk-sub">Counts as issued</div>
               </div>
+            </div>
+            <!-- Rehash customer lookup (shown when Rehash is checked) -->
+            <div id="rehashLookupBox" style="display:none;background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:10px;padding:10px 12px;margin-bottom:10px">
+              <div style="font-size:10px;font-weight:800;color:#92400E;letter-spacing:.5px;margin-bottom:6px">🔎 FIND PRIOR CUSTOMER</div>
+              <div style="display:flex;gap:6px;margin-bottom:6px">
+                <input type="text" id="rehashSearchInput" class="fi" placeholder="Lead ID or phone number" style="flex:1;padding:9px 11px;font-size:12px" oninput="rehashSearch(this.value)">
+              </div>
+              <div id="rehashResults" style="display:none;background:#fff;border:1.5px solid var(--border);border-radius:8px;overflow:hidden"></div>
             </div>
             <div class="fg2" style="margin-bottom:8px">
               <div>
@@ -3457,7 +3500,9 @@
         await loadSettingsFromSupabase();
         // Load current user's profile for personalized SMS templates
         await loadRepProfile();
+        gcalCheckTokenFromRedirect();
         loadDash();
+        fetchTodaysCalendarLeads();
       } catch (e) {
         console.error(e);
         cfg.classList.add('open');
@@ -4600,7 +4645,12 @@
           commission_paid: isPaid,
           notes: document.getElementById('soldNotes').value.trim() || null,
           followup_name: contact.name,
-          followup_phone: contact.phone
+          followup_phone: contact.phone,
+          lead_id: document.getElementById('calLeadId').value || null,
+          customer_name: document.getElementById('calCustName').value || null,
+          customer_address: document.getElementById('calCustAddr').value || null,
+          customer_phone: document.getElementById('calCustPhone').value || null,
+          lead_code: document.getElementById('calLeadCode').value || null
         };
 
         const { data, error } = await sb.from('leads').insert(payload).select().single();
@@ -5409,6 +5459,7 @@
       await loadRepProfile();
       loadBaselines();
       loadQuoteSettings();
+      gcalLoadSettingsUI();
       await loadReasons();
       const el = document.getElementById('reasonsSet');
       if (!reasons.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;padding:8px 0">No reasons found.</p>'; return; }
@@ -6377,6 +6428,18 @@
     }
 
     function ccResetLogPanel() {
+      window.activeCalendarLead = null;
+      const banner = document.getElementById('ccCalBanner');
+      if (banner) banner.style.display = 'none';
+      ['calLeadId','calCustName','calCustAddr','calCustPhone','calLeadCode'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+      });
+      const rlb = document.getElementById('rehashLookupBox');
+      if (rlb) rlb.style.display = 'none';
+      const rsi = document.getElementById('rehashSearchInput');
+      if (rsi) rsi.value = '';
+      const rr = document.getElementById('rehashResults');
+      if (rr) { rr.style.display = 'none'; rr.innerHTML = ''; }
       ccSetOutcome('sold');
       document.getElementById('commAmt').value = '';
       document.getElementById('soldNotes').value = '';
@@ -6516,7 +6579,12 @@
           followup_date: contact.fuDate,
           followup_name: contact.fuName,
           followup_phone: contact.fuPhone,
-          followup_done: false
+          followup_done: false,
+          lead_id: document.getElementById('calLeadId').value || null,
+          customer_name: document.getElementById('calCustName').value || null,
+          customer_address: document.getElementById('calCustAddr').value || null,
+          customer_phone: document.getElementById('calCustPhone').value || null,
+          lead_code: document.getElementById('calLeadCode').value || null
         };
         let { data, error } = await sb.from('leads').insert(payload).select().single();
         if (error && (error.message || '').includes('retail_price') || (error && (error.message || '').includes('par_price'))) {
@@ -6933,6 +7001,303 @@
           updated_at: new Date().toISOString()
         });
       } catch (e) { /* silent — change already saved to localStorage */ }
+    }
+
+    // ─────────────────────────────────────────
+    // GOOGLE CALENDAR INTEGRATION
+    // ─────────────────────────────────────────
+
+    function gcalLoadSettingsUI() {
+      const clientIdEl = document.getElementById('gcClientId');
+      if (clientIdEl) clientIdEl.value = localStorage.getItem('gc_client_id') || '';
+      const redirectEl = document.getElementById('gcRedirectUri');
+      if (redirectEl) redirectEl.textContent = window.location.origin + window.location.pathname;
+      gcalUpdateStatusUI();
+    }
+
+    function gcalUpdateStatusUI() {
+      const token = localStorage.getItem('gc_token');
+      const expiry = parseInt(localStorage.getItem('gc_token_expiry') || '0');
+      const valid = token && Date.now() < expiry;
+      const statusEl = document.getElementById('gcalStatus');
+      const connectBtn = document.getElementById('gcalConnectBtn');
+      const disconnectBtn = document.getElementById('gcalDisconnectBtn');
+      if (!statusEl) return;
+      if (valid) {
+        const mins = Math.round((expiry - Date.now()) / 60000);
+        statusEl.textContent = '✅ Connected · token valid ~' + mins + ' min';
+        statusEl.style.color = '#166534';
+        statusEl.style.background = '#F0FDF4';
+        statusEl.style.borderColor = '#86EFAC';
+        if (connectBtn) connectBtn.style.display = 'none';
+        if (disconnectBtn) disconnectBtn.style.display = '';
+      } else {
+        statusEl.textContent = '⬜ Not connected';
+        statusEl.style.color = 'var(--muted)';
+        statusEl.style.background = '#F9FAFB';
+        statusEl.style.borderColor = 'var(--border)';
+        if (connectBtn) connectBtn.style.display = '';
+        if (disconnectBtn) disconnectBtn.style.display = 'none';
+      }
+    }
+
+    function gcalConnect() {
+      const clientId = (document.getElementById('gcClientId')?.value || '').trim()
+                     || localStorage.getItem('gc_client_id') || '';
+      if (!clientId) { toast('Paste your Google OAuth Client ID first', 'err'); return; }
+      localStorage.setItem('gc_client_id', clientId);
+      const redirectUri = window.location.origin + window.location.pathname;
+      const scope = 'https://www.googleapis.com/auth/calendar.events.readonly';
+      const params = new URLSearchParams({
+        response_type: 'token',
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        scope,
+        prompt: 'consent'
+      });
+      window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+    }
+
+    function gcalDisconnect() {
+      localStorage.removeItem('gc_token');
+      localStorage.removeItem('gc_token_expiry');
+      window.calendarLeads = [];
+      document.getElementById('todaysLeadsCard').style.display = 'none';
+      gcalUpdateStatusUI();
+      toast('Google Calendar disconnected', 'ok');
+    }
+
+    function gcalCheckTokenFromRedirect() {
+      const hash = window.location.hash;
+      if (!hash.includes('access_token=')) return;
+      const params = new URLSearchParams(hash.replace(/^#/, ''));
+      const token = params.get('access_token');
+      const expiresIn = parseInt(params.get('expires_in') || '3600');
+      if (token) {
+        localStorage.setItem('gc_token', token);
+        localStorage.setItem('gc_token_expiry', String(Date.now() + expiresIn * 1000));
+        history.replaceState(null, '', window.location.pathname);
+        toast('Google Calendar connected ✓', 'ok');
+        gcalUpdateStatusUI();
+      }
+    }
+
+    function parseCalendarLeadDescription(desc) {
+      if (!desc) return {};
+      const get = (key) => {
+        const m = desc.match(new RegExp(key + ':\\s*(.+)', 'i'));
+        return m ? m[1].trim() : null;
+      };
+      return {
+        leadId: get('Lead ID'),
+        name: get('Name'),
+        address: get('Address'),
+        phone: get('Phone'),
+        leadCode: get('Lead Code')
+      };
+    }
+
+    async function fetchTodaysCalendarLeads() {
+      const token = localStorage.getItem('gc_token');
+      const expiry = parseInt(localStorage.getItem('gc_token_expiry') || '0');
+      if (!token || Date.now() >= expiry) return;
+
+      try {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).toISOString();
+        const end   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
+        const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(start)}&timeMax=${encodeURIComponent(end)}&singleEvents=true&orderBy=startTime`;
+        const resp = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+
+        if (resp.status === 401) {
+          localStorage.removeItem('gc_token');
+          localStorage.removeItem('gc_token_expiry');
+          gcalUpdateStatusUI();
+          toast('Calendar session expired — reconnect in Settings', 'err');
+          return;
+        }
+        if (!resp.ok) return;
+
+        const data = await resp.json();
+        const lfEvents = (data.items || []).filter(e =>
+          (e.summary || '').toLowerCase().startsWith('leaffilter lead')
+        );
+
+        const parsed = lfEvents.map(e => {
+          const info = parseCalendarLeadDescription(e.description || '');
+          return {
+            leadId: info.leadId || '',
+            name: info.name || (e.summary || '').replace(/leaffilter lead #?\d+\s*-?\s*/i, '').trim(),
+            address: info.address || '',
+            phone: info.phone || '',
+            leadCode: info.leadCode || '',
+            startTime: e.start?.dateTime || e.start?.date || '',
+            calEventId: e.id
+          };
+        }).filter(l => l.leadId);
+
+        if (!parsed.length) {
+          window.calendarLeads = [];
+          return;
+        }
+
+        // Check which lead IDs are already logged in Supabase
+        const ids = parsed.map(l => l.leadId);
+        const { data: existing } = await sb.from('leads')
+          .select('lead_id')
+          .in('lead_id', ids);
+        const loggedIds = new Set((existing || []).map(r => r.lead_id));
+
+        window.calendarLeads = parsed.map(l => ({ ...l, logged: loggedIds.has(l.leadId) }));
+        renderTodaysLeads();
+      } catch (e) {
+        console.error('[gcal fetch]', e);
+      }
+    }
+
+    function renderTodaysLeads() {
+      const leads = window.calendarLeads || [];
+      if (!leads.length) return;
+      const card = document.getElementById('todaysLeadsCard');
+      const list = document.getElementById('todaysLeadsList');
+      const countEl = document.getElementById('todaysLeadsCount');
+      const unlogged = leads.filter(l => !l.logged).length;
+      countEl.textContent = unlogged + ' new';
+      card.style.display = 'block';
+
+      list.innerHTML = leads.map(l => {
+        const t = l.startTime ? new Date(l.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+        const addrShort = l.address ? l.address.split(',')[0] : '';
+        if (l.logged) {
+          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,.5);border-radius:9px;margin-bottom:6px;opacity:.55">
+            <div style="font-size:18px">✅</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:700;color:#3730A3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.name}</div>
+              <div style="font-size:10px;color:#6366F1">${t}${addrShort ? ' · ' + addrShort : ''}</div>
+            </div>
+            <div style="font-size:10px;color:#6366F1;font-weight:700;white-space:nowrap">Logged</div>
+          </div>`;
+        }
+        return `<div onclick="openLeadFromCalendar('${l.leadId}')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#fff;border-radius:9px;margin-bottom:6px;cursor:pointer;box-shadow:0 1px 4px rgba(99,102,241,.12);border:1.5px solid #C7D2FE">
+          <div style="font-size:18px">👤</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:800;color:#1E1B4B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.name}</div>
+            <div style="font-size:10px;color:#4338CA">${t}${addrShort ? ' · ' + addrShort : ''}</div>
+          </div>
+          <div style="font-size:12px;color:#6366F1;font-weight:800;white-space:nowrap">Quote →</div>
+        </div>`;
+      }).join('');
+    }
+
+    function openLeadFromCalendar(leadId) {
+      const lead = (window.calendarLeads || []).find(l => l.leadId === leadId);
+      if (!lead) { openQuoteCalc(); return; }
+      window.activeCalendarLead = lead;
+
+      openQuoteCalc();
+
+      // Show banner
+      const banner = document.getElementById('ccCalBanner');
+      if (banner) {
+        banner.style.display = 'block';
+        document.getElementById('ccCalBannerName').textContent = lead.name;
+        document.getElementById('ccCalBannerAddr').textContent = lead.address;
+        const t = lead.startTime ? new Date(lead.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+        document.getElementById('ccCalBannerMeta').textContent = [t, lead.leadCode ? 'Code: ' + lead.leadCode : '', lead.leadId ? 'ID: ' + lead.leadId : ''].filter(Boolean).join(' · ');
+      }
+
+      // Store in hidden fields
+      document.getElementById('calLeadId').value   = lead.leadId;
+      document.getElementById('calCustName').value  = lead.name;
+      document.getElementById('calCustAddr').value  = lead.address;
+      document.getElementById('calCustPhone').value = lead.phone;
+      document.getElementById('calLeadCode').value  = lead.leadCode;
+
+      // Pre-fill visible customer name/phone on both panels
+      const sn = document.getElementById('soldCustName');
+      const sp = document.getElementById('soldCustPhone');
+      const nn = document.getElementById('ccNotFuName');
+      const np = document.getElementById('ccNotFuPhone');
+      if (sn) sn.value = lead.name;
+      if (sp) sp.value = lead.phone;
+      if (nn) nn.value = lead.name;
+      if (np) np.value = lead.phone;
+
+      // Set visit date to today
+      const today = localDate(new Date());
+      const sd = document.getElementById('salesDate');
+      const nsd = document.getElementById('ccNotSoldDate');
+      if (sd && !sd.value) sd.value = today;
+      if (nsd && !nsd.value) nsd.value = today;
+    }
+
+    function toggleRehashLookup() {
+      const isActive = document.getElementById('chkRehash').classList.contains('active');
+      const box = document.getElementById('rehashLookupBox');
+      if (box) box.style.display = isActive ? 'block' : 'none';
+      if (!isActive) {
+        const rsi = document.getElementById('rehashSearchInput');
+        if (rsi) rsi.value = '';
+        const rr = document.getElementById('rehashResults');
+        if (rr) { rr.style.display = 'none'; rr.innerHTML = ''; }
+      }
+    }
+
+    let _rehashSearchTimer;
+    function rehashSearch(q) {
+      clearTimeout(_rehashSearchTimer);
+      const rr = document.getElementById('rehashResults');
+      q = (q || '').trim();
+      if (q.length < 3) { rr.style.display = 'none'; rr.innerHTML = ''; return; }
+      _rehashSearchTimer = setTimeout(async () => {
+        const phone = q.replace(/\D/g, '');
+        let query = sb.from('leads').select('lead_id,customer_name,customer_address,customer_phone,lead_code').not('customer_name', 'is', null).limit(5);
+        if (phone.length >= 7) {
+          query = query.ilike('customer_phone', '%' + phone.slice(-7) + '%');
+        } else {
+          query = query.eq('lead_id', q);
+        }
+        const { data } = await query;
+        if (!data || !data.length) {
+          rr.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--muted)">No prior customer found</div>';
+          rr.style.display = 'block';
+          return;
+        }
+        rr.innerHTML = data.map(r =>
+          `<div onclick="rehashFillCustomer('${r.lead_id || ''}','${(r.customer_name||'').replace(/'/g,"\\'")}','${(r.customer_address||'').replace(/'/g,"\\'")}','${(r.customer_phone||'').replace(/'/g,"\\'")}','${(r.lead_code||'')}' )" style="padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;active:background:#F9FAFB">
+            <div style="font-size:13px;font-weight:700;color:var(--text)">${r.customer_name}</div>
+            <div style="font-size:11px;color:var(--muted)">${r.customer_address || ''}${r.lead_id ? ' · ID: ' + r.lead_id : ''}</div>
+          </div>`
+        ).join('');
+        rr.style.display = 'block';
+      }, 400);
+    }
+
+    function rehashFillCustomer(leadId, name, address, phone, leadCode) {
+      document.getElementById('calLeadId').value   = leadId;
+      document.getElementById('calCustName').value  = name;
+      document.getElementById('calCustAddr').value  = address;
+      document.getElementById('calCustPhone').value = phone;
+      document.getElementById('calLeadCode').value  = leadCode;
+
+      const sn = document.getElementById('soldCustName');
+      const sp = document.getElementById('soldCustPhone');
+      if (sn) sn.value = name;
+      if (sp) sp.value = phone;
+
+      // Show banner with prior customer info
+      const banner = document.getElementById('ccCalBanner');
+      if (banner) {
+        banner.style.display = 'block';
+        document.getElementById('ccCalBannerName').textContent = name + ' (Rehash)';
+        document.getElementById('ccCalBannerAddr').textContent = address;
+        document.getElementById('ccCalBannerMeta').textContent = [leadCode ? 'Code: ' + leadCode : '', leadId ? 'ID: ' + leadId : ''].filter(Boolean).join(' · ');
+      }
+
+      const rr = document.getElementById('rehashResults');
+      if (rr) { rr.style.display = 'none'; }
+      document.getElementById('rehashSearchInput').value = name;
+      toast('Customer filled in ✓', 'ok');
     }
 
     // ─────────────────────────────────────────
