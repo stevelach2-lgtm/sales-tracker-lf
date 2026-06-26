@@ -7364,12 +7364,12 @@
       if (nn) nn.value = lead.name;
       if (np) np.value = lead.phone;
 
-      // Set visit date to today
-      const today = localDate(new Date());
+      // Use the lead's original appointment date, fall back to today
+      const leadDate = lead.startTime ? localDate(new Date(lead.startTime)) : localDate(new Date());
       const sd = document.getElementById('salesDate');
       const nsd = document.getElementById('ccNotSoldDate');
-      if (sd && !sd.value) sd.value = today;
-      if (nsd && !nsd.value) nsd.value = today;
+      if (sd) sd.value = leadDate;
+      if (nsd) nsd.value = leadDate;
     }
 
     function toggleRehashLookup() {
