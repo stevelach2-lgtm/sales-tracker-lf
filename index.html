@@ -2350,6 +2350,24 @@
         <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
 
         <div class="settings-wrap" style="padding-top:0">
+          <div class="s-title" onclick="toggleSetSec('aiSection', 'aiIcon')"
+            style="cursor:pointer; display:flex; align-items:center; justify-content:space-between">
+            <span>🤖 AI Follow-Up Messages</span>
+            <span id="aiIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
+          </div>
+          <div id="aiSection" style="display:none">
+            <div class="s-sub" style="margin-bottom:12px">Enter your Anthropic API key to enable AI-personalized follow-up SMS messages based on why the customer didn't buy.</div>
+            <label class="fl">Anthropic API Key</label>
+            <input type="password" class="fi" id="aiApiKey" placeholder="sk-ant-..." style="margin-bottom:10px; font-family:monospace; font-size:12px">
+            <button onclick="saveAiKey()"
+              style="width:100%;padding:12px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer">
+              Save API Key
+            </button>
+          </div>
+        </div>
+        <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
+
+        <div class="settings-wrap" style="padding-top:0">
           <div class="s-title" onclick="toggleSetSec('reasonsSection', 'reasonsIcon')"
             style="cursor:pointer; display:flex; align-items:center; justify-content:space-between">
             <span>⚙️ No Sale Reasons</span>
@@ -2651,6 +2669,12 @@
             <option value="no_one_home">No one home</option>
             <option value="default">General Follow-Up</option>
           </select>
+        </div>
+        <div class="fg">
+          <button onclick="aiGenFuMsg()" id="aiFuBtn"
+            style="width:100%;padding:11px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:2px">
+            ✨ AI Personalize
+          </button>
         </div>
         <div class="fg">
           <label class="fl">Suggested Message</label>
@@ -4310,7 +4334,7 @@
       else if (r.includes('no one home')) autoAngle = 'no_one_home';
       document.getElementById('fuMsgAngle').value = autoAngle;
 
-      _fuLead = { id: leadId, reason: reasonLabel, step: stepNum || 1 };
+      _fuLead = { id: leadId, reason: reasonLabel, notes: notes || '', step: stepNum || 1 };
       refreshFuMsg();
       document.getElementById('fuOverlay').classList.add('open');
     }
@@ -4318,6 +4342,70 @@
 
 
     function closeFu() { document.getElementById('fuOverlay').classList.remove('open'); }
+
+    function saveAiKey() {
+      const key = (document.getElementById('aiApiKey').value || '').trim();
+      if (!key) { toast('Enter an API key first', 'err'); return; }
+      localStorage.setItem('cc_anthropic_key', key);
+      toast('API key saved! ✨', 'ok');
+    }
+
+    async function aiGenFuMsg() {
+      const apiKey = localStorage.getItem('cc_anthropic_key') || '';
+      if (!apiKey) {
+        toast('Add your Anthropic API key in Settings → 🤖 AI Follow-Up Messages', 'err');
+        return;
+      }
+      const btn = document.getElementById('aiFuBtn');
+      btn.textContent = '⏳ Generating…';
+      btn.disabled = true;
+
+      const fullName = document.getElementById('fuName').value.trim();
+      const name = fullName.split(/\s+/)[0] || 'there';
+      const repName = _repName || 'Your Rep';
+      const reason = _fuLead?.reason || 'Not specified';
+      const notes = _fuLead?.notes || '';
+      const step = _fuLead?.step || 1;
+      const stepLabels = { 1: 'first contact (same day or next day)', 2: '3-day follow-up', 3: '7-day final follow-up', 4: 'cold lead revival (60+ days)' };
+
+      const userMsg = `Customer first name: ${name}
+Rep name: ${repName}
+Not-sold reason: ${reason}
+Notes from the visit: ${notes || 'none provided'}
+Follow-up step: ${step} of 4 (${stepLabels[step] || 'follow-up'})
+
+Write a single short follow-up SMS from the rep to the customer. Be friendly and conversational, keep it under 200 characters if possible, and directly address the reason or notes if available. End with the rep name. Output only the SMS text — no labels, no quotes, no explanation.`;
+
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 300,
+            system: 'You are a LeafFilter sales rep assistant. Generate short, warm, personalized follow-up SMS messages. Output only the message text — no labels, no quotes, no explanation.',
+            messages: [{ role: 'user', content: userMsg }]
+          })
+        });
+        if (!res.ok) throw new Error('API error ' + res.status);
+        const data = await res.json();
+        const msg = data?.content?.[0]?.text?.trim() || '';
+        if (!msg) throw new Error('Empty response');
+        document.getElementById('fuMsg').value = msg;
+        toast('AI message generated! ✨', 'ok');
+      } catch (e) {
+        toast('AI generation failed — using template', 'err');
+        refreshFuMsg();
+      } finally {
+        btn.textContent = '✨ AI Personalize';
+        btn.disabled = false;
+      }
+    }
 
     // Message templates keyed by dropdown value — Step 1 (initial, friendly)
     // Use [RepName] as placeholder — replaced at render time with logged-in user's first name
@@ -5541,6 +5629,9 @@
       loadBaselines();
       loadQuoteSettings();
       gcalLoadSettingsUI();
+      const savedAiKey = localStorage.getItem('cc_anthropic_key') || '';
+      const aiKeyEl = document.getElementById('aiApiKey');
+      if (aiKeyEl && savedAiKey) aiKeyEl.value = savedAiKey;
       await loadReasons();
       const el = document.getElementById('reasonsSet');
       if (!reasons.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;padding:8px 0">No reasons found.</p>'; return; }
