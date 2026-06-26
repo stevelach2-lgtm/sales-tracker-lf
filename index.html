@@ -2358,7 +2358,7 @@
           <div id="aiSection" style="display:none">
             <div class="s-sub" style="margin-bottom:12px">Enter your Anthropic API key to enable AI-personalized follow-up SMS messages based on why the customer didn't buy.</div>
             <label class="fl">Anthropic API Key</label>
-            <input type="password" class="fi" id="aiApiKey" placeholder="sk-ant-..." style="margin-bottom:10px; font-family:monospace; font-size:12px">
+            <input type="text" class="fi" id="aiApiKey" placeholder="sk-ant-..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="margin-bottom:10px; font-family:monospace; font-size:11px">
             <button onclick="saveAiKey()"
               style="width:100%;padding:12px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer">
               Save API Key
@@ -4350,14 +4350,14 @@
     function closeFu() { document.getElementById('fuOverlay').classList.remove('open'); }
 
     function saveAiKey() {
-      const key = (document.getElementById('aiApiKey').value || '').trim();
+      const key = (document.getElementById('aiApiKey').value || '').replace(/\s/g, '');
       if (!key) { toast('Enter an API key first', 'err'); return; }
       localStorage.setItem('cc_anthropic_key', key);
       toast('API key saved! ✨', 'ok');
     }
 
     async function aiGenFuMsg() {
-      const apiKey = localStorage.getItem('cc_anthropic_key') || '';
+      const apiKey = (localStorage.getItem('cc_anthropic_key') || '').replace(/\s/g, '');
       if (!apiKey) {
         toast('Add your Anthropic API key in Settings → 🤖 AI Follow-Up Messages', 'err');
         return;
