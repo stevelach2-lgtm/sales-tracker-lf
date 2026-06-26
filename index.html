@@ -7026,8 +7026,7 @@
       const disconnectBtn = document.getElementById('gcalDisconnectBtn');
       if (!statusEl) return;
       if (valid) {
-        const mins = Math.round((expiry - Date.now()) / 60000);
-        statusEl.textContent = '✅ Connected · token valid ~' + mins + ' min';
+        statusEl.textContent = '✅ Connected — leads sync automatically';
         statusEl.style.color = '#166534';
         statusEl.style.background = '#F0FDF4';
         statusEl.style.borderColor = '#86EFAC';
@@ -7043,7 +7042,7 @@
       }
     }
 
-    function gcalConnect() {
+    function gcalConnect(silent = false) {
       const clientId = (document.getElementById('gcClientId')?.value || '').trim()
                      || localStorage.getItem('gc_client_id') || APP_GCAL_CLIENT_ID;
       if (!clientId) { toast('Paste your Google OAuth Client ID first', 'err'); return; }
@@ -7054,9 +7053,13 @@
         response_type: 'token',
         client_id: clientId,
         redirect_uri: redirectUri,
-        scope,
-        prompt: 'consent'
+        scope
       });
+      if (silent) {
+        // Silent re-auth: skip consent screen since user already approved
+        params.set('prompt', 'none');
+      }
+      localStorage.setItem('gc_silent_refresh', silent ? '1' : '0');
       window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
     }
 
@@ -7071,16 +7074,26 @@
 
     function gcalCheckTokenFromRedirect() {
       const hash = window.location.hash;
-      if (!hash.includes('access_token=')) return;
+      if (!hash) return;
       const params = new URLSearchParams(hash.replace(/^#/, ''));
       const token = params.get('access_token');
-      const expiresIn = parseInt(params.get('expires_in') || '3600');
+      const error = params.get('error');
+      const wasSilent = localStorage.getItem('gc_silent_refresh') === '1';
+      localStorage.removeItem('gc_silent_refresh');
+      history.replaceState(null, '', window.location.pathname);
+
       if (token) {
+        const expiresIn = parseInt(params.get('expires_in') || '3600');
         localStorage.setItem('gc_token', token);
         localStorage.setItem('gc_token_expiry', String(Date.now() + expiresIn * 1000));
-        history.replaceState(null, '', window.location.pathname);
-        toast('Google Calendar connected ✓', 'ok');
         gcalUpdateStatusUI();
+        if (!wasSilent) toast('Google Calendar connected ✓', 'ok');
+      } else if (error && wasSilent) {
+        // Silent refresh failed (user logged out of Google) — prompt full reconnect
+        localStorage.removeItem('gc_token');
+        localStorage.removeItem('gc_token_expiry');
+        gcalUpdateStatusUI();
+        toast('Calendar session expired — tap Connect in Settings', 'err');
       }
     }
 
@@ -7102,7 +7115,12 @@
     async function fetchTodaysCalendarLeads() {
       const token = localStorage.getItem('gc_token');
       const expiry = parseInt(localStorage.getItem('gc_token_expiry') || '0');
-      if (!token || Date.now() >= expiry) return;
+      if (!token) return;
+      if (Date.now() >= expiry) {
+        // Token expired — silently re-auth in background (user already approved, no screen shown)
+        gcalConnect(true);
+        return;
+      }
 
       try {
         const now = new Date();
