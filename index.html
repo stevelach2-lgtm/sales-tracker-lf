@@ -3870,6 +3870,12 @@
       document.getElementById('heroDate').textContent =
         new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
       document.getElementById('mgrid').innerHTML = '<div class="loading" style="grid-column:1/-1"><div class="spinner"></div></div>';
+      // Restore any unlogged calendar leads from previous sessions immediately
+      const persisted = calLeadsLoad();
+      if (persisted.length && !window.calendarLeads?.length) {
+        window.calendarLeads = persisted;
+        renderTodaysLeads();
+      }
       const { cs, ce, ps, pe } = getPeriodRanges(curPeriod);
       const ytdStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
       // Filter by sales_date (actual appointment/sale date) for all leads.
@@ -7246,14 +7252,22 @@
           return;
         }
 
-        // Check which lead IDs are already logged in Supabase
-        const ids = parsed.map(l => l.leadId);
+        // Merge today's leads with any previously unlogged leads persisted across sessions
+        const persisted = calLeadsLoad();
+        const merged = [...persisted];
+        for (const l of parsed) {
+          if (!merged.find(p => p.leadId === l.leadId)) merged.push(l);
+        }
+
+        // Check all against DB to get latest logged status
+        const ids = merged.map(l => l.leadId);
         const { data: existing } = await sb.from('leads')
           .select('lead_id')
           .in('lead_id', ids);
         const loggedIds = new Set((existing || []).map(r => r.lead_id));
 
-        window.calendarLeads = parsed.map(l => ({ ...l, logged: loggedIds.has(l.leadId) }));
+        window.calendarLeads = merged.map(l => ({ ...l, logged: loggedIds.has(l.leadId) }));
+        calLeadsSave(window.calendarLeads);
         renderTodaysLeads();
       } catch (e) {
         console.error('[gcal fetch]', e);
@@ -7294,11 +7308,19 @@
       }).join('');
     }
 
+    function calLeadsSave(leads) {
+      try { localStorage.setItem('cal_unlogged_leads', JSON.stringify((leads || []).filter(l => !l.logged))); } catch {}
+    }
+    function calLeadsLoad() {
+      try { return JSON.parse(localStorage.getItem('cal_unlogged_leads') || '[]'); } catch { return []; }
+    }
+
     function cancelCalendarLead(leadId) {
       const lead = (window.calendarLeads || []).find(l => l.leadId === leadId);
       const name = lead?.name || 'this lead';
       if (!confirm(`Cancel ${name}?\n\nThis will remove it from today's list.`)) return;
       window.calendarLeads = (window.calendarLeads || []).filter(l => l.leadId !== leadId);
+      calLeadsSave(window.calendarLeads);
       renderTodaysLeads();
     }
 
