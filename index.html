@@ -2356,12 +2356,15 @@
             <span id="aiIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
           </div>
           <div id="aiSection" style="display:none">
-            <div class="s-sub" style="margin-bottom:12px">Enter your Anthropic API key to enable AI-personalized follow-up SMS messages based on why the customer didn't buy.</div>
-            <label class="fl">Anthropic API Key</label>
-            <input type="text" class="fi" id="aiApiKey" placeholder="sk-ant-..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="margin-bottom:10px; font-family:monospace; font-size:11px">
+            <div class="s-sub" style="margin-bottom:12px">Tap the button below and paste your Anthropic API key into the dialog that appears.</div>
+            <div id="aiKeyStatus" style="font-size:12px;color:var(--muted);margin-bottom:10px;font-family:monospace"></div>
             <button onclick="saveAiKey()"
               style="width:100%;padding:12px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer">
-              Save API Key
+              🔑 Enter API Key
+            </button>
+            <button onclick="clearAiKey()"
+              style="width:100%;padding:10px;background:transparent;color:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px">
+              Clear Key
             </button>
           </div>
         </div>
@@ -4350,11 +4353,22 @@
     function closeFu() { document.getElementById('fuOverlay').classList.remove('open'); }
 
     function saveAiKey() {
-      const key = (document.getElementById('aiApiKey').value || '').replace(/\s/g, '');
-      if (!key) { toast('Enter an API key first', 'err'); return; }
-      if (!key.startsWith('sk-ant-')) { toast('That doesn\'t look like an Anthropic key (should start with sk-ant-)', 'err'); return; }
+      const raw = window.prompt('Paste your Anthropic API key:');
+      if (raw === null) return;
+      const key = raw.replace(/\s/g, '');
+      if (!key) { toast('No key entered', 'err'); return; }
+      if (!key.startsWith('sk-ant-')) { toast('Not a valid Anthropic key — must start with sk-ant-', 'err'); return; }
       localStorage.setItem('cc_anthropic_key', key);
+      const status = document.getElementById('aiKeyStatus');
+      if (status) status.textContent = '✓ Key saved: ' + key.slice(0, 14) + '...' + key.slice(-4);
       toast('API key saved! ✨', 'ok');
+    }
+
+    function clearAiKey() {
+      localStorage.removeItem('cc_anthropic_key');
+      const status = document.getElementById('aiKeyStatus');
+      if (status) status.textContent = 'No key saved';
+      toast('API key cleared', 'ok');
     }
 
     async function aiGenFuMsg() {
@@ -5641,8 +5655,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       loadQuoteSettings();
       gcalLoadSettingsUI();
       const savedAiKey = localStorage.getItem('cc_anthropic_key') || '';
-      const aiKeyEl = document.getElementById('aiApiKey');
-      if (aiKeyEl && savedAiKey) aiKeyEl.value = savedAiKey;
+      const aiKeyStatus = document.getElementById('aiKeyStatus');
+      if (aiKeyStatus) aiKeyStatus.textContent = savedAiKey ? '✓ Key saved: ' + savedAiKey.slice(0, 14) + '...' + savedAiKey.slice(-4) : 'No key saved';
       await loadReasons();
       const el = document.getElementById('reasonsSet');
       if (!reasons.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;padding:8px 0">No reasons found.</p>'; return; }
