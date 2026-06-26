@@ -6535,9 +6535,9 @@
       document.getElementById('ccNotNotes').value = '';
       document.getElementById('ccNotSoldDate').value = today;
       document.getElementById('ccNotLeftAt').value = '';
-      document.getElementById('ccNotFuName').value = '';
-      document.getElementById('ccNotFuPhone').value = '';
-      document.getElementById('ccNotFuDate').value = '';
+      document.querySelectorAll('[id="ccNotFuName"]').forEach(el => el.value = '');
+      document.querySelectorAll('[id="ccNotFuPhone"]').forEach(el => el.value = '');
+      document.querySelectorAll('[id="ccNotFuDate"]').forEach(el => el.value = '');
       if (document.getElementById('soldCustName')) document.getElementById('soldCustName').value = '';
       if (document.getElementById('soldCustPhone')) document.getElementById('soldCustPhone').value = '';
       selCcReason = null;
@@ -6600,8 +6600,8 @@
       // Clear those fields when hidden so stale data isn't submitted
       if (isNoContact) {
         document.getElementById('ccNotLeftAt').value  = '';
-        document.getElementById('ccNotFuName').value  = '';
-        document.getElementById('ccNotFuPhone').value = '';
+        document.querySelectorAll('[id="ccNotFuName"]').forEach(el => el.value = '');
+        document.querySelectorAll('[id="ccNotFuPhone"]').forEach(el => el.value = '');
       }
       clearFieldErrors();
     }
@@ -7318,8 +7318,8 @@
       // Pre-fill visible customer name/phone on both panels
       const sn = document.getElementById('soldCustName');
       const sp = document.getElementById('soldCustPhone');
-      const nn = document.getElementById('ccNotFuName');
-      const np = document.getElementById('ccNotFuPhone');
+      document.querySelectorAll('[id="ccNotFuName"]').forEach(el => el.value = lead.name);
+      document.querySelectorAll('[id="ccNotFuPhone"]').forEach(el => el.value = lead.phone);
       if (sn) sn.value = lead.name;
       if (sp) sp.value = lead.phone;
       if (nn) nn.value = lead.name;
