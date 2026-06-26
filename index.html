@@ -4398,14 +4398,18 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
             messages: [{ role: 'user', content: userMsg }]
           })
         });
-        if (!res.ok) throw new Error('API error ' + res.status);
+        if (!res.ok) {
+          let errMsg = `HTTP ${res.status}`;
+          try { const errData = await res.json(); errMsg += ': ' + (errData?.error?.message || JSON.stringify(errData)); } catch {}
+          throw new Error(errMsg);
+        }
         const data = await res.json();
         const msg = data?.content?.[0]?.text?.trim() || '';
         if (!msg) throw new Error('Empty response');
         document.getElementById('fuMsg').value = msg;
         toast('AI message generated! ✨', 'ok');
       } catch (e) {
-        toast('AI generation failed — using template', 'err');
+        toast('AI failed: ' + (e.message || 'unknown error'), 'err');
         refreshFuMsg();
       } finally {
         btn.textContent = '✨ AI Personalize';
