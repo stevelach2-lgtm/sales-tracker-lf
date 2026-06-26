@@ -1975,8 +1975,18 @@
         <label class="cfg-lbl">Password</label>
         <input type="password" class="cfg-inp" id="authPass" placeholder="••••••••">
         <button class="cfg-btn" onclick="doLogin()" id="loginBtn" style="margin-bottom:8px;">Sign In</button>
-        <p class="cfg-help"><a href="#" onclick="showDbSetup(true)" style="color:var(--muted);text-decoration:none">⚙️
-            Database Setup</a></p>
+        <p class="cfg-help" style="display:flex;justify-content:space-between;align-items:center">
+          <a href="#" onclick="showForgotPw()" style="color:var(--green);font-weight:700;text-decoration:none">Forgot password?</a>
+          <a href="#" onclick="showDbSetup(true)" style="color:var(--muted);text-decoration:none">⚙️ Database Setup</a>
+        </p>
+
+        <!-- Forgot Password Panel -->
+        <div id="forgotPwPanel" style="display:none;margin-top:12px;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:12px;padding:14px">
+          <div style="font-size:12px;font-weight:800;color:#166534;margin-bottom:8px">🔑 Reset Password</div>
+          <input type="email" class="cfg-inp" id="resetEmail" placeholder="your@email.com" style="margin-bottom:8px">
+          <button onclick="doForgotPw()" id="resetBtn" style="width:100%;padding:12px;border:none;border-radius:10px;background:var(--green);color:#fff;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:6px">Send Reset Link</button>
+          <p style="font-size:11px;color:var(--muted);text-align:center;margin:0">Check your email for a link to set a new password</p>
+        </div>
       </div>
 
       <!-- Create Account Panel -->
@@ -3411,6 +3421,29 @@
       document.getElementById('tabSignup').style.color = isLogin ? 'var(--muted)' : 'var(--text)';
       document.getElementById('tabLogin').style.boxShadow = isLogin ? '0 1px 3px rgba(0,0,0,.1)' : 'none';
       document.getElementById('tabSignup').style.boxShadow = isLogin ? 'none' : '0 1px 3px rgba(0,0,0,.1)';
+    }
+
+    function showForgotPw() {
+      const panel = document.getElementById('forgotPwPanel');
+      const emailVal = document.getElementById('authEmail').value.trim();
+      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      const resetEl = document.getElementById('resetEmail');
+      if (emailVal) resetEl.value = emailVal;
+      if (panel.style.display === 'block') setTimeout(() => resetEl.focus(), 100);
+    }
+
+    async function doForgotPw() {
+      const email = document.getElementById('resetEmail').value.trim();
+      if (!email) { toast('Enter your email address', 'err'); return; }
+      const btn = document.getElementById('resetBtn');
+      btn.textContent = 'Sending...';
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: APP_GCAL_REDIRECT_URI
+      });
+      btn.textContent = 'Send Reset Link';
+      if (error) { toast(error.message, 'err'); return; }
+      toast('Reset link sent — check your email ✓', 'ok');
+      document.getElementById('forgotPwPanel').style.display = 'none';
     }
 
     async function doLogin() {
