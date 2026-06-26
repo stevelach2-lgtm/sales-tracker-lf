@@ -7147,8 +7147,6 @@
           (e.summary || '').toLowerCase().startsWith('leaffilter lead')
         );
 
-        toast('📅 Calendar: ' + allEvents.length + ' events, ' + lfEvents.length + ' leads found', 'ok');
-
         const parsed = lfEvents.map(e => {
           const info = parseCalendarLeadDescription(e.description || '');
           return {
