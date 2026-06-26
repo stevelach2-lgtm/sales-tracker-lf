@@ -7136,12 +7136,18 @@
           toast('Calendar session expired — reconnect in Settings', 'err');
           return;
         }
-        if (!resp.ok) return;
+        if (!resp.ok) {
+          toast('Calendar fetch error: ' + resp.status, 'err');
+          return;
+        }
 
         const data = await resp.json();
-        const lfEvents = (data.items || []).filter(e =>
+        const allEvents = data.items || [];
+        const lfEvents = allEvents.filter(e =>
           (e.summary || '').toLowerCase().startsWith('leaffilter lead')
         );
+
+        toast('📅 Calendar: ' + allEvents.length + ' events, ' + lfEvents.length + ' leads found', 'ok');
 
         const parsed = lfEvents.map(e => {
           const info = parseCalendarLeadDescription(e.description || '');
