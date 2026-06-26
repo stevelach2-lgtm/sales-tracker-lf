@@ -2864,6 +2864,7 @@
             <div id="ccCalBannerName" style="font-size:14px;font-weight:800;color:#1E1B4B"></div>
             <div id="ccCalBannerAddr" style="font-size:11px;color:#4338CA;margin-top:2px"></div>
             <div id="ccCalBannerMeta" style="font-size:10px;color:#6366F1;margin-top:2px"></div>
+            <div id="ccCalBannerLeadId" style="display:none;margin-top:6px;font-size:12px;font-weight:700;color:#1E1B4B;background:#C7D2FE;border-radius:6px;padding:5px 10px;cursor:pointer;text-align:center"></div>
           </div>
 
           <!-- SOLD panel -->
@@ -6511,6 +6512,8 @@
       window.activeCalendarLead = null;
       const banner = document.getElementById('ccCalBanner');
       if (banner) banner.style.display = 'none';
+      const leadIdBadge = document.getElementById('ccCalBannerLeadId');
+      if (leadIdBadge) { leadIdBadge.style.display = 'none'; leadIdBadge.onclick = null; }
       ['calLeadId','calCustName','calCustAddr','calCustPhone','calLeadCode'].forEach(id => {
         const el = document.getElementById(id); if (el) el.value = '';
       });
@@ -7305,7 +7308,13 @@
         document.getElementById('ccCalBannerName').textContent = lead.name;
         document.getElementById('ccCalBannerAddr').textContent = lead.address;
         const t = lead.startTime ? new Date(lead.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
-        document.getElementById('ccCalBannerMeta').textContent = [t, lead.leadCode ? 'Code: ' + lead.leadCode : '', lead.leadId ? 'ID: ' + lead.leadId : ''].filter(Boolean).join(' · ');
+        document.getElementById('ccCalBannerMeta').textContent = [t, lead.leadCode ? 'Code: ' + lead.leadCode : ''].filter(Boolean).join(' · ');
+        const leadIdBadge = document.getElementById('ccCalBannerLeadId');
+        if (leadIdBadge && lead.leadId) {
+          leadIdBadge.textContent = '📋 Lead ID: ' + lead.leadId + ' (tap to copy)';
+          leadIdBadge.style.display = 'block';
+          leadIdBadge.onclick = () => { navigator.clipboard.writeText(lead.leadId).then(() => toast('Lead ID copied ✓', 'ok')); };
+        }
       }
 
       // Store in hidden fields
@@ -7393,7 +7402,17 @@
         banner.style.display = 'block';
         document.getElementById('ccCalBannerName').textContent = name + ' (Rehash)';
         document.getElementById('ccCalBannerAddr').textContent = address;
-        document.getElementById('ccCalBannerMeta').textContent = [leadCode ? 'Code: ' + leadCode : '', leadId ? 'ID: ' + leadId : ''].filter(Boolean).join(' · ');
+        document.getElementById('ccCalBannerMeta').textContent = [leadCode ? 'Code: ' + leadCode : ''].filter(Boolean).join(' · ');
+        const leadIdBadge = document.getElementById('ccCalBannerLeadId');
+        if (leadIdBadge) {
+          if (leadId) {
+            leadIdBadge.textContent = '📋 Lead ID: ' + leadId + ' (tap to copy)';
+            leadIdBadge.style.display = 'block';
+            leadIdBadge.onclick = () => { navigator.clipboard.writeText(leadId).then(() => toast('Lead ID copied ✓', 'ok')); };
+          } else {
+            leadIdBadge.style.display = 'none';
+          }
+        }
       }
 
       const rr = document.getElementById('rehashResults');
