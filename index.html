@@ -4352,6 +4352,7 @@
     function saveAiKey() {
       const key = (document.getElementById('aiApiKey').value || '').replace(/\s/g, '');
       if (!key) { toast('Enter an API key first', 'err'); return; }
+      if (!key.startsWith('sk-ant-')) { toast('That doesn\'t look like an Anthropic key (should start with sk-ant-)', 'err'); return; }
       localStorage.setItem('cc_anthropic_key', key);
       toast('API key saved! ✨', 'ok');
     }
