@@ -7372,11 +7372,14 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         // Check all against DB to get latest logged status
         const ids = merged.map(l => l.leadId);
         const { data: existing } = await sb.from('leads')
-          .select('lead_id')
+          .select('id, lead_id, status')
           .in('lead_id', ids);
-        const loggedIds = new Set((existing || []).map(r => r.lead_id));
+        const loggedMap = new Map((existing || []).map(r => [r.lead_id, r]));
 
-        window.calendarLeads = merged.map(l => ({ ...l, logged: loggedIds.has(l.leadId) }));
+        window.calendarLeads = merged.map(l => {
+          const rec = loggedMap.get(l.leadId);
+          return rec ? { ...l, logged: true, dbId: rec.id, dbStatus: rec.status } : { ...l, logged: false };
+        });
         calLeadsSave(window.calendarLeads);
         renderTodaysLeads();
       } catch (e) {
@@ -7398,13 +7401,15 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const t = l.startTime ? new Date(l.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
         const addrShort = l.address ? l.address.split(',')[0] : '';
         if (l.logged) {
-          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,.5);border-radius:9px;margin-bottom:6px;opacity:.55">
-            <div style="font-size:18px">✅</div>
+          const ico = l.dbStatus === 'sold' ? '✅' : '❌';
+          const label = l.dbStatus === 'sold' ? 'Sold' : 'Not Sold';
+          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,.5);border-radius:9px;margin-bottom:6px;border:1.5px solid #E0E7FF;cursor:pointer" onclick="openLeadEdit('${l.dbId}')">
+            <div style="font-size:18px">${ico}</div>
             <div style="flex:1;min-width:0">
               <div style="font-size:12px;font-weight:700;color:#3730A3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.name}</div>
               <div style="font-size:10px;color:#6366F1">${t}${addrShort ? ' · ' + addrShort : ''}</div>
             </div>
-            <div style="font-size:10px;color:#6366F1;font-weight:700;white-space:nowrap">Logged</div>
+            <div style="font-size:10px;color:#6366F1;font-weight:700;white-space:nowrap">✏️ ${label}</div>
           </div>`;
         }
         return `<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:#fff;border-radius:9px;margin-bottom:6px;box-shadow:0 1px 4px rgba(99,102,241,.12);border:1.5px solid #C7D2FE">
