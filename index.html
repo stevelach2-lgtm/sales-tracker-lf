@@ -3810,7 +3810,6 @@
     }
 
     function calcM(leads) {
-      leads = leads.filter(l => !l.is_lead_cancelled);
       const sold = leads.filter(l => l.status === 'sold' && !l.is_cancelled && !l.is_btd);
       const rev = sold.reduce((s, l) => s + (parseFloat(l.sale_amount) || 0), 0);
       const n = leads.length;
@@ -4025,7 +4024,7 @@
       try {
         // Fetch last 200 leads sorted oldest→newest so we can walk from the end
         const { data } = await sb.from('leads')
-          .select('status,is_cancelled,is_btd,is_lead_cancelled,created_at')
+          .select('status,is_cancelled,is_btd,created_at')
           .order('created_at', { ascending: true })
           .limit(200);
 
@@ -4036,7 +4035,6 @@
         let streak = 0;
         for (let i = data.length - 1; i >= 0; i--) {
           const l = data[i];
-          if (l.is_lead_cancelled) continue; // skip — treat as if lead never happened
           if (l.is_cancelled) continue; // skip cancelled — don't count or break
           if (l.status === 'sold' && !l.is_btd) {
             streak++;
@@ -5001,7 +4999,6 @@
         if (l.lead_type === 'rehash') tags.push('<span style="font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 5px">REHASH</span>');
         if (l.lead_type === 'self_gen') tags.push('<span style="font-size:9px;font-weight:700;background:var(--green-light);color:var(--green-dark);border-radius:4px;padding:1px 5px">SELF GEN</span>');
         if (l.commission_paid) tags.push('<span style="font-size:9px;font-weight:700;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 5px">COMM PAID</span>');
-        if (l.is_lead_cancelled) tags.push('<span style="font-size:9px;font-weight:700;background:#F3F4F6;color:#6B7280;border-radius:4px;padding:1px 5px">LEAD CANCELLED</span>');
         if (l.is_cancelled) tags.push('<span style="font-size:9px;font-weight:700;background:#FEE2E2;color:#DC2626;border-radius:4px;padding:1px 5px">CANCELLED</span>');
         if (l.is_btd) tags.push('<span style="font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 5px">BANK TURN DOWN</span>');
         if (installToday) tags.push('<span style="font-size:9px;font-weight:700;background:#DCFCE7;color:#166534;border-radius:4px;padding:1px 5px">INSTALL TODAY</span>');
@@ -7252,12 +7249,11 @@
         // Check which lead IDs are already logged in Supabase
         const ids = parsed.map(l => l.leadId);
         const { data: existing } = await sb.from('leads')
-          .select('lead_id,is_lead_cancelled')
+          .select('lead_id')
           .in('lead_id', ids);
         const loggedIds = new Set((existing || []).map(r => r.lead_id));
-        const cancelledIds = new Set((existing || []).filter(r => r.is_lead_cancelled).map(r => r.lead_id));
 
-        window.calendarLeads = parsed.map(l => ({ ...l, logged: loggedIds.has(l.leadId), leadCancelled: cancelledIds.has(l.leadId) }));
+        window.calendarLeads = parsed.map(l => ({ ...l, logged: loggedIds.has(l.leadId) }));
         renderTodaysLeads();
       } catch (e) {
         console.error('[gcal fetch]', e);
@@ -7277,16 +7273,6 @@
       list.innerHTML = leads.map(l => {
         const t = l.startTime ? new Date(l.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
         const addrShort = l.address ? l.address.split(',')[0] : '';
-        if (l.leadCancelled) {
-          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,.35);border-radius:9px;margin-bottom:6px;opacity:.6">
-            <div style="font-size:18px">🚫</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:12px;font-weight:700;color:#6B7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:line-through">${l.name}</div>
-              <div style="font-size:10px;color:#9CA3AF">${t}${addrShort ? ' · ' + addrShort : ''}</div>
-            </div>
-            <div style="font-size:10px;color:#9CA3AF;font-weight:700;white-space:nowrap">Cancelled</div>
-          </div>`;
-        }
         if (l.logged) {
           return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,.5);border-radius:9px;margin-bottom:6px;opacity:.55">
             <div style="font-size:18px">✅</div>
@@ -7309,24 +7295,9 @@
       }).join('');
     }
 
-    async function cancelCalendarLead(leadId) {
-      const lead = (window.calendarLeads || []).find(l => l.leadId === leadId);
-      if (!lead) return;
-      const { error } = await sb.from('leads').insert({
-        status: 'not_sold',
-        is_lead_cancelled: true,
-        lead_id: leadId,
-        followup_name: lead.name || null,
-        followup_phone: lead.phone || null,
-        customer_address: lead.address || null,
-        sales_date: localDate(new Date()),
-        lead_code: lead.leadCode || null
-      });
-      if (error) { toast('Error logging cancellation', 'err'); console.error(error); return; }
-      const cl = window.calendarLeads.find(l => l.leadId === leadId);
-      if (cl) { cl.logged = true; cl.leadCancelled = true; }
+    function cancelCalendarLead(leadId) {
+      window.calendarLeads = (window.calendarLeads || []).filter(l => l.leadId !== leadId);
       renderTodaysLeads();
-      toast('Lead marked as cancelled', 'ok');
     }
 
     function openLeadFromCalendar(leadId) {

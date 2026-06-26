@@ -437,12 +437,5 @@ create index if not exists idx_leads_lead_id      on public.leads(lead_id);
 create index if not exists idx_leads_cust_phone   on public.leads(customer_phone);
 
 -- ============================================================
--- MIGRATION: Lead Cancellation — appointment cancelled, never counts in metrics
--- ============================================================
-alter table public.leads add column if not exists is_lead_cancelled boolean default false;
-
-create index if not exists idx_leads_lead_cancelled on public.leads(is_lead_cancelled) where is_lead_cancelled = true;
-
--- ============================================================
 -- Done! Your tables are ready.
 -- ============================================================
