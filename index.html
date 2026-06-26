@@ -7283,15 +7283,21 @@
             <div style="font-size:10px;color:#6366F1;font-weight:700;white-space:nowrap">Logged</div>
           </div>`;
         }
-        return `<div onclick="openLeadFromCalendar('${l.leadId}')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#fff;border-radius:9px;margin-bottom:6px;cursor:pointer;box-shadow:0 1px 4px rgba(99,102,241,.12);border:1.5px solid #C7D2FE">
-          <div style="font-size:18px">👤</div>
-          <div style="flex:1;min-width:0">
+        return `<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:#fff;border-radius:9px;margin-bottom:6px;box-shadow:0 1px 4px rgba(99,102,241,.12);border:1.5px solid #C7D2FE">
+          <div style="font-size:18px;cursor:pointer" onclick="openLeadFromCalendar('${l.leadId}')">👤</div>
+          <div style="flex:1;min-width:0;cursor:pointer" onclick="openLeadFromCalendar('${l.leadId}')">
             <div style="font-size:13px;font-weight:800;color:#1E1B4B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.name}</div>
             <div style="font-size:10px;color:#4338CA">${t}${addrShort ? ' · ' + addrShort : ''}</div>
           </div>
-          <div style="font-size:12px;color:#6366F1;font-weight:800;white-space:nowrap">Quote →</div>
+          <button onclick="cancelCalendarLead('${l.leadId}')" style="flex-shrink:0;background:#F3F4F6;border:1.5px solid #D1D5DB;color:#6B7280;border-radius:8px;padding:5px 8px;font-family:'Inter',sans-serif;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap">✗ Cancel</button>
+          <div style="font-size:12px;color:#6366F1;font-weight:800;white-space:nowrap;cursor:pointer" onclick="openLeadFromCalendar('${l.leadId}')">Quote →</div>
         </div>`;
       }).join('');
+    }
+
+    function cancelCalendarLead(leadId) {
+      window.calendarLeads = (window.calendarLeads || []).filter(l => l.leadId !== leadId);
+      renderTodaysLeads();
     }
 
     function openLeadFromCalendar(leadId) {
