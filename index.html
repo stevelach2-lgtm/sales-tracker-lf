@@ -2044,6 +2044,7 @@
       box-shadow: 0 4px 20px rgba(0,0,0,.18) !important
     }
     .leaflet-popup-content { margin: 10px 12px !important }
+    #p-map.picker-open .map-legend { display: none }
 
     /* ── CANVASS MODE ── */
     .canvass-bar {
@@ -8019,13 +8020,6 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     let _canvassMarkers = [];
     let _pendingLatLng = null;
 
-    function getCanvassPins() {
-      try { return JSON.parse(localStorage.getItem('lf_canvass_pins') || '[]'); } catch { return []; }
-    }
-    function saveCanvassPins(pins) {
-      localStorage.setItem('lf_canvass_pins', JSON.stringify(pins));
-    }
-
     function toggleCanvassMode() {
       _canvassMode = !_canvassMode;
       const btn = document.getElementById('canvass-toggle-btn');
@@ -8046,22 +8040,24 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     function onCanvassMapClick(e) {
       _pendingLatLng = e.latlng;
       document.getElementById('canvass-picker').classList.add('show');
+      document.getElementById('p-map').classList.add('picker-open');
     }
 
     function cancelCanvassPin() {
       _pendingLatLng = null;
       document.getElementById('canvass-picker').classList.remove('show');
+      document.getElementById('p-map').classList.remove('picker-open');
     }
 
-    function addCanvassPin(status) {
-      if (!_pendingLatLng) return;
-      const pin = { id: Date.now(), lat: _pendingLatLng.lat, lng: _pendingLatLng.lng, status, ts: new Date().toISOString() };
-      const pins = getCanvassPins();
-      pins.push(pin);
-      saveCanvassPins(pins);
-      _renderOneCanvassPin(pin);
-      document.getElementById('canvass-clear-btn').style.display = '';
+    async function addCanvassPin(status) {
+      if (!_pendingLatLng || !sb) return;
       cancelCanvassPin();
+      const { data, error } = await sb.from('canvass_pins')
+        .insert({ lat: _pendingLatLng.lat, lng: _pendingLatLng.lng, status })
+        .select().single();
+      if (error) { toast('Could not save pin', 'err'); return; }
+      _renderOneCanvassPin(data);
+      document.getElementById('canvass-clear-btn').style.display = '';
     }
 
     function _renderOneCanvassPin(pin) {
@@ -8073,12 +8069,13 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         iconAnchor: [13, 13],
         popupAnchor: [0, -16]
       });
-      const time = new Date(pin.ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      const time = new Date(pin.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      const date = new Date(pin.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       const popup = L.popup({ maxWidth: 200 }).setContent(
         `<div style="font-family:Inter,sans-serif">
           <div style="font-weight:800;font-size:13px">${s.emoji} ${s.label}</div>
-          <div style="font-size:10px;color:#9CA3AF;margin-top:2px">${time}</div>
-          <button onclick="deleteCanvassPin(${pin.id})" style="margin-top:8px;width:100%;padding:7px;background:#FEE2E2;border:none;border-radius:8px;font-family:Inter,sans-serif;font-size:12px;font-weight:700;color:#DC2626;cursor:pointer">🗑 Remove Pin</button>
+          <div style="font-size:10px;color:#9CA3AF;margin-top:2px">${date} · ${time}</div>
+          <button onclick="deleteCanvassPin('${pin.id}')" style="margin-top:8px;width:100%;padding:7px;background:#FEE2E2;border:none;border-radius:8px;font-family:Inter,sans-serif;font-size:12px;font-weight:700;color:#DC2626;cursor:pointer">🗑 Remove Pin</button>
         </div>`
       );
       const marker = L.marker([pin.lat, pin.lng], { icon }).bindPopup(popup).addTo(_map);
@@ -8086,23 +8083,26 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       _canvassMarkers.push(marker);
     }
 
-    function renderCanvassPins() {
+    async function renderCanvassPins() {
       _canvassMarkers.forEach(m => m.remove());
       _canvassMarkers = [];
-      getCanvassPins().forEach(_renderOneCanvassPin);
+      if (!sb) return;
+      const { data } = await sb.from('canvass_pins').select('*').order('created_at');
+      (data || []).forEach(_renderOneCanvassPin);
+      document.getElementById('canvass-clear-btn').style.display = (data && data.length > 0) ? '' : 'none';
     }
 
-    function deleteCanvassPin(id) {
-      saveCanvassPins(getCanvassPins().filter(p => p.id !== id));
+    async function deleteCanvassPin(id) {
+      if (sb) await sb.from('canvass_pins').delete().eq('id', id);
       const i = _canvassMarkers.findIndex(m => m._cpId === id);
       if (i !== -1) { _canvassMarkers[i].remove(); _canvassMarkers.splice(i, 1); }
-      if (getCanvassPins().length === 0) document.getElementById('canvass-clear-btn').style.display = 'none';
       if (_map) _map.closePopup();
+      if (_canvassMarkers.length === 0) document.getElementById('canvass-clear-btn').style.display = 'none';
     }
 
-    function clearCanvassPins() {
+    async function clearCanvassPins() {
       if (!confirm('Remove all canvass pins?')) return;
-      saveCanvassPins([]);
+      if (sb) await sb.from('canvass_pins').delete().gte('created_at', '2000-01-01');
       _canvassMarkers.forEach(m => m.remove());
       _canvassMarkers = [];
       document.getElementById('canvass-clear-btn').style.display = 'none';

@@ -437,5 +437,27 @@ create index if not exists idx_leads_lead_id      on public.leads(lead_id);
 create index if not exists idx_leads_cust_phone   on public.leads(customer_phone);
 
 -- ============================================================
+-- MIGRATION: Canvass pins for door-knock tracking
+-- ============================================================
+create table if not exists public.canvass_pins (
+  id          uuid        primary key default gen_random_uuid(),
+  user_id     uuid        not null default auth.uid() references auth.users(id),
+  lat         numeric     not null,
+  lng         numeric     not null,
+  status      text        not null,
+  created_at  timestamptz default now()
+);
+
+alter table public.canvass_pins enable row level security;
+
+drop policy if exists "Users manage own canvass pins" on public.canvass_pins;
+create policy "Users manage own canvass pins"
+  on public.canvass_pins for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create index if not exists idx_canvass_pins_user_created on public.canvass_pins (user_id, created_at desc);
+
+-- ============================================================
 -- Done! Your tables are ready.
 -- ============================================================
