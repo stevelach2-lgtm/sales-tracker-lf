@@ -4351,11 +4351,26 @@
 
     function saveAiKey() { document.getElementById('aiKeyOverlay').classList.add('open'); }
     function closeAiKeyModal() { document.getElementById('aiKeyOverlay').classList.remove('open'); }
+    function _aiKeyGet() {
+      const ls = localStorage.getItem('cc_anthropic_key') || '';
+      if (ls) return ls;
+      const m = document.cookie.match(/(?:^|;\s*)cc_anthropic_key=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : '';
+    }
+    function _aiKeySet(key) {
+      localStorage.setItem('cc_anthropic_key', key);
+      const exp = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
+      document.cookie = 'cc_anthropic_key=' + encodeURIComponent(key) + '; expires=' + exp + '; path=/; SameSite=Strict';
+    }
+    function _aiKeyRemove() {
+      localStorage.removeItem('cc_anthropic_key');
+      document.cookie = 'cc_anthropic_key=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Strict';
+    }
     function confirmAiKey() {
       const key = (document.getElementById('aiKeyInput').value || '').replace(/\s/g, '');
       if (!key) { toast('Paste your API key first', 'err'); return; }
       if (!key.startsWith('sk-ant-')) { toast('Must start with sk-ant-', 'err'); return; }
-      localStorage.setItem('cc_anthropic_key', key);
+      _aiKeySet(key);
       const status = document.getElementById('aiKeyStatus');
       if (status) status.textContent = '✓ Key saved: ' + key.slice(0, 14) + '...' + key.slice(-4);
       document.getElementById('aiKeyInput').value = '';
@@ -4364,14 +4379,14 @@
     }
 
     function clearAiKey() {
-      localStorage.removeItem('cc_anthropic_key');
+      _aiKeyRemove();
       const status = document.getElementById('aiKeyStatus');
       if (status) status.textContent = 'No key saved';
       toast('API key cleared', 'ok');
     }
 
     async function aiGenFuMsg(respin = false) {
-      const apiKey = (localStorage.getItem('cc_anthropic_key') || '').replace(/\s/g, '');
+      const apiKey = _aiKeyGet().replace(/\s/g, '');
       if (!apiKey) {
         refreshFuMsg();
         return;
@@ -5656,7 +5671,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       loadBaselines();
       loadQuoteSettings();
       gcalLoadSettingsUI();
-      const savedAiKey = localStorage.getItem('cc_anthropic_key') || '';
+      const savedAiKey = _aiKeyGet();
       const aiKeyStatus = document.getElementById('aiKeyStatus');
       if (aiKeyStatus) aiKeyStatus.textContent = savedAiKey ? '✓ Key saved: ' + savedAiKey.slice(0, 14) + '...' + savedAiKey.slice(-4) : 'No key saved';
       await loadReasons();
