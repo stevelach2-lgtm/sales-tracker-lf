@@ -3730,7 +3730,10 @@
         <button class="es-close" onclick="closeEddmPlanner()" style="color:#3730A3">✕</button>
       </div>
       <div class="es-body" style="padding-bottom:20px">
-        <div id="eddmAddrHint" class="eddm-addr-hint" style="display:none"></div>
+        <div id="eddmAddrHint" class="eddm-addr-hint" style="display:none;align-items:center;justify-content:space-between;gap:8px">
+          <span id="eddmAddrText" style="flex:1"></span>
+          <button onclick="copyEddmAddr()" id="eddmCopyBtn" style="flex-shrink:0;padding:5px 10px;background:#6366F1;color:#fff;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;cursor:pointer">Copy</button>
+        </div>
         <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Coverage Radius</div>
         <div class="eddm-radius-pills">
           <button class="eddm-pill" onclick="setEddmRadius(0.25, this)">¼ mi</button>
@@ -8348,9 +8351,9 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       _runEddmQuery();
       reverseGeocode(lat, lng).then(addr => {
         if (addr) {
+          document.getElementById('eddmAddrText').textContent = '📍 ' + addr;
           const h = document.getElementById('eddmAddrHint');
-          h.textContent = '📍 Center: ' + addr;
-          h.style.display = 'block';
+          h.style.display = 'flex';
         }
       });
     }
@@ -8364,6 +8367,17 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         _map.off('click', _onEddmMapClick);
         _map.getContainer().style.cursor = '';
       }
+    }
+
+    function copyEddmAddr() {
+      const text = document.getElementById('eddmAddrText').textContent.replace(/^📍\s*/, '');
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('eddmCopyBtn');
+        btn.textContent = 'Copied!';
+        btn.style.background = '#16A34A';
+        setTimeout(() => { btn.textContent = 'Copy'; btn.style.background = '#6366F1'; }, 2000);
+      }).catch(() => toast('Copy failed', 'err'));
     }
 
     function _updateEddmCircle() {
