@@ -5115,7 +5115,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       return null;
     }
 
-    function saveLocationForLead(leadId, address) {
+    function saveLocationForLead(leadId, address, { gpsFallback = true } = {}) {
       if (!leadId) return;
       const persist = (coords) => {
         if (!coords) return;
@@ -5126,9 +5126,9 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (address && address.trim()) {
         geocodeAddress(address).then(coords => {
           if (coords) persist(coords);
-          else getGPS().then(persist);
+          else if (gpsFallback) getGPS().then(persist);
         });
-      } else {
+      } else if (gpsFallback) {
         getGPS().then(persist);
       }
     }
@@ -5899,7 +5899,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         if (error) { toast('Error saving', 'err'); console.error(error); return; }
         toast('Lead updated ✓', 'ok');
         document.getElementById('editOverlay').classList.remove('open');
-        if (esCustomerAddress) saveLocationForLead(editLeadId, esCustomerAddress);
+        if (esCustomerAddress) saveLocationForLead(editLeadId, esCustomerAddress, { gpsFallback: false });
         editLeadId = null;
         if (document.getElementById('n-hist').classList.contains('active')) {
           const isFu = document.querySelectorAll('.htab')[1].classList.contains('active');
@@ -5914,7 +5914,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (error) { toast('Error saving', 'err'); console.error(error); return; }
       toast('Lead updated ✓', 'ok');
       document.getElementById('editOverlay').classList.remove('open');
-      if (esCustomerAddress) saveLocationForLead(editLeadId, esCustomerAddress);
+      if (esCustomerAddress) saveLocationForLead(editLeadId, esCustomerAddress, { gpsFallback: false });
       editLeadId = null;
       // Refresh whichever tab is currently active
       if (document.getElementById('n-comm').classList.contains('active')) {
