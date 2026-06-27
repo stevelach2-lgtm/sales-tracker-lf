@@ -8050,9 +8050,10 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
 
     async function addCanvassPin(status) {
       if (!_pendingLatLng || !sb) return;
+      const { lat, lng } = _pendingLatLng;
       cancelCanvassPin();
       const { data, error } = await sb.from('canvass_pins')
-        .insert({ lat: _pendingLatLng.lat, lng: _pendingLatLng.lng, status })
+        .insert({ lat, lng, status })
         .select().single();
       if (error) { toast('Could not save pin', 'err'); return; }
       _renderOneCanvassPin(data);
