@@ -18,6 +18,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
   <style>
     :root {
       --green: #00853E;
@@ -2784,6 +2785,7 @@
         <div class="canvass-bar">
           <button id="canvass-toggle-btn" class="canvass-toggle" onclick="toggleCanvassMode()">✏️ Drop Pins</button>
           <span class="canvass-hint" id="canvass-hint" style="display:none">Tap map to mark a door</span>
+          <button id="canvass-heat-btn" onclick="toggleCanvassHeat()" style="height:34px;padding:0 12px;border-radius:20px;border:1.5px solid #E5E7EB;background:#fff;font-size:12px;font-weight:700;color:#374151;cursor:pointer;display:none">🔥 Heatmap</button>
           <button class="canvass-clear-btn" id="canvass-clear-btn" onclick="clearCanvassPins()" style="display:none">Clear All</button>
         </div>
         <div id="canvassing-map"></div>
@@ -5130,6 +5132,20 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     }
 
     function saveGPSForLead() { /* GPS pins removed — address geocoding only */ }
+
+    async function reverseGeocode(lat, lng) {
+      try {
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const json = await res.json();
+        if (json?.address) {
+          const a = json.address;
+          const parts = [a.house_number, a.road, a.city || a.town || a.village, a.state].filter(Boolean);
+          return parts.join(', ');
+        }
+      } catch (_) {}
+      return null;
+    }
 
     async function submitLead(type) {
       if (type === 'sold') {
@@ -8038,6 +8054,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     let _canvassMode = false;
     let _canvassMarkers = [];
     let _pendingLatLng = null;
+    let _heatLayer = null;
+    let _heatmapOn = false;
 
     function toggleCanvassMode() {
       _canvassMode = !_canvassMode;
@@ -8078,6 +8096,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (error) { toast('Could not save pin', 'err'); return; }
       _renderOneCanvassPin(data);
       document.getElementById('canvass-clear-btn').style.display = '';
+      document.getElementById('canvass-heat-btn').style.display = '';
+      if (_heatmapOn) _rebuildHeatLayer();
     }
 
     function _renderOneCanvassPin(pin) {
@@ -8091,10 +8111,14 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       });
       const time = new Date(pin.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
       const date = new Date(pin.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const logDemoBtn = pin.status === 'scheduled'
+        ? `<button onclick="logDemoFromPin(${pin.lat},${pin.lng})" style="margin-top:8px;width:100%;padding:7px;background:#EFF6FF;border:none;border-radius:8px;font-family:Inter,sans-serif;font-size:12px;font-weight:700;color:#1D4ED8;cursor:pointer">📋 Log Demo</button>`
+        : '';
       const popup = L.popup({ maxWidth: 200 }).setContent(
         `<div style="font-family:Inter,sans-serif">
           <div style="font-weight:800;font-size:13px">${s.emoji} ${s.label}</div>
           <div style="font-size:10px;color:#9CA3AF;margin-top:2px">${date} · ${time}</div>
+          ${logDemoBtn}
           <button onclick="deleteCanvassPin('${pin.id}')" style="margin-top:8px;width:100%;padding:7px;background:#FEE2E2;border:none;border-radius:8px;font-family:Inter,sans-serif;font-size:12px;font-weight:700;color:#DC2626;cursor:pointer">🗑 Remove Pin</button>
         </div>`
       );
@@ -8109,7 +8133,10 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (!sb) return;
       const { data } = await sb.from('canvass_pins').select('*').order('created_at');
       (data || []).forEach(_renderOneCanvassPin);
-      document.getElementById('canvass-clear-btn').style.display = (data && data.length > 0) ? '' : 'none';
+      const hasPins = data && data.length > 0;
+      document.getElementById('canvass-clear-btn').style.display = hasPins ? '' : 'none';
+      document.getElementById('canvass-heat-btn').style.display = hasPins ? '' : 'none';
+      if (_heatmapOn) _rebuildHeatLayer();
     }
 
     async function deleteCanvassPin(id) {
@@ -8117,7 +8144,10 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       const i = _canvassMarkers.findIndex(m => m._cpId === id);
       if (i !== -1) { _canvassMarkers[i].remove(); _canvassMarkers.splice(i, 1); }
       if (_map) _map.closePopup();
-      if (_canvassMarkers.length === 0) document.getElementById('canvass-clear-btn').style.display = 'none';
+      const hasPins = _canvassMarkers.length > 0;
+      document.getElementById('canvass-clear-btn').style.display = hasPins ? '' : 'none';
+      document.getElementById('canvass-heat-btn').style.display = hasPins ? '' : 'none';
+      if (_heatmapOn) _rebuildHeatLayer();
     }
 
     async function clearCanvassPins() {
@@ -8126,6 +8156,41 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       _canvassMarkers.forEach(m => m.remove());
       _canvassMarkers = [];
       document.getElementById('canvass-clear-btn').style.display = 'none';
+      document.getElementById('canvass-heat-btn').style.display = 'none';
+      if (_heatLayer) { _heatLayer.remove(); _heatLayer = null; }
+      _heatmapOn = false;
+      const hBtn = document.getElementById('canvass-heat-btn');
+      if (hBtn) { hBtn.style.background = ''; hBtn.style.color = ''; hBtn.style.borderColor = ''; }
+    }
+
+    function _rebuildHeatLayer() {
+      if (_heatLayer) { _heatLayer.remove(); _heatLayer = null; }
+      if (!_map || _canvassMarkers.length === 0) return;
+      const points = _canvassMarkers.map(m => { const ll = m.getLatLng(); return [ll.lat, ll.lng, 1]; });
+      _heatLayer = L.heatLayer(points, { radius: 35, blur: 20, maxZoom: 17 }).addTo(_map);
+    }
+
+    function toggleCanvassHeat() {
+      _heatmapOn = !_heatmapOn;
+      const btn = document.getElementById('canvass-heat-btn');
+      if (_heatmapOn) {
+        _rebuildHeatLayer();
+        btn.style.background = '#FF6B35';
+        btn.style.color = '#fff';
+        btn.style.borderColor = '#FF6B35';
+      } else {
+        if (_heatLayer) { _heatLayer.remove(); _heatLayer = null; }
+        btn.style.background = '';
+        btn.style.color = '';
+        btn.style.borderColor = '';
+      }
+    }
+
+    async function logDemoFromPin(lat, lng) {
+      if (_map) _map.closePopup();
+      openQuoteCalc();
+      const addr = await reverseGeocode(lat, lng);
+      if (addr) document.getElementById('calCustAddr').value = addr;
     }
 
     function mapLocateMe(panTo = true) {
