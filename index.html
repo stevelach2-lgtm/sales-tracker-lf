@@ -5206,7 +5206,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const json = await res.json();
         if (json?.address) {
           const a = json.address;
-          const parts = [a.house_number, a.road, a.city || a.town || a.village, a.state].filter(Boolean);
+          const street = [a.house_number, a.road].filter(Boolean).join(' ');
+          const parts = [street, a.city || a.town || a.village, a.state, a.postcode].filter(Boolean);
           return parts.join(', ');
         }
       } catch (_) {}
