@@ -4405,12 +4405,15 @@
       const step = _fuLead?.step || 1;
       const stepLabels = { 1: 'first contact (same day or next day)', 2: '3-day follow-up', 3: '7-day final follow-up', 4: 'cold lead revival (60+ days)' };
       const respinNote = respin ? ' Use a completely different tone, opening, and angle than you might have used before.' : '';
+      const spouseNote = reason.toLowerCase().includes('spouse')
+        ? `\nThe spouse wasn't home during the visit. Mention it was great meeting them today, reference any visit notes if available, and let them know there's an exclusive $250 discount available if they move forward this week. Keep the tone warm and low-pressure.`
+        : '';
 
       const userMsg = `Customer first name: ${name}
 Rep name: ${repName}
 Not-sold reason: ${reason}
 Notes from the visit: ${notes || 'none provided'}
-Follow-up step: ${step} of 4 (${stepLabels[step] || 'follow-up'})
+Follow-up step: ${step} of 4 (${stepLabels[step] || 'follow-up'})${spouseNote}
 
 Write a single short follow-up SMS from the rep to the customer. Be friendly and conversational, keep it under 200 characters if possible, and directly address the reason or notes if available. The customer doesn't have the rep's number saved, so naturally identify the rep as "${repName} from LeafFilter" somewhere in the message — for example opening with "Hi, it's ${repName} from LeafFilter!" or weaving it in naturally.${respinNote} Output only the SMS text — no labels, no quotes, no explanation.`;
 
@@ -6815,6 +6818,18 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           return;
         }
         lastId = data.id;
+
+        const _reasonLabel = reasons.find(r => r.id === selCcReason)?.label || '';
+        if (_reasonLabel.toLowerCase().includes('spouse') && data?.id) {
+          setTimeout(() => openFu(
+            data.id,
+            _reasonLabel,
+            payload.followup_name || payload.customer_name || '',
+            payload.followup_phone || payload.customer_phone || '',
+            notes || '',
+            1
+          ), 700);
+        }
 
         if (ccNsDrawPendingFile && data.id) {
           const { data: auth } = await sb.auth.getUser();
