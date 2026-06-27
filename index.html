@@ -7122,6 +7122,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           return;
         }
         lastId = data.id;
+        saveLocationForLead(data.id, document.getElementById('calCustAddr').value || null);
 
         const _reasonLabel = reasons.find(r => r.id === selCcReason)?.label || '';
         if (_reasonLabel.toLowerCase().includes('spouse') && data?.id) {
