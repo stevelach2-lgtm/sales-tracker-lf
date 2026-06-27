@@ -2044,6 +2044,124 @@
       box-shadow: 0 4px 20px rgba(0,0,0,.18) !important
     }
     .leaflet-popup-content { margin: 10px 12px !important }
+
+    /* ── CANVASS MODE ── */
+    .canvass-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0
+    }
+    .canvass-toggle {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #fff;
+      color: var(--text);
+      transition: .15s;
+      white-space: nowrap
+    }
+    .canvass-toggle.active {
+      background: #FEF3C7;
+      border-color: #F59E0B;
+      color: #92400E
+    }
+    .canvass-hint {
+      font-size: 11px;
+      color: #F59E0B;
+      font-weight: 700
+    }
+    .canvass-clear-btn {
+      margin-left: auto;
+      padding: 5px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #fff;
+      color: var(--red);
+      white-space: nowrap
+    }
+    .canvass-picker {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: var(--nav);
+      width: 100%;
+      max-width: 430px;
+      background: #fff;
+      border-top: 1px solid var(--border);
+      border-radius: 20px 20px 0 0;
+      padding: 16px 14px;
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+      z-index: 998;
+      box-shadow: 0 -8px 30px rgba(0,0,0,.15);
+      display: none
+    }
+    .canvass-picker.show {
+      display: block;
+      animation: cpUp .2s ease
+    }
+    @keyframes cpUp {
+      from { transform: translateX(-50%) translateY(60%) }
+      to   { transform: translateX(-50%) translateY(0) }
+    }
+    .canvass-picker-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin-bottom: 12px;
+      text-align: center
+    }
+    .canvass-picker-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px
+    }
+    .cp-btn {
+      padding: 13px 8px;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      transition: .12s;
+      line-height: 1.2
+    }
+    .cp-btn:active { transform: scale(.94) }
+    .cp-btn-emoji { font-size: 22px }
+    .canvass-cancel {
+      width: 100%;
+      padding: 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer
+    }
   </style>
 </head>
 
@@ -2662,13 +2780,43 @@
           <div class="map-stat"><span class="map-stat-v" id="map-cr">—</span>&nbsp;Close Rate</div>
           <div class="map-stat"><span class="map-stat-v" id="map-pin-count">—</span>&nbsp;Pinned</div>
         </div>
+        <div class="canvass-bar">
+          <button id="canvass-toggle-btn" class="canvass-toggle" onclick="toggleCanvassMode()">✏️ Drop Pins</button>
+          <span class="canvass-hint" id="canvass-hint" style="display:none">Tap map to mark a door</span>
+          <button class="canvass-clear-btn" id="canvass-clear-btn" onclick="clearCanvassPins()" style="display:none">Clear All</button>
+        </div>
         <div id="canvassing-map"></div>
         <div class="map-legend">
           <div><span class="map-legend-dot" style="background:#00853E"></span>Sold</div>
           <div><span class="map-legend-dot" style="background:#E53935"></span>Not Sold</div>
           <div><span class="map-legend-dot" style="background:#1D4ED8"></span>You</div>
+          <div style="margin-top:4px;border-top:1px solid var(--border);padding-top:4px">
+            <div><span class="map-legend-dot" style="background:#9CA3AF;border-radius:2px"></span>No Answer</div>
+            <div><span class="map-legend-dot" style="background:#EF4444;border-radius:2px"></span>Not Interested</div>
+            <div><span class="map-legend-dot" style="background:#2563EB;border-radius:2px"></span>Scheduled</div>
+            <div><span class="map-legend-dot" style="background:#F59E0B;border-radius:2px"></span>Come Back</div>
+          </div>
         </div>
         <button class="map-locate-fab" onclick="mapLocateMe()" title="Center on my location">📍</button>
+        <!-- Canvass status picker -->
+        <div class="canvass-picker" id="canvass-picker">
+          <div class="canvass-picker-title">Mark This Door As</div>
+          <div class="canvass-picker-grid">
+            <button class="cp-btn" style="background:#F9FAFB;border-color:#9CA3AF;color:#374151" onclick="addCanvassPin('no_answer')">
+              <span class="cp-btn-emoji">🔕</span>No Answer
+            </button>
+            <button class="cp-btn" style="background:#FEF2F2;border-color:#EF4444;color:#991B1B" onclick="addCanvassPin('not_interested')">
+              <span class="cp-btn-emoji">🚫</span>Not Interested
+            </button>
+            <button class="cp-btn" style="background:#EFF6FF;border-color:#2563EB;color:#1E40AF" onclick="addCanvassPin('scheduled')">
+              <span class="cp-btn-emoji">📅</span>Scheduled Demo
+            </button>
+            <button class="cp-btn" style="background:#FFFBEB;border-color:#F59E0B;color:#92400E" onclick="addCanvassPin('come_back')">
+              <span class="cp-btn-emoji">🕐</span>Come Back Later
+            </button>
+          </div>
+          <button class="canvass-cancel" onclick="cancelCanvassPin()">Cancel</button>
+        </div>
       </div>
 
     </div><!-- /main -->
@@ -7759,7 +7907,9 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
           maxZoom: 19
         }).addTo(_map);
+        renderCanvassPins();
       }
+      document.getElementById('canvass-clear-btn').style.display = getCanvassPins().length > 0 ? '' : 'none';
       setTimeout(() => _map.invalidateSize(), 120);
       await refreshMapData();
       if (!_mapLoaded) {
@@ -7855,6 +8005,107 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       } else if (!_mapLoaded) {
         mapLocateMe(false);
       }
+    }
+
+    // ── CANVASS PINS ──
+    const CANVASS_STATUS = {
+      no_answer:      { label: 'No Answer',      color: '#9CA3AF', emoji: '🔕' },
+      not_interested: { label: 'Not Interested', color: '#EF4444', emoji: '🚫' },
+      scheduled:      { label: 'Scheduled Demo', color: '#2563EB', emoji: '📅' },
+      come_back:      { label: 'Come Back',      color: '#F59E0B', emoji: '🕐' },
+    };
+
+    let _canvassMode = false;
+    let _canvassMarkers = [];
+    let _pendingLatLng = null;
+
+    function getCanvassPins() {
+      try { return JSON.parse(localStorage.getItem('lf_canvass_pins') || '[]'); } catch { return []; }
+    }
+    function saveCanvassPins(pins) {
+      localStorage.setItem('lf_canvass_pins', JSON.stringify(pins));
+    }
+
+    function toggleCanvassMode() {
+      _canvassMode = !_canvassMode;
+      const btn = document.getElementById('canvass-toggle-btn');
+      const hint = document.getElementById('canvass-hint');
+      btn.classList.toggle('active', _canvassMode);
+      btn.innerHTML = _canvassMode ? '✏️ Drop Pins <span style="font-size:10px">ON</span>' : '✏️ Drop Pins';
+      hint.style.display = _canvassMode ? '' : 'none';
+      if (_canvassMode) {
+        _map.on('click', onCanvassMapClick);
+        _map.getContainer().style.cursor = 'crosshair';
+      } else {
+        _map.off('click', onCanvassMapClick);
+        _map.getContainer().style.cursor = '';
+        cancelCanvassPin();
+      }
+    }
+
+    function onCanvassMapClick(e) {
+      _pendingLatLng = e.latlng;
+      document.getElementById('canvass-picker').classList.add('show');
+    }
+
+    function cancelCanvassPin() {
+      _pendingLatLng = null;
+      document.getElementById('canvass-picker').classList.remove('show');
+    }
+
+    function addCanvassPin(status) {
+      if (!_pendingLatLng) return;
+      const pin = { id: Date.now(), lat: _pendingLatLng.lat, lng: _pendingLatLng.lng, status, ts: new Date().toISOString() };
+      const pins = getCanvassPins();
+      pins.push(pin);
+      saveCanvassPins(pins);
+      _renderOneCanvassPin(pin);
+      document.getElementById('canvass-clear-btn').style.display = '';
+      cancelCanvassPin();
+    }
+
+    function _renderOneCanvassPin(pin) {
+      const s = CANVASS_STATUS[pin.status] || CANVASS_STATUS.no_answer;
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:26px;height:26px;background:${s.color};border:2.5px solid #fff;border-radius:5px;box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:14px">${s.emoji}</div>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
+        popupAnchor: [0, -16]
+      });
+      const time = new Date(pin.ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      const popup = L.popup({ maxWidth: 200 }).setContent(
+        `<div style="font-family:Inter,sans-serif">
+          <div style="font-weight:800;font-size:13px">${s.emoji} ${s.label}</div>
+          <div style="font-size:10px;color:#9CA3AF;margin-top:2px">${time}</div>
+          <button onclick="deleteCanvassPin(${pin.id})" style="margin-top:8px;width:100%;padding:7px;background:#FEE2E2;border:none;border-radius:8px;font-family:Inter,sans-serif;font-size:12px;font-weight:700;color:#DC2626;cursor:pointer">🗑 Remove Pin</button>
+        </div>`
+      );
+      const marker = L.marker([pin.lat, pin.lng], { icon }).bindPopup(popup).addTo(_map);
+      marker._cpId = pin.id;
+      _canvassMarkers.push(marker);
+    }
+
+    function renderCanvassPins() {
+      _canvassMarkers.forEach(m => m.remove());
+      _canvassMarkers = [];
+      getCanvassPins().forEach(_renderOneCanvassPin);
+    }
+
+    function deleteCanvassPin(id) {
+      saveCanvassPins(getCanvassPins().filter(p => p.id !== id));
+      const i = _canvassMarkers.findIndex(m => m._cpId === id);
+      if (i !== -1) { _canvassMarkers[i].remove(); _canvassMarkers.splice(i, 1); }
+      if (getCanvassPins().length === 0) document.getElementById('canvass-clear-btn').style.display = 'none';
+      if (_map) _map.closePopup();
+    }
+
+    function clearCanvassPins() {
+      if (!confirm('Remove all canvass pins?')) return;
+      saveCanvassPins([]);
+      _canvassMarkers.forEach(m => m.remove());
+      _canvassMarkers = [];
+      document.getElementById('canvass-clear-btn').style.display = 'none';
     }
 
     function mapLocateMe(panTo = true) {
