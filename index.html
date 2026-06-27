@@ -2785,6 +2785,7 @@
         <div class="canvass-bar">
           <button id="canvass-toggle-btn" class="canvass-toggle" onclick="toggleCanvassMode()">✏️ Drop Pins</button>
           <span class="canvass-hint" id="canvass-hint" style="display:none">Tap map to mark a door</span>
+          <button id="canvass-sat-btn" onclick="toggleSatellite()" style="height:34px;padding:0 12px;border-radius:20px;border:1.5px solid #E5E7EB;background:#fff;font-size:12px;font-weight:700;color:#374151;cursor:pointer">🛰 Satellite</button>
           <button id="canvass-heat-btn" onclick="toggleCanvassHeat()" style="height:34px;padding:0 12px;border-radius:20px;border:1.5px solid #E5E7EB;background:#fff;font-size:12px;font-weight:700;color:#374151;cursor:pointer;display:none">🔥 Heatmap</button>
           <button class="canvass-clear-btn" id="canvass-clear-btn" onclick="clearCanvassPins()" style="display:none">Clear All</button>
         </div>
@@ -7931,6 +7932,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     // CANVASSING MAP
     // ─────────────────────────────────────────
     let _map = null;
+    let _tileLayer = null;
+    let _mapSatellite = localStorage.getItem('map_satellite') === 'true';
     let _mapMarkers = [];
     let _mapUserMarker = null;
     let _mapPeriod = 'today';
@@ -7940,10 +7943,17 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (!_map) {
         await new Promise(r => setTimeout(r, 50)); // let page render first
         _map = L.map('canvassing-map', { zoomControl: true, attributionControl: true });
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-          maxZoom: 19
-        }).addTo(_map);
+        _tileLayer = _mapSatellite
+          ? L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+              attribution: 'Tiles &copy; Esri &mdash; Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, GIS User Community',
+              maxZoom: 19
+            })
+          : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+              maxZoom: 19
+            });
+        _tileLayer.addTo(_map);
+        _updateSatBtn();
         await renderCanvassPins();
       }
       setTimeout(() => _map.invalidateSize(), 120);
@@ -8161,6 +8171,33 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       _heatmapOn = false;
       const hBtn = document.getElementById('canvass-heat-btn');
       if (hBtn) { hBtn.style.background = ''; hBtn.style.color = ''; hBtn.style.borderColor = ''; }
+    }
+
+    function _updateSatBtn() {
+      const btn = document.getElementById('canvass-sat-btn');
+      if (!btn) return;
+      btn.style.background = _mapSatellite ? '#1E40AF' : '';
+      btn.style.color = _mapSatellite ? '#fff' : '';
+      btn.style.borderColor = _mapSatellite ? '#1E40AF' : '';
+    }
+
+    function toggleSatellite() {
+      _mapSatellite = !_mapSatellite;
+      localStorage.setItem('map_satellite', _mapSatellite);
+      if (_map && _tileLayer) {
+        _tileLayer.remove();
+        _tileLayer = _mapSatellite
+          ? L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+              attribution: 'Tiles &copy; Esri &mdash; Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, GIS User Community',
+              maxZoom: 19
+            })
+          : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+              maxZoom: 19
+            });
+        _tileLayer.addTo(_map);
+      }
+      _updateSatBtn();
     }
 
     function _rebuildHeatLayer() {
