@@ -5105,17 +5105,36 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       });
     }
 
-    function saveGPSForLead(leadId) {
+    async function geocodeAddress(address) {
+      try {
+        const url = 'https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(address) + '&format=json&limit=1';
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const json = await res.json();
+        if (json && json[0]) return { lat: parseFloat(json[0].lat), lng: parseFloat(json[0].lon) };
+      } catch (_) {}
+      return null;
+    }
+
+    function saveLocationForLead(leadId, address) {
       if (!leadId) return;
-      getGPS()
-        .then((gps) => {
-          if (!gps) return;
-          return sb.from('leads').update({ lat: gps.lat, lng: gps.lng }).eq('id', leadId);
-        })
-        .then((res) => {
-          if (res?.error) console.warn('GPS save failed:', res.error);
-        })
-        .catch((e) => console.warn('GPS save failed:', e));
+      const persist = (coords) => {
+        if (!coords) return;
+        sb.from('leads').update({ lat: coords.lat, lng: coords.lng }).eq('id', leadId)
+          .then(r => { if (r?.error) console.warn('Location save failed:', r.error); })
+          .catch(e => console.warn('Location save failed:', e));
+      };
+      if (address && address.trim()) {
+        geocodeAddress(address).then(coords => {
+          if (coords) persist(coords);
+          else getGPS().then(persist);
+        });
+      } else {
+        getGPS().then(persist);
+      }
+    }
+
+    function saveGPSForLead(leadId) {
+      saveLocationForLead(leadId, null);
     }
 
     async function submitLead(type) {
@@ -5159,7 +5178,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           return false;
         }
         lastId = data.id;
-        saveGPSForLead(data.id);
+        saveLocationForLead(data.id, document.getElementById('calCustAddr').value || null);
 
         // Same Supabase path as edit flow: bucket draw-sheets → {user_id}/{lead_id}.{ext}, then leads.draw_sheet_url
         if (ccDrawPendingFile && data.id) {
