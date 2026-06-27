@@ -2164,6 +2164,23 @@
       color: var(--muted);
       cursor: pointer
     }
+    /* ── EDDM PLANNER ── */
+    .canvass-eddm-btn { height:34px;padding:0 12px;border-radius:20px;border:1.5px solid #6366F1;background:#fff;font-size:12px;font-weight:700;color:#6366F1;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:.15s }
+    .canvass-eddm-btn.active { background:#6366F1;color:#fff }
+    .eddm-radius-pills { display:flex;gap:8px;margin:12px 0 10px }
+    .eddm-pill { flex:1;padding:9px 0;border:2px solid #E5E7EB;border-radius:20px;background:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:#374151;cursor:pointer;text-align:center;transition:.12s }
+    .eddm-pill.active { border-color:#6366F1;background:#EEF2FF;color:#4338CA }
+    .eddm-stat-row { display:flex;gap:8px;margin-bottom:12px }
+    .eddm-stat { flex:1;background:#F9FAFB;border:1.5px solid #E5E7EB;border-radius:12px;padding:10px 8px;text-align:center }
+    .eddm-stat-v { font-size:18px;font-weight:800;color:var(--text);display:block }
+    .eddm-stat-l { font-size:10px;color:var(--muted);font-weight:600;margin-top:2px }
+    .eddm-streets { background:#F9FAFB;border:1.5px solid #E5E7EB;border-radius:12px;padding:10px 12px;margin-bottom:12px;max-height:130px;overflow-y:auto }
+    .eddm-streets-title { font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px }
+    .eddm-street-list { display:flex;flex-wrap:wrap;gap:5px }
+    .eddm-street-chip { background:#EEF2FF;color:#3730A3;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:600 }
+    .eddm-loading { text-align:center;padding:16px 0;font-size:12px;color:var(--muted);font-weight:600 }
+    .eddm-addr-hint { font-size:11px;color:#6366F1;margin-bottom:10px;line-height:1.4;font-style:italic }
+    .eddm-disclaimer { font-size:10px;color:var(--muted);line-height:1.5;margin-top:8px;padding-top:8px;border-top:1px solid var(--border) }
   </style>
 </head>
 
@@ -2787,6 +2804,7 @@
           <span class="canvass-hint" id="canvass-hint" style="display:none">Tap map to mark a door</span>
           <button id="canvass-sat-btn" onclick="toggleSatellite()" style="height:34px;padding:0 12px;border-radius:20px;border:1.5px solid #E5E7EB;background:#fff;font-size:12px;font-weight:700;color:#374151;cursor:pointer">🛰 Satellite</button>
           <button id="canvass-heat-btn" onclick="toggleCanvassHeat()" style="height:34px;padding:0 12px;border-radius:20px;border:1.5px solid #E5E7EB;background:#fff;font-size:12px;font-weight:700;color:#374151;cursor:pointer;display:none">🔥 Heatmap</button>
+          <button id="canvass-eddm-btn" class="canvass-eddm-btn" onclick="toggleEddmMode()">✉️ EDDM</button>
           <button class="canvass-clear-btn" id="canvass-clear-btn" onclick="clearCanvassPins()" style="display:none">Clear All</button>
         </div>
         <div id="canvassing-map"></div>
@@ -3696,6 +3714,46 @@
           style="width:100%;margin-top:12px;padding:13px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer">
           Save Key
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDDM Mailer Planner Overlay -->
+  <div class="edit-overlay" id="eddmOverlay" onclick="if(event.target===this)closeEddmPlanner()">
+    <div class="edit-sheet" style="max-height:88vh">
+      <div class="es-hdr" style="background:#EEF2FF;border-bottom:1.5px solid #C7D2FE">
+        <span class="es-title" style="color:#3730A3">✉️ EDDM Mailer Planner</span>
+        <button class="es-close" onclick="closeEddmPlanner()" style="color:#3730A3">✕</button>
+      </div>
+      <div class="es-body" style="padding-bottom:20px">
+        <div id="eddmAddrHint" class="eddm-addr-hint" style="display:none"></div>
+        <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Coverage Radius</div>
+        <div class="eddm-radius-pills">
+          <button class="eddm-pill" onclick="setEddmRadius(0.25, this)">¼ mi</button>
+          <button class="eddm-pill active" onclick="setEddmRadius(0.5, this)">½ mi</button>
+          <button class="eddm-pill" onclick="setEddmRadius(1, this)">1 mi</button>
+        </div>
+        <div class="eddm-stat-row">
+          <div class="eddm-stat"><span class="eddm-stat-v" id="eddmAddrCount">—</span><div class="eddm-stat-l">Est. Addresses</div></div>
+          <div class="eddm-stat"><span class="eddm-stat-v" id="eddmCost">—</span><div class="eddm-stat-l">Est. Postage</div></div>
+          <div class="eddm-stat"><span class="eddm-stat-v" id="eddmRadius">½ mi</span><div class="eddm-stat-l">Radius</div></div>
+        </div>
+        <div id="eddmLoadingArea" class="eddm-loading" style="display:none">🔍 Fetching address data…</div>
+        <div id="eddmStreetsWrap" style="display:none">
+          <div class="eddm-streets">
+            <div class="eddm-streets-title">Streets Covered</div>
+            <div class="eddm-street-list" id="eddmStreetList"></div>
+          </div>
+        </div>
+        <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Plan Your Mailing</div>
+        <a href="https://eddm.usps.com/eddm/SelectRoute.action" target="_blank" rel="noopener"
+          style="display:block;width:100%;padding:13px;background:linear-gradient(135deg,#1D4ED8,#1E40AF);color:#fff;border:none;border-radius:12px;font-family:'Inter',sans-serif;font-size:14px;font-weight:800;cursor:pointer;text-align:center;text-decoration:none;box-shadow:0 4px 14px rgba(29,78,216,.3);margin-bottom:10px">
+          🔗 Open USPS EDDM Tool
+        </a>
+        <div class="eddm-disclaimer">
+          <strong>How to use:</strong> Open the USPS EDDM tool above, search for the address shown, select routes matching the streets listed, and add to cart. Minimum 200 pieces per route.<br>
+          <strong>Rate:</strong> $0.234/piece (EDDM Retail, 2024). Confirm final count on USPS site.
+        </div>
       </div>
     </div>
   </div>
@@ -8037,8 +8095,11 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           ? `<div style="font-size:11px;color:#6B7280;margin-top:4px;line-height:1.4">${l.notes.length > 90 ? l.notes.substring(0, 90) + '…' : l.notes}</div>`
           : '';
 
+        const eddmBtn = isSold
+          ? `<button onclick="_map.closePopup();openEddmPlanner(${l.lat},${l.lng})" style="margin-top:8px;width:100%;padding:7px;background:#EEF2FF;border:none;border-radius:8px;font-family:Inter,sans-serif;font-size:12px;font-weight:700;color:#3730A3;cursor:pointer">✉️ Plan EDDM Mailer</button>`
+          : '';
         const popup = L.popup({ maxWidth: 230 }).setContent(
-          `<div style="font-family:Inter,sans-serif;line-height:1.3">${headline}${nameLine}${dateLine}${notesLine}</div>`
+          `<div style="font-family:Inter,sans-serif;line-height:1.3">${headline}${nameLine}${dateLine}${notesLine}${eddmBtn}</div>`
         );
 
         const marker = L.marker([l.lat, l.lng], { icon }).bindPopup(popup).addTo(_map);
@@ -8066,8 +8127,15 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     let _pendingLatLng = null;
     let _heatLayer = null;
     let _heatmapOn = false;
+    let _eddmMode = false;
+    let _eddmLat = null;
+    let _eddmLng = null;
+    let _eddmRadiusMi = 0.5;
+    let _eddmCircle = null;
+    let _eddmQueryTimer = null;
 
     function toggleCanvassMode() {
+      if (_eddmMode) toggleEddmMode();
       _canvassMode = !_canvassMode;
       const btn = document.getElementById('canvass-toggle-btn');
       const hint = document.getElementById('canvass-hint');
@@ -8129,7 +8197,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           <div style="font-weight:800;font-size:13px">${s.emoji} ${s.label}</div>
           <div style="font-size:10px;color:#9CA3AF;margin-top:2px">${date} · ${time}</div>
           ${logDemoBtn}
-          <button onclick="deleteCanvassPin('${pin.id}')" style="margin-top:8px;width:100%;padding:7px;background:#FEE2E2;border:none;border-radius:8px;font-family:Inter,sans-serif;font-size:12px;font-weight:700;color:#DC2626;cursor:pointer">🗑 Remove Pin</button>
+          <button onclick="_map.closePopup();openEddmPlanner(${pin.lat},${pin.lng})" style="margin-top:8px;width:100%;padding:7px;background:#EEF2FF;border:none;border-radius:8px;font-family:Inter,sans-serif;font-size:12px;font-weight:700;color:#3730A3;cursor:pointer">✉️ Plan EDDM Mailer</button>
+          <button onclick="deleteCanvassPin('${pin.id}')" style="margin-top:6px;width:100%;padding:7px;background:#FEE2E2;border:none;border-radius:8px;font-family:Inter,sans-serif;font-size:12px;font-weight:700;color:#DC2626;cursor:pointer">🗑 Remove Pin</button>
         </div>`
       );
       const marker = L.marker([pin.lat, pin.lng], { icon }).bindPopup(popup).addTo(_map);
@@ -8230,6 +8299,136 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const addr = await reverseGeocode(lat, lng);
         if (addr) document.getElementById('calCustAddr').value = addr;
       }, 50);
+    }
+
+    // ─── EDDM MAILER PLANNER ───
+    const EDDM_RATE = 0.234;
+    const EDDM_DENSITY = 1500;
+
+    function toggleEddmMode() {
+      _eddmMode = !_eddmMode;
+      const btn = document.getElementById('canvass-eddm-btn');
+      btn.classList.toggle('active', _eddmMode);
+      if (_eddmMode) {
+        if (_canvassMode) toggleCanvassMode();
+        _map.on('click', _onEddmMapClick);
+        _map.getContainer().style.cursor = 'crosshair';
+        toast('Tap map to set EDDM center', 'ok');
+      } else {
+        _map.off('click', _onEddmMapClick);
+        _map.getContainer().style.cursor = '';
+      }
+    }
+
+    function _onEddmMapClick(e) {
+      _eddmMode = false;
+      document.getElementById('canvass-eddm-btn').classList.remove('active');
+      _map.off('click', _onEddmMapClick);
+      _map.getContainer().style.cursor = '';
+      openEddmPlanner(e.latlng.lat, e.latlng.lng);
+    }
+
+    function openEddmPlanner(lat, lng) {
+      _eddmLat = lat; _eddmLng = lng;
+      document.getElementById('eddmAddrCount').textContent = '—';
+      document.getElementById('eddmCost').textContent = '—';
+      document.getElementById('eddmRadius').textContent = _eddmRadiusMi === 0.25 ? '¼ mi' : _eddmRadiusMi === 1 ? '1 mi' : '½ mi';
+      document.getElementById('eddmStreetsWrap').style.display = 'none';
+      document.getElementById('eddmAddrHint').style.display = 'none';
+      document.querySelectorAll('.eddm-pill').forEach(p => p.classList.remove('active'));
+      const pills = document.querySelectorAll('.eddm-pill');
+      const idx = [0.25, 0.5, 1].indexOf(_eddmRadiusMi);
+      if (pills[idx]) pills[idx].classList.add('active');
+      _updateEddmCircle();
+      document.getElementById('eddmOverlay').classList.add('open');
+      _runEddmQuery();
+      reverseGeocode(lat, lng).then(addr => {
+        if (addr) {
+          const h = document.getElementById('eddmAddrHint');
+          h.textContent = '📍 Center: ' + addr;
+          h.style.display = 'block';
+        }
+      });
+    }
+
+    function closeEddmPlanner() {
+      document.getElementById('eddmOverlay').classList.remove('open');
+      if (_eddmCircle) { _eddmCircle.remove(); _eddmCircle = null; }
+      if (_eddmMode) {
+        _eddmMode = false;
+        document.getElementById('canvass-eddm-btn').classList.remove('active');
+        _map.off('click', _onEddmMapClick);
+        _map.getContainer().style.cursor = '';
+      }
+    }
+
+    function _updateEddmCircle() {
+      if (!_map || _eddmLat == null) return;
+      const meters = _eddmRadiusMi * 1609.344;
+      if (_eddmCircle) {
+        _eddmCircle.setLatLng([_eddmLat, _eddmLng]);
+        _eddmCircle.setRadius(meters);
+      } else {
+        _eddmCircle = L.circle([_eddmLat, _eddmLng], {
+          radius: meters, color: '#6366F1', fillColor: '#6366F1',
+          fillOpacity: 0.12, weight: 2, dashArray: '6 4'
+        }).addTo(_map);
+      }
+      _map.panTo([_eddmLat, _eddmLng], { animate: true });
+    }
+
+    function setEddmRadius(miles, pillEl) {
+      _eddmRadiusMi = miles;
+      document.querySelectorAll('.eddm-pill').forEach(p => p.classList.remove('active'));
+      if (pillEl) pillEl.classList.add('active');
+      document.getElementById('eddmRadius').textContent = miles === 0.25 ? '¼ mi' : miles === 1 ? '1 mi' : '½ mi';
+      _updateEddmCircle();
+      clearTimeout(_eddmQueryTimer);
+      _eddmQueryTimer = setTimeout(_runEddmQuery, 400);
+    }
+
+    async function _runEddmQuery() {
+      if (_eddmLat == null) return;
+      const meters = Math.round(_eddmRadiusMi * 1609.344);
+      const lat = _eddmLat, lng = _eddmLng;
+      document.getElementById('eddmAddrCount').textContent = '…';
+      document.getElementById('eddmCost').textContent = '…';
+      document.getElementById('eddmLoadingArea').style.display = 'block';
+      document.getElementById('eddmStreetsWrap').style.display = 'none';
+
+      const countQ = `[out:json][timeout:15];node["addr:housenumber"](around:${meters},${lat},${lng});out count;`;
+      let addrCount = 0, usedFallback = false;
+      try {
+        const r = await fetch('https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(countQ),
+          { signal: AbortSignal.timeout(18000) });
+        if (r.ok) {
+          const j = await r.json();
+          addrCount = parseInt(j?.elements?.[0]?.tags?.total || '0', 10);
+        }
+      } catch (_) {}
+
+      if (addrCount < 10) {
+        usedFallback = true;
+        addrCount = Math.round(Math.PI * _eddmRadiusMi * _eddmRadiusMi * EDDM_DENSITY);
+      }
+      const displayCount = Math.max(addrCount, 200);
+      document.getElementById('eddmAddrCount').textContent = displayCount.toLocaleString() + (usedFallback ? '*' : '');
+      document.getElementById('eddmCost').textContent = '$' + Math.round(displayCount * EDDM_RATE).toLocaleString();
+      document.getElementById('eddmLoadingArea').style.display = 'none';
+
+      const streetQ = `[out:json][timeout:15];way["highway"~"^(residential|tertiary|unclassified|living_street)$"](around:${meters},${lat},${lng});out tags;`;
+      try {
+        const r = await fetch('https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(streetQ),
+          { signal: AbortSignal.timeout(18000) });
+        if (r.ok) {
+          const j = await r.json();
+          const streets = [...new Set((j?.elements || []).map(el => el.tags?.name).filter(Boolean))].sort();
+          if (streets.length) {
+            document.getElementById('eddmStreetList').innerHTML = streets.map(s => `<span class="eddm-street-chip">${s}</span>`).join('');
+            document.getElementById('eddmStreetsWrap').style.display = 'block';
+          }
+        }
+      } catch (_) {}
     }
 
     function mapLocateMe(panTo = true) {
