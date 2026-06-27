@@ -2055,8 +2055,12 @@
       padding: 6px 12px;
       background: #fff;
       border-bottom: 1px solid var(--border);
-      flex-shrink: 0
+      flex-shrink: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch
     }
+    .canvass-bar::-webkit-scrollbar { display: none }
     .canvass-toggle {
       display: flex;
       align-items: center;
@@ -2802,7 +2806,7 @@
         <div class="canvass-bar">
           <button id="canvass-toggle-btn" class="canvass-toggle" onclick="toggleCanvassMode()">✏️ Drop Pins</button>
           <span class="canvass-hint" id="canvass-hint" style="display:none">Tap map to mark a door</span>
-          <button id="canvass-sat-btn" onclick="toggleSatellite()" style="height:34px;padding:0 12px;border-radius:20px;border:1.5px solid #E5E7EB;background:#fff;font-size:12px;font-weight:700;color:#374151;cursor:pointer">🛰 Satellite</button>
+          <button id="canvass-sat-btn" onclick="toggleSatellite()" style="height:34px;padding:0 12px;border-radius:20px;border:1.5px solid #E5E7EB;background:#fff;font-size:12px;font-weight:700;color:#374151;cursor:pointer">🛰 Sat</button>
           <button id="canvass-heat-btn" onclick="toggleCanvassHeat()" style="height:34px;padding:0 12px;border-radius:20px;border:1.5px solid #E5E7EB;background:#fff;font-size:12px;font-weight:700;color:#374151;cursor:pointer;display:none">🔥 Heatmap</button>
           <button id="canvass-eddm-btn" class="canvass-eddm-btn" onclick="toggleEddmMode()">✉️ EDDM</button>
           <button class="canvass-clear-btn" id="canvass-clear-btn" onclick="clearCanvassPins()" style="display:none">Clear All</button>
