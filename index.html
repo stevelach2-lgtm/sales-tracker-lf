@@ -3392,6 +3392,27 @@
   </div>
   </div>
 
+  <!-- AI Key Entry Modal -->
+  <div class="edit-overlay" id="aiKeyOverlay" onclick="if(event.target===this)closeAiKeyModal()">
+    <div class="edit-sheet" style="max-height:50vh">
+      <div class="es-hdr">
+        <span class="es-title">🔑 Anthropic API Key</span>
+        <button class="es-close" onclick="closeAiKeyModal()">✕</button>
+      </div>
+      <div style="padding:16px 20px">
+        <div class="s-sub" style="margin-bottom:12px">Paste your key from console.anthropic.com. It starts with sk-ant-</div>
+        <textarea id="aiKeyInput" class="fi"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+          style="height:70px;font-family:monospace;font-size:11px;padding:10px"
+          placeholder="sk-ant-api03-..."></textarea>
+        <button onclick="confirmAiKey()"
+          style="width:100%;margin-top:12px;padding:13px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer">
+          Save Key
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ─────────────────────────────────────────
     // STATE
@@ -4328,15 +4349,17 @@
 
     function closeFu() { document.getElementById('fuOverlay').classList.remove('open'); }
 
-    function saveAiKey() {
-      const raw = window.prompt('Paste your Anthropic API key:');
-      if (raw === null) return;
-      const key = raw.replace(/\s/g, '');
-      if (!key) { toast('No key entered', 'err'); return; }
-      if (!key.startsWith('sk-ant-')) { toast('Not a valid Anthropic key — must start with sk-ant-', 'err'); return; }
+    function saveAiKey() { document.getElementById('aiKeyOverlay').classList.add('open'); }
+    function closeAiKeyModal() { document.getElementById('aiKeyOverlay').classList.remove('open'); }
+    function confirmAiKey() {
+      const key = (document.getElementById('aiKeyInput').value || '').replace(/\s/g, '');
+      if (!key) { toast('Paste your API key first', 'err'); return; }
+      if (!key.startsWith('sk-ant-')) { toast('Must start with sk-ant-', 'err'); return; }
       localStorage.setItem('cc_anthropic_key', key);
       const status = document.getElementById('aiKeyStatus');
       if (status) status.textContent = '✓ Key saved: ' + key.slice(0, 14) + '...' + key.slice(-4);
+      document.getElementById('aiKeyInput').value = '';
+      closeAiKeyModal();
       toast('API key saved! ✨', 'ok');
     }
 
