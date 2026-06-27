@@ -3392,6 +3392,27 @@
   </div>
   </div>
 
+  <!-- AI Key Entry Modal -->
+  <div class="edit-overlay" id="aiKeyOverlay" onclick="if(event.target===this)closeAiKeyModal()">
+    <div class="edit-sheet" style="max-height:50vh">
+      <div class="es-hdr">
+        <span class="es-title">🔑 Anthropic API Key</span>
+        <button class="es-close" onclick="closeAiKeyModal()">✕</button>
+      </div>
+      <div style="padding:16px 20px">
+        <div class="s-sub" style="margin-bottom:12px">Paste your key from console.anthropic.com. It starts with sk-ant-</div>
+        <textarea id="aiKeyInput" class="fi"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+          style="height:70px;font-family:monospace;font-size:11px;padding:10px"
+          placeholder="sk-ant-api03-..."></textarea>
+        <button onclick="confirmAiKey()"
+          style="width:100%;margin-top:12px;padding:13px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer">
+          Save Key
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ─────────────────────────────────────────
     // STATE
@@ -4328,27 +4349,44 @@
 
     function closeFu() { document.getElementById('fuOverlay').classList.remove('open'); }
 
-    function saveAiKey() {
-      const raw = window.prompt('Paste your Anthropic API key:');
-      if (raw === null) return;
-      const key = raw.replace(/\s/g, '');
-      if (!key) { toast('No key entered', 'err'); return; }
-      if (!key.startsWith('sk-ant-')) { toast('Not a valid Anthropic key — must start with sk-ant-', 'err'); return; }
+    function saveAiKey() { document.getElementById('aiKeyOverlay').classList.add('open'); }
+    function closeAiKeyModal() { document.getElementById('aiKeyOverlay').classList.remove('open'); }
+    function _aiKeyGet() {
+      const ls = localStorage.getItem('cc_anthropic_key') || '';
+      if (ls) return ls;
+      const m = document.cookie.match(/(?:^|;\s*)cc_anthropic_key=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : '';
+    }
+    function _aiKeySet(key) {
       localStorage.setItem('cc_anthropic_key', key);
+      const exp = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
+      document.cookie = 'cc_anthropic_key=' + encodeURIComponent(key) + '; expires=' + exp + '; path=/; SameSite=Strict';
+    }
+    function _aiKeyRemove() {
+      localStorage.removeItem('cc_anthropic_key');
+      document.cookie = 'cc_anthropic_key=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Strict';
+    }
+    function confirmAiKey() {
+      const key = (document.getElementById('aiKeyInput').value || '').replace(/\s/g, '');
+      if (!key) { toast('Paste your API key first', 'err'); return; }
+      if (!key.startsWith('sk-ant-')) { toast('Must start with sk-ant-', 'err'); return; }
+      _aiKeySet(key);
       const status = document.getElementById('aiKeyStatus');
       if (status) status.textContent = '✓ Key saved: ' + key.slice(0, 14) + '...' + key.slice(-4);
+      document.getElementById('aiKeyInput').value = '';
+      closeAiKeyModal();
       toast('API key saved! ✨', 'ok');
     }
 
     function clearAiKey() {
-      localStorage.removeItem('cc_anthropic_key');
+      _aiKeyRemove();
       const status = document.getElementById('aiKeyStatus');
       if (status) status.textContent = 'No key saved';
       toast('API key cleared', 'ok');
     }
 
     async function aiGenFuMsg(respin = false) {
-      const apiKey = (localStorage.getItem('cc_anthropic_key') || '').replace(/\s/g, '');
+      const apiKey = _aiKeyGet().replace(/\s/g, '');
       if (!apiKey) {
         refreshFuMsg();
         return;
@@ -4367,12 +4405,15 @@
       const step = _fuLead?.step || 1;
       const stepLabels = { 1: 'first contact (same day or next day)', 2: '3-day follow-up', 3: '7-day final follow-up', 4: 'cold lead revival (60+ days)' };
       const respinNote = respin ? ' Use a completely different tone, opening, and angle than you might have used before.' : '';
+      const spouseNote = reason.toLowerCase().includes('spouse')
+        ? `\nThe spouse wasn't home during the visit. Mention it was great meeting them today, reference any visit notes if available, and let them know there's an exclusive $250 discount available if they move forward this week. Keep the tone warm and low-pressure.`
+        : '';
 
       const userMsg = `Customer first name: ${name}
 Rep name: ${repName}
 Not-sold reason: ${reason}
 Notes from the visit: ${notes || 'none provided'}
-Follow-up step: ${step} of 4 (${stepLabels[step] || 'follow-up'})
+Follow-up step: ${step} of 4 (${stepLabels[step] || 'follow-up'})${spouseNote}
 
 Write a single short follow-up SMS from the rep to the customer. Be friendly and conversational, keep it under 200 characters if possible, and directly address the reason or notes if available. The customer doesn't have the rep's number saved, so naturally identify the rep as "${repName} from LeafFilter" somewhere in the message — for example opening with "Hi, it's ${repName} from LeafFilter!" or weaving it in naturally.${respinNote} Output only the SMS text — no labels, no quotes, no explanation.`;
 
@@ -5633,7 +5674,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       loadBaselines();
       loadQuoteSettings();
       gcalLoadSettingsUI();
-      const savedAiKey = localStorage.getItem('cc_anthropic_key') || '';
+      const savedAiKey = _aiKeyGet();
       const aiKeyStatus = document.getElementById('aiKeyStatus');
       if (aiKeyStatus) aiKeyStatus.textContent = savedAiKey ? '✓ Key saved: ' + savedAiKey.slice(0, 14) + '...' + savedAiKey.slice(-4) : 'No key saved';
       await loadReasons();
@@ -6777,6 +6818,18 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           return;
         }
         lastId = data.id;
+
+        const _reasonLabel = reasons.find(r => r.id === selCcReason)?.label || '';
+        if (_reasonLabel.toLowerCase().includes('spouse') && data?.id) {
+          setTimeout(() => openFu(
+            data.id,
+            _reasonLabel,
+            payload.followup_name || payload.customer_name || '',
+            payload.followup_phone || payload.customer_phone || '',
+            notes || '',
+            1
+          ), 700);
+        }
 
         if (ccNsDrawPendingFile && data.id) {
           const { data: auth } = await sb.auth.getUser();
