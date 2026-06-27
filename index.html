@@ -7404,12 +7404,20 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         // Check all against DB to get latest logged status
         const ids = merged.map(l => l.leadId);
         const { data: existing } = await sb.from('leads')
-          .select('id, lead_id, status')
+          .select('id, lead_id, status, customer_address')
           .in('lead_id', ids);
+        const todayStr = new Date().toLocaleDateString('en-CA');
+        const { data: todayLeads } = await sb.from('leads')
+          .select('id, lead_id, status, customer_address')
+          .eq('sales_date', todayStr);
         const loggedMap = new Map((existing || []).map(r => [r.lead_id, r]));
+        const addrMap = new Map();
+        (todayLeads || []).forEach(r => {
+          if (r.customer_address) addrMap.set(r.customer_address.trim().toUpperCase(), r);
+        });
 
         window.calendarLeads = merged.map(l => {
-          const rec = loggedMap.get(l.leadId);
+          const rec = loggedMap.get(l.leadId) || addrMap.get((l.address || '').trim().toUpperCase());
           return rec ? { ...l, logged: true, dbId: rec.id, dbStatus: rec.status } : { ...l, logged: false };
         });
         calLeadsSave(window.calendarLeads);
