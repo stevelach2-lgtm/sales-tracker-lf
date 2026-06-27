@@ -8186,11 +8186,13 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       }
     }
 
-    async function logDemoFromPin(lat, lng) {
+    function logDemoFromPin(lat, lng) {
       if (_map) _map.closePopup();
-      openQuoteCalc();
-      const addr = await reverseGeocode(lat, lng);
-      if (addr) document.getElementById('calCustAddr').value = addr;
+      setTimeout(async () => {
+        openQuoteCalc();
+        const addr = await reverseGeocode(lat, lng);
+        if (addr) document.getElementById('calCustAddr').value = addr;
+      }, 50);
     }
 
     function mapLocateMe(panTo = true) {
