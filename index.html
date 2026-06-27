@@ -4021,6 +4021,7 @@
       if (id === 'dash') loadDash();
       if (id === 'hist') {
         if (window.skipDefaultHist) window.skipDefaultHist = false;
+        else if (window._lastHistArgs) filterHist(...window._lastHistArgs);
         else filterHist('today', document.querySelector('.ftab'));
       }
       if (id === 'set') loadSettings();
@@ -5486,6 +5487,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     let esBtd = false;
     let esStatus = 'sold';
     let esCustomerAddress = null;
+    let esOriginalNsDate = null;
     let esInitialStatus = 'sold';
     let esSelReason = null;
 
@@ -5505,6 +5507,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       esInitialStatus = l.status;
       esStatus = l.status;
       esCustomerAddress = l.customer_address || null;
+      esOriginalNsDate = l.sales_date || null;
       esSetStatus(l.status);
 
       // Sold fields
@@ -5855,7 +5858,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         if (!contact) return;
 
         payload.reason_id = esSelReason;
-        payload.sales_date = document.getElementById('esNsDate').value || null;
+        payload.sales_date = document.getElementById('esNsDate').value || esOriginalNsDate || null;
         const nsRetail = parseFloat(document.getElementById('esNsRetail').value) || null;
         payload.sale_amount = contact.leftAt;
         payload.retail_price = nsRetail;
