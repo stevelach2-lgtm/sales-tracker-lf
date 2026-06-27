@@ -5492,6 +5492,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     let esCancelled = false;
     let esBtd = false;
     let esStatus = 'sold';
+    let esCustomerAddress = null;
     let esInitialStatus = 'sold';
     let esSelReason = null;
 
@@ -5510,6 +5511,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
 
       esInitialStatus = l.status;
       esStatus = l.status;
+      esCustomerAddress = l.customer_address || null;
       esSetStatus(l.status);
 
       // Sold fields
@@ -5897,6 +5899,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         if (error) { toast('Error saving', 'err'); console.error(error); return; }
         toast('Lead updated ✓', 'ok');
         document.getElementById('editOverlay').classList.remove('open');
+        if (esCustomerAddress) saveLocationForLead(editLeadId, esCustomerAddress);
         editLeadId = null;
         if (document.getElementById('n-hist').classList.contains('active')) {
           const isFu = document.querySelectorAll('.htab')[1].classList.contains('active');
@@ -5911,6 +5914,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (error) { toast('Error saving', 'err'); console.error(error); return; }
       toast('Lead updated ✓', 'ok');
       document.getElementById('editOverlay').classList.remove('open');
+      if (esCustomerAddress) saveLocationForLead(editLeadId, esCustomerAddress);
       editLeadId = null;
       // Refresh whichever tab is currently active
       if (document.getElementById('n-comm').classList.contains('active')) {
