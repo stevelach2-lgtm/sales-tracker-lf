@@ -2663,7 +2663,7 @@
         <div class="fg">
           <label class="fl">Follow-Up Message</label>
           <textarea class="fi" id="fuMsg"
-            style="height:120px; padding:12px; font-size:13px; line-height:1.5" placeholder="Generating…"></textarea>
+            style="height:120px; padding:12px; font-size:13px; line-height:1.5" placeholder="Follow-up message will appear here…"></textarea>
           <button onclick="aiGenFuMsg(true)" id="aiFuBtn"
             style="width:100%;padding:10px;background:#F3F4F6;border:1.5px solid #D1D5DB;color:#6B7280;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-top:6px">
             🔄 Re-spin
@@ -4354,8 +4354,10 @@
         return;
       }
       const btn = document.getElementById('aiFuBtn');
+      const msgEl = document.getElementById('fuMsg');
       btn.textContent = '⏳ Generating…';
       btn.disabled = true;
+      msgEl.value = '';
 
       const fullName = document.getElementById('fuName').value.trim();
       const name = fullName.split(/\s+/)[0] || 'there';
@@ -4456,7 +4458,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     function refreshFuMsg() {
       const fullName = document.getElementById('fuName').value.trim();
       const name = fullName.split(/\s+/)[0] || 'there';
-      const angle = document.getElementById('fuMsgAngle').value || 'default';
+      const angleEl = document.getElementById('fuMsgAngle');
+      const angle = angleEl ? (angleEl.value || 'default') : 'default';
       const step = _fuLead?.step || 1;
       const repName = _repName || 'Your Rep';
 
