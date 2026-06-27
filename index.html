@@ -7908,9 +7908,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
           maxZoom: 19
         }).addTo(_map);
-        renderCanvassPins();
+        await renderCanvassPins();
       }
-      document.getElementById('canvass-clear-btn').style.display = getCanvassPins().length > 0 ? '' : 'none';
       setTimeout(() => _map.invalidateSize(), 120);
       await refreshMapData();
       if (!_mapLoaded) {
