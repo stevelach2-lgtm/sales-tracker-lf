@@ -5115,27 +5115,20 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       return null;
     }
 
-    function saveLocationForLead(leadId, address, { gpsFallback = true } = {}) {
-      if (!leadId) return;
-      const persist = (coords) => {
-        if (!coords) return;
-        sb.from('leads').update({ lat: coords.lat, lng: coords.lng }).eq('id', leadId)
-          .then(r => { if (r?.error) console.warn('Location save failed:', r.error); })
-          .catch(e => console.warn('Location save failed:', e));
-      };
-      if (address && address.trim()) {
-        geocodeAddress(address).then(coords => {
-          if (coords) persist(coords);
-          else if (gpsFallback) getGPS().then(persist);
-        });
-      } else if (gpsFallback) {
-        getGPS().then(persist);
-      }
+    function saveLocationForLead(leadId, address) {
+      if (!leadId || !address || !address.trim()) return;
+      geocodeAddress(address).then(coords => {
+        if (coords) {
+          sb.from('leads').update({ lat: coords.lat, lng: coords.lng }).eq('id', leadId)
+            .then(r => { if (r?.error) console.warn('Location save failed:', r.error); })
+            .catch(e => console.warn('Location save failed:', e));
+        } else {
+          toast('Address not found — no map pin added', 'err');
+        }
+      });
     }
 
-    function saveGPSForLead(leadId) {
-      saveLocationForLead(leadId, null);
-    }
+    function saveGPSForLead() { /* GPS pins removed — address geocoding only */ }
 
     async function submitLead(type) {
       if (type === 'sold') {
@@ -5899,7 +5892,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         if (error) { toast('Error saving', 'err'); console.error(error); return; }
         toast('Lead updated ✓', 'ok');
         document.getElementById('editOverlay').classList.remove('open');
-        if (esCustomerAddress) saveLocationForLead(editLeadId, esCustomerAddress, { gpsFallback: false });
+        if (esCustomerAddress) saveLocationForLead(editLeadId, esCustomerAddress);
         editLeadId = null;
         if (document.getElementById('n-hist').classList.contains('active')) {
           const isFu = document.querySelectorAll('.htab')[1].classList.contains('active');
@@ -5914,7 +5907,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (error) { toast('Error saving', 'err'); console.error(error); return; }
       toast('Lead updated ✓', 'ok');
       document.getElementById('editOverlay').classList.remove('open');
-      if (esCustomerAddress) saveLocationForLead(editLeadId, esCustomerAddress, { gpsFallback: false });
+      if (esCustomerAddress) saveLocationForLead(editLeadId, esCustomerAddress);
       editLeadId = null;
       // Refresh whichever tab is currently active
       if (document.getElementById('n-comm').classList.contains('active')) {
