@@ -2871,12 +2871,14 @@
           </div>
 
           <!-- Calendar lead banner (shown when opened via Today's Leads) -->
-          <div id="ccCalBanner" style="display:none;background:#EEF2FF;border:1.5px solid #A5B4FC;border-radius:10px;padding:10px 12px;margin-bottom:12px">
-            <div style="font-size:10px;font-weight:800;color:#3730A3;letter-spacing:.5px;margin-bottom:4px">📅 FROM CALENDAR</div>
-            <div id="ccCalBannerName" style="font-size:14px;font-weight:800;color:#1E1B4B"></div>
-            <div id="ccCalBannerAddr" style="font-size:11px;color:#4338CA;margin-top:2px"></div>
-            <div id="ccCalBannerMeta" style="font-size:10px;color:#6366F1;margin-top:2px"></div>
-            <div id="ccCalBannerLeadId" style="display:none;margin-top:6px;font-size:12px;font-weight:700;color:#1E1B4B;background:#C7D2FE;border-radius:6px;padding:5px 10px;cursor:pointer;text-align:center"></div>
+          <div id="ccCalBanner" style="display:none;background:#EEF2FF;border:1.5px solid #A5B4FC;border-radius:10px;padding:7px 10px;margin-bottom:10px">
+            <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">
+              <span style="font-size:10px;font-weight:800;color:#3730A3;letter-spacing:.5px">📅</span>
+              <span id="ccCalBannerName" style="font-size:13px;font-weight:800;color:#1E1B4B"></span>
+              <span id="ccCalBannerMeta" style="font-size:10px;color:#6366F1"></span>
+            </div>
+            <div id="ccCalBannerAddr" style="font-size:10px;color:#4338CA;margin-top:1px"></div>
+            <div id="ccCalBannerLeadId" style="display:none;margin-top:5px;font-size:11px;font-weight:700;color:#1E1B4B;background:#C7D2FE;border-radius:6px;padding:4px 8px;cursor:pointer;text-align:center"></div>
           </div>
 
           <!-- SOLD panel -->
@@ -6320,13 +6322,13 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const unitLabel = item.u === '$mat' ? 'Materials $' : `Qty (${item.u})`;
         const unitPrice = item.u === '$mat' ? '× 3.5' : `$${item.p}/${item.u}`;
         html += `
-    <div style="display:grid;grid-template-columns:1fr 80px 70px;gap:6px;align-items:center;background:#F9FAFB;border-radius:9px;padding:8px 10px">
+    <div style="display:grid;grid-template-columns:1fr 90px 72px;gap:6px;align-items:center;background:#F9FAFB;border-radius:9px;padding:10px 10px">
       <div>
         <div style="font-size:12px;font-weight:600;color:var(--text);line-height:1.3">${item.l}</div>
         <div style="font-size:10px;color:var(--muted)">${unitPrice}</div>
       </div>
       <input type="number" min="0" inputmode="decimal" placeholder="0"
-        style="border:1.5px solid var(--border);border-radius:7px;padding:7px 8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;text-align:right;width:100%;background:#fff;outline:none"
+        style="border:1.5px solid var(--border);border-radius:7px;padding:11px 8px;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;text-align:right;width:100%;background:#fff;outline:none"
         oninput="calcComm()" id="cc_${i}">
       <div id="cc_ext_${i}" style="font-size:12px;font-weight:700;text-align:right;color:var(--green-dark)">$0</div>
     </div>`;
