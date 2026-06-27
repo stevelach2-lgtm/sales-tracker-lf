@@ -2650,7 +2650,7 @@
         <input type="hidden" id="fuLeadId">
         <div class="fg">
           <label class="fl">Customer Name</label>
-          <input type="text" class="fi" id="fuName" placeholder="Michael" oninput="refreshFuMsg()">
+          <input type="text" class="fi" id="fuName" placeholder="Michael">
         </div>
         <div class="fg">
           <label class="fl">Phone Number</label>
@@ -2661,28 +2661,13 @@
           <input type="date" class="fi" id="fuDate">
         </div>
         <div class="fg">
-          <label class="fl">Message Angle</label>
-          <select class="fi" id="fuMsgAngle" onchange="refreshFuMsg()"
-            style="appearance:none; background:url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394A3B8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E') no-repeat right 12px center; background-size:18px">
-            <option value="too_much">Too much</option>
-            <option value="think_about">Think about</option>
-            <option value="shop_around">Shop around</option>
-            <option value="spouse">Spouse not home</option>
-            <option value="no_demo">No demo</option>
-            <option value="no_one_home">No one home</option>
-            <option value="default">General Follow-Up</option>
-          </select>
-        </div>
-        <div class="fg">
-          <button onclick="aiGenFuMsg()" id="aiFuBtn"
-            style="width:100%;padding:11px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:2px">
-            ✨ AI Personalize
-          </button>
-        </div>
-        <div class="fg">
-          <label class="fl">Suggested Message</label>
+          <label class="fl">Follow-Up Message</label>
           <textarea class="fi" id="fuMsg"
-            style="height:100px; padding:12px; font-size:13px; line-height:1.5"></textarea>
+            style="height:120px; padding:12px; font-size:13px; line-height:1.5" placeholder="Generating…"></textarea>
+          <button onclick="aiGenFuMsg(true)" id="aiFuBtn"
+            style="width:100%;padding:10px;background:#F3F4F6;border:1.5px solid #D1D5DB;color:#6B7280;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-top:6px">
+            🔄 Re-spin
+          </button>
         </div>
       </div>
 
@@ -4333,19 +4318,10 @@
         ctx.style.display = 'none';
       }
 
-      const r = (reasonLabel || '').toLowerCase();
-      let autoAngle = 'default';
-      if (r.includes('too much')) autoAngle = 'too_much';
-      else if (r.includes('think about')) autoAngle = 'think_about';
-      else if (r.includes('shop around')) autoAngle = 'shop_around';
-      else if (r.includes('spouse not home') || r.includes('spouse')) autoAngle = 'spouse';
-      else if (r.includes('no demo')) autoAngle = 'no_demo';
-      else if (r.includes('no one home')) autoAngle = 'no_one_home';
-      document.getElementById('fuMsgAngle').value = autoAngle;
-
       _fuLead = { id: leadId, reason: reasonLabel, notes: notes || '', step: stepNum || 1 };
-      refreshFuMsg();
+      document.getElementById('fuMsg').value = '';
       document.getElementById('fuOverlay').classList.add('open');
+      aiGenFuMsg();
     }
 
 
@@ -4371,10 +4347,10 @@
       toast('API key cleared', 'ok');
     }
 
-    async function aiGenFuMsg() {
+    async function aiGenFuMsg(respin = false) {
       const apiKey = (localStorage.getItem('cc_anthropic_key') || '').replace(/\s/g, '');
       if (!apiKey) {
-        toast('Add your Anthropic API key in Settings → 🤖 AI Follow-Up Messages', 'err');
+        refreshFuMsg();
         return;
       }
       const btn = document.getElementById('aiFuBtn');
@@ -4388,6 +4364,7 @@
       const notes = _fuLead?.notes || '';
       const step = _fuLead?.step || 1;
       const stepLabels = { 1: 'first contact (same day or next day)', 2: '3-day follow-up', 3: '7-day final follow-up', 4: 'cold lead revival (60+ days)' };
+      const respinNote = respin ? ' Use a completely different tone, opening, and angle than you might have used before.' : '';
 
       const userMsg = `Customer first name: ${name}
 Rep name: ${repName}
@@ -4395,7 +4372,7 @@ Not-sold reason: ${reason}
 Notes from the visit: ${notes || 'none provided'}
 Follow-up step: ${step} of 4 (${stepLabels[step] || 'follow-up'})
 
-Write a single short follow-up SMS from the rep to the customer. Be friendly and conversational, keep it under 200 characters if possible, and directly address the reason or notes if available. The customer doesn't have the rep's number saved, so naturally identify the rep as "${repName} from LeafFilter" somewhere in the message — for example opening with "Hi, it's ${repName} from LeafFilter!" or weaving it in naturally. Output only the SMS text — no labels, no quotes, no explanation.`;
+Write a single short follow-up SMS from the rep to the customer. Be friendly and conversational, keep it under 200 characters if possible, and directly address the reason or notes if available. The customer doesn't have the rep's number saved, so naturally identify the rep as "${repName} from LeafFilter" somewhere in the message — for example opening with "Hi, it's ${repName} from LeafFilter!" or weaving it in naturally.${respinNote} Output only the SMS text — no labels, no quotes, no explanation.`;
 
       try {
         const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -4422,12 +4399,11 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const msg = data?.content?.[0]?.text?.trim() || '';
         if (!msg) throw new Error('Empty response');
         document.getElementById('fuMsg').value = msg;
-        toast('AI message generated! ✨', 'ok');
       } catch (e) {
         toast('AI failed: ' + (e.message || 'unknown error'), 'err');
-        refreshFuMsg();
+        if (!respin) refreshFuMsg();
       } finally {
-        btn.textContent = '✨ AI Personalize';
+        btn.textContent = '🔄 Re-spin';
         btn.disabled = false;
       }
     }
