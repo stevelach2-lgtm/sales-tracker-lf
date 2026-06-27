@@ -4395,7 +4395,7 @@ Not-sold reason: ${reason}
 Notes from the visit: ${notes || 'none provided'}
 Follow-up step: ${step} of 4 (${stepLabels[step] || 'follow-up'})
 
-Write a single short follow-up SMS from the rep to the customer. Be friendly and conversational, keep it under 200 characters if possible, and directly address the reason or notes if available. End with the rep name. Output only the SMS text — no labels, no quotes, no explanation.`;
+Write a single short follow-up SMS from the rep to the customer. Be friendly and conversational, keep it under 200 characters if possible, and directly address the reason or notes if available. Sign off as "${repName} from LeafFilter". Output only the SMS text — no labels, no quotes, no explanation.`;
 
       try {
         const res = await fetch('https://api.anthropic.com/v1/messages', {
