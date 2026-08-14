@@ -6318,7 +6318,14 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       { s: 'Gutter Extras', l: 'Outside Vendor (materials × 3.5)', u: '$mat', p: 3.5 },
     ];
 
-    let PRICE_LIST = JSON.parse(localStorage.getItem('cc_price_list')) || DEFAULT_PRICE_LIST;
+    let PRICE_LIST = (() => {
+      try {
+        const stored = JSON.parse(localStorage.getItem('cc_price_list'));
+        if (Array.isArray(stored) && stored.length > 0) return stored;
+      } catch (e) { /* corrupted localStorage value — fall through to default */ }
+      localStorage.removeItem('cc_price_list');
+      return DEFAULT_PRICE_LIST;
+    })();
 
     let ccTarget = 'log'; // 'log' or 'edit'
 
@@ -7078,6 +7085,10 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
 
     function renderQCItems() {
       const container = document.getElementById('qcItems');
+      if (!container) return;
+      if (!Array.isArray(PRICE_LIST) || PRICE_LIST.length === 0) {
+        PRICE_LIST = DEFAULT_PRICE_LIST;
+      }
       let html = '';
       let curSection = '';
       PRICE_LIST.forEach((item, i) => {
