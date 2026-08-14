@@ -2374,15 +2374,6 @@
             0</div>
         </div>
 
-        <!-- Today's Leads from Calendar -->
-        <div id="todaysLeadsCard" style="display:none;background:linear-gradient(135deg,#EEF2FF,#E0E7FF);border:1.5px solid #A5B4FC;border-radius:14px;padding:12px 16px;margin-bottom:14px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div style="font-size:13px;font-weight:800;color:#3730A3;display:flex;align-items:center;gap:6px">📅 Today's Leads</div>
-            <div id="todaysLeadsCount" style="background:#6366F1;color:#fff;font-size:11px;font-weight:900;padding:3px 9px;border-radius:20px">0</div>
-          </div>
-          <div id="todaysLeadsList"></div>
-        </div>
-
         <!-- Goal Progress Bars -->
         <div class="goal-section" id="goalSection">
           <div class="goal-row">
@@ -7527,7 +7518,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       localStorage.removeItem('gc_token');
       localStorage.removeItem('gc_token_expiry');
       window.calendarLeads = [];
-      document.getElementById('todaysLeadsCard').style.display = 'none';
+      const tlCard = document.getElementById('todaysLeadsCard');
+      if (tlCard) tlCard.style.display = 'none';
       gcalUpdateStatusUI();
       toast('Google Calendar disconnected', 'ok');
     }
@@ -7659,9 +7651,13 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     }
 
     function renderTodaysLeads() {
+      // Today's Leads dashboard card removed — Google Calendar lead data is
+      // still fetched/merged in the background (used for duplicate detection),
+      // it's just no longer displayed as a card.
+      const card = document.getElementById('todaysLeadsCard');
+      if (!card) return;
       const leads = window.calendarLeads || [];
       if (!leads.length) return;
-      const card = document.getElementById('todaysLeadsCard');
       const list = document.getElementById('todaysLeadsList');
       const countEl = document.getElementById('todaysLeadsCount');
       const unlogged = leads.filter(l => !l.logged).length;
