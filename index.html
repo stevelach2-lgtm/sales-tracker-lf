@@ -2501,7 +2501,7 @@
         <!-- DUE TAB -->
         <div id="commDueSection">
           <div style="padding:2px 14px 10px;font-size:11px;color:var(--muted);line-height:1.5">Jobs with an install date,
-            grouped by pay period (Mon–Sat). Mark <strong>Paid</strong> to track commission payments.</div>
+            grouped by pay period (Sun–Sat). Mark <strong>Paid</strong> to track commission payments.</div>
           <div style="margin:0 14px 12px;background:#F9FAFB;border:1.5px solid var(--border);border-radius:12px;padding:11px 13px;display:flex;align-items:center;gap:10px">
             <span style="font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap">Weekly Goal $</span>
             <input type="number" id="commGoalInput" placeholder="5000" inputmode="decimal"
@@ -5968,14 +5968,14 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     // COMMISSIONS
     // ─────────────────────────────────────────
     function weekKey(dateStr) {
-      // Pay period = Mon 00:00 → Sat 23:59. Sunday rolls into the week that just ended. Returns {start, end} Date objects.
+      // Pay period = Sun 00:00 → Sat 23:59. Returns {start, end} Date objects.
       const d = new Date(dateStr + 'T12:00:00');
       const day = d.getDay(); // 0=Sun…6=Sat
-      // Days since last Monday: Mon=0,Tue=1,Wed=2,Thu=3,Fri=4,Sat=5,Sun=6
-      const offset = [6, 0, 1, 2, 3, 4, 5][day];
-      const mon = new Date(d); mon.setDate(d.getDate() - offset); mon.setHours(0, 0, 0, 0);
-      const sat = new Date(mon); sat.setDate(mon.getDate() + 5); sat.setHours(23, 59, 59, 999);
-      return { start: mon, end: sat, key: mon.toISOString().split('T')[0] };
+      // Days since last Sunday: Sun=0,Mon=1,Tue=2,Wed=3,Thu=4,Fri=5,Sat=6
+      const offset = day;
+      const sun = new Date(d); sun.setDate(d.getDate() - offset); sun.setHours(0, 0, 0, 0);
+      const sat = new Date(sun); sat.setDate(sun.getDate() + 6); sat.setHours(23, 59, 59, 999);
+      return { start: sun, end: sat, key: sun.toISOString().split('T')[0] };
     }
 
     function saveCommGoal() {
@@ -6007,7 +6007,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         return;
       }
 
-      // Group by Mon–Sat pay period
+      // Group by Sun–Sat pay period
       const weeks = {};
       leads.forEach(l => {
         const w = weekKey(l.install_date);
@@ -6021,8 +6021,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
 
       // "This calendar week" (Mon–Sun containing today) — used to flag the card being paid out this week
       const today = new Date(); today.setHours(0, 0, 0, 0);
-      const todayDow = today.getDay() || 7; // 1=Mon...7=Sun
-      const thisCalWeekStart = new Date(today); thisCalWeekStart.setDate(today.getDate() - todayDow + 1);
+      const todayDow = today.getDay(); // 0=Sun...6=Sat
+      const thisCalWeekStart = new Date(today); thisCalWeekStart.setDate(today.getDate() - todayDow);
       const thisCalWeekEnd = new Date(thisCalWeekStart); thisCalWeekEnd.setDate(thisCalWeekStart.getDate() + 6);
 
       let html = '';
@@ -6032,7 +6032,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const unpaid = w.jobs.reduce((s, j) => s + (j.commission_paid ? 0 : (parseFloat(j.commission_amount) || 0)), 0);
         const remaining = Math.max(0, savedGoal - totalComm);
 
-        // Pay date = the Friday following this Mon–Sat pay period (period ends Sat, pay is 6 days later)
+        // Pay date = the Friday following this Sun–Sat pay period (period ends Sat, pay is 6 days later)
         const payDate = new Date(w.end); payDate.setDate(w.end.getDate() + 6);
 
         const isWorkingWeek = today >= w.start && today <= w.end;
