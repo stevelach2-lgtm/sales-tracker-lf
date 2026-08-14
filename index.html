@@ -5994,7 +5994,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       // Fetch all unpaid sold leads with install dates — exclude cancelled
       const { data: leads, error } = await sb
         .from('leads')
-        .select('id,job_number,install_date,commission_amount,commission_paid,sale_amount,is_cancelled,is_btd')
+        .select('id,job_number,install_date,sales_date,commission_amount,commission_paid,sale_amount,is_cancelled,is_btd')
         .eq('status', 'sold')
         .neq('is_cancelled', true)
         .not('install_date', 'is', null)
@@ -6017,6 +6017,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
 
       const fmt = d => d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
       const fmtInstall = s => new Date(s + 'T12:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+      const fmtSalesDate = s => s ? new Date(s + 'T12:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }) : null;
       const fmtMoney = v => v != null ? '$' + parseFloat(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
 
       // "This calendar week" (Mon–Sun containing today) — used to flag the card being paid out this week
@@ -6054,12 +6055,12 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       </div>
       <!-- Column headers -->
       <div style="display:grid;grid-template-columns:100px 1fr 90px 44px;padding:7px 12px 5px;font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.5px;border-bottom:1px solid #F3F4F6">
-        <span>INSTALL DATE</span><span>JOB #</span><span style="text-align:right">COMMISSION</span><span style="text-align:center">PAID</span>
+        <span>INSTALL / SALE DATE</span><span>JOB #</span><span style="text-align:right">COMMISSION</span><span style="text-align:center">PAID</span>
       </div>
       <!-- Jobs -->
       ${w.jobs.map(j => `
       <div style="display:grid;grid-template-columns:100px 1fr 90px 44px;padding:10px 12px;border-bottom:1px solid #F9FAFB;align-items:center" id="cr-${j.id}">
-        <span style="font-size:13px;color:var(--muted)">${fmtInstall(j.install_date)}</span>
+        <span style="font-size:13px;color:var(--muted);line-height:1.5">${fmtInstall(j.install_date)}${fmtSalesDate(j.sales_date) ? `<br><span style="font-size:10px;color:#9CA3AF">Sold ${fmtSalesDate(j.sales_date)}</span>` : ''}</span>
         <span onclick="openLeadEdit('${j.id}')" style="font-size:13px;font-weight:700;color:var(--green-dark);text-decoration:underline;text-underline-offset:2px;cursor:pointer">${j.job_number || '<span style="color:var(--muted);font-weight:400;text-decoration:none">tap to edit</span>'}</span>
         <span style="font-size:13px;font-weight:700;text-align:right;color:${j.commission_amount ? 'var(--text)' : 'var(--muted)'}">${fmtMoney(j.commission_amount)}</span>
         <div style="display:flex;justify-content:center">
