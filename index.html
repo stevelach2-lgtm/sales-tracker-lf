@@ -6859,10 +6859,9 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         notBtn.style.background = '#fff';
         notBtn.style.color = '#E53935';
         notBtn.style.borderColor = '#E53935';
-        setTimeout(() => {
-          const nameEl = document.getElementById('soldCustName');
-          if (nameEl && !nameEl.value) nameEl.focus();
-        }, 120);
+        // Removed auto-focus on soldCustName: focusing this field on open made iOS Safari
+        // auto-scroll the sheet down to the field, which pushed the item-price list
+        // (rendered above it) completely out of view every time the calculator opened.
       } else {
         soldPanel.style.display  = 'none';
         notPanel.style.display   = '';
