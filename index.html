@@ -3173,16 +3173,6 @@
             </div>
             <div class="fg2" style="margin-bottom:8px">
               <div>
-                <label class="fl">Customer Name</label>
-                <input type="text" class="fi" id="soldCustName" placeholder="Michael" style="font-size:13px;padding:11px 13px">
-              </div>
-              <div>
-                <label class="fl">Phone Number</label>
-                <input type="tel" class="fi" id="soldCustPhone" placeholder="555-555-5555" maxlength="14" style="font-size:13px;padding:11px 13px">
-              </div>
-            </div>
-            <div class="fg2" style="margin-bottom:8px">
-              <div>
                 <label class="fl">Install Date</label>
                 <input type="date" class="fi" id="installDate" style="font-size:13px;padding:11px 13px">
               </div>
@@ -3194,22 +3184,6 @@
             <div class="paid-row" onclick="togglePaid()" style="margin-bottom:10px">
               <div class="paid-chk" id="paidChk"></div>
               <span class="paid-lbl">Commission Paid</span>
-            </div>
-            <div class="fg" style="margin-bottom:10px">
-              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-              <textarea class="fi" id="soldNotes" placeholder="e.g. 180ft, financing used..."></textarea>
-            </div>
-            <div class="fg" style="margin-bottom:10px">
-              <label class="fl">📋 Draw Sheet <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-              <input type="file" id="ccDrawFile" accept="image/*,application/pdf" style="display:none" onchange="ccOnDrawFileSelected(this)">
-              <div id="ccDrawPreview" style="display:none;margin-bottom:8px;position:relative">
-                <img id="ccDrawThumb" src="" style="width:100%;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;max-height:180px;object-fit:cover" onclick="viewDrawSheet(document.getElementById('ccDrawThumb').src)">
-                <button type="button" onclick="ccRemoveDrawSheet()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer">Remove</button>
-              </div>
-              <button type="button" id="ccDrawBtn" onclick="document.getElementById('ccDrawFile').click()"
-                style="width:100%;background:#F9FAFB;border:1.5px dashed var(--border);border-radius:10px;padding:11px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">
-                📸 Upload Draw Sheet
-              </button>
             </div>
             <button class="sbtn sold" onclick="submitLeadFromCalc('sold')">✅ Log Sale</button>
           </div>
@@ -5079,7 +5053,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           retail_percentage: parseFloat(document.getElementById('retailPct').value) || null,
           commission_percentage: parseFloat(document.getElementById('commPct').value) || null,
           commission_paid: isPaid,
-          notes: document.getElementById('soldNotes').value.trim() || null,
+          notes: null,
           followup_name: contact.name,
           followup_phone: contact.phone,
           lead_id: document.getElementById('calLeadId').value || null,
@@ -6897,7 +6871,6 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (rr) { rr.style.display = 'none'; rr.innerHTML = ''; }
       ccSetOutcome('sold');
       document.getElementById('commAmt').value = '';
-      document.getElementById('soldNotes').value = '';
       document.getElementById('jobNum').value = '';
       document.getElementById('saleAmt').value = '';
       const today = localDate(new Date());
