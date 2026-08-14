@@ -6007,7 +6007,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         return;
       }
 
-      // Group by Thu–Wed week
+      // Group by Mon–Sat pay period
       const weeks = {};
       leads.forEach(l => {
         const w = weekKey(l.install_date);
@@ -6019,6 +6019,12 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       const fmtInstall = s => new Date(s + 'T12:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
       const fmtMoney = v => v != null ? '$' + parseFloat(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
 
+      // "This calendar week" (Mon–Sun containing today) — used to flag the card being paid out this week
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const todayDow = today.getDay() || 7; // 1=Mon...7=Sun
+      const thisCalWeekStart = new Date(today); thisCalWeekStart.setDate(today.getDate() - todayDow + 1);
+      const thisCalWeekEnd = new Date(thisCalWeekStart); thisCalWeekEnd.setDate(thisCalWeekStart.getDate() + 6);
+
       let html = '';
       Object.keys(weeks).sort().forEach(key => {
         const w = weeks[key];
@@ -6026,11 +6032,21 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const unpaid = w.jobs.reduce((s, j) => s + (j.commission_paid ? 0 : (parseFloat(j.commission_amount) || 0)), 0);
         const remaining = Math.max(0, savedGoal - totalComm);
 
+        // Pay date = the Friday following this Mon–Sat pay period (period ends Sat, pay is 6 days later)
+        const payDate = new Date(w.end); payDate.setDate(w.end.getDate() + 6);
+
+        const isWorkingWeek = today >= w.start && today <= w.end;
+        const isPayThisWeek = payDate >= thisCalWeekStart && payDate <= thisCalWeekEnd;
+        const cardBg = isWorkingWeek ? '#EFF6FF' : (isPayThisWeek ? '#F0FDF4' : '#fff');
+        const cardBorder = isWorkingWeek ? '#93C5FD' : (isPayThisWeek ? '#86EFAC' : 'var(--border)');
+        const headerBg = isWorkingWeek ? '#DBEAFE' : (isPayThisWeek ? '#DCFCE7' : '#F9FAFB');
+
         html += `
-    <div style="background:#fff;border:1.5px solid var(--border);border-radius:14px;margin-bottom:14px;overflow:hidden">
+    <div style="background:${cardBg};border:1.5px solid ${cardBorder};border-radius:14px;margin-bottom:14px;overflow:hidden">
       <!-- Week header -->
-      <div style="background:#F9FAFB;padding:10px 14px;border-bottom:1px solid var(--border)">
-        <div style="font-size:12px;font-weight:800;color:var(--text)">Week ${fmt(w.start)} – ${fmt(w.end)}</div>
+      <div style="background:${headerBg};padding:10px 14px;border-bottom:1px solid ${cardBorder}">
+        <div style="font-size:12px;font-weight:800;color:var(--text)">Week ${fmt(w.start)} – ${fmt(w.end)}${isWorkingWeek ? ' <span style="font-size:9px;font-weight:800;color:#1D4ED8;background:#BFDBFE;border-radius:10px;padding:2px 7px;margin-left:4px;vertical-align:middle">CURRENT WEEK</span>' : ''}${isPayThisWeek ? ' <span style="font-size:9px;font-weight:800;color:#166534;background:#BBF7D0;border-radius:10px;padding:2px 7px;margin-left:4px;vertical-align:middle">PAID THIS WEEK</span>' : ''}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text);margin-top:3px">💵 Pay Date: ${fmt(payDate)}</div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px">
           Commission goal $${savedGoal.toLocaleString()}
           ${remaining > 0 ? ` — <span style="color:var(--red);font-weight:700">$${remaining.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} to go</span>` : ' <span style="color:var(--green);font-weight:700">✓ Goal reached!</span>'}
