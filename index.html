@@ -2113,24 +2113,6 @@
               style="flex:1; border:1.5px solid var(--border); border-radius:8px; padding:6px 10px; font-family:'Inter',sans-serif; font-size:12px; outline:none">
           </div>
         </div>
-        <!-- Follow-up Action Center -->
-        <div id="fuActionCenter"
-          style="display:none; background:linear-gradient(135deg, #EFF6FF, #DBEAFE); border:1.5px solid #BFDBFE; border-radius:14px; padding:12px 16px; margin-bottom:14px; align-items:center; justify-content:space-between; cursor:pointer"
-          onclick="goTo('hist'); switchHistTab('followups', document.querySelectorAll('.htab')[1])">
-          <div style="display:flex; align-items:center; gap:10px">
-            <div
-              style="width:40px; height:40px; border-radius:10px; background:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 6px rgba(0,0,0,0.05)">
-              📞</div>
-            <div>
-              <div id="fuActionTitle" style="font-size:13px; font-weight:800; color:#1E40AF">Follow-ups due today</div>
-              <div id="fuActionSub" style="font-size:11px; color:#3B82F6; font-weight:600">Tap to view your task list
-              </div>
-            </div>
-          </div>
-          <div id="fuActionBadge"
-            style="background:#EF4444; color:#fff; font-size:12px; font-weight:900; padding:4px 10px; border-radius:20px; box-shadow:0 2px 4px rgba(239,68,68,0.3)">
-            0</div>
-        </div>
         <!-- Installations Action Center -->
         <div id="instActionCenter"
           style="display:none; background:linear-gradient(135deg, #F0FDF4, #DCFCE7); border:1.5px solid #86EFAC; border-radius:14px; padding:12px 16px; margin-bottom:14px; align-items:center; justify-content:space-between; cursor:pointer"
@@ -2185,12 +2167,6 @@
             <div class="spinner"></div>
           </div>
         </div>
-        <div id="nsBrkSection" style="display:none">
-          <div class="ns-section">
-            <div class="ns-title">❌ Not Sold — Reason Breakdown</div>
-            <div id="nsBrkList"></div>
-          </div>
-        </div>
       </div>
 
       <!-- RECAP CARD OVERLAY -->
@@ -2221,8 +2197,7 @@
       <!-- HISTORY -->
       <div id="p-hist" class="page">
         <div class="hist-tabs">
-          <button class="htab active" onclick="switchHistTab('leads',this); filterHist('all')">📋 All Leads</button>
-          <button class="htab" onclick="switchHistTab('followups',this)">📞 Follow-Ups</button>
+          <button class="htab active" onclick="switchHistTab('leads',this); filterHist('all')">📋 Sales History</button>
         </div>
         <!-- All Leads sub-section -->
         <div id="histLeadsSection">
@@ -2293,7 +2268,7 @@
         <!-- DUE TAB -->
         <div id="commDueSection">
           <div style="padding:2px 14px 10px;font-size:11px;color:var(--muted);line-height:1.5">Jobs with an install date,
-            grouped by week (Thu–Wed). Mark <strong>Paid</strong> to track commission payments.</div>
+            grouped by pay period (Mon–Sat). Mark <strong>Paid</strong> to track commission payments.</div>
           <div style="margin:0 14px 12px;background:#F9FAFB;border:1.5px solid var(--border);border-radius:12px;padding:11px 13px;display:flex;align-items:center;gap:10px">
             <span style="font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap">Weekly Goal $</span>
             <input type="number" id="commGoalInput" placeholder="5000" inputmode="decimal"
@@ -2349,21 +2324,6 @@
         </div>
         <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
 
-        <div class="settings-wrap" style="padding-top:0">
-          <div class="s-title" onclick="toggleSetSec('reasonsSection', 'reasonsIcon')"
-            style="cursor:pointer; display:flex; align-items:center; justify-content:space-between">
-            <span>⚙️ No Sale Reasons</span>
-            <span id="reasonsIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
-          </div>
-          <div id="reasonsSection" style="display:none">
-            <div class="s-sub">View your configured "Not Sold" reasons.</div>
-            <div id="reasonsSet">
-              <div class="loading">
-                <div class="spinner"></div>
-              </div>
-            </div>
-          </div>
-        </div>
         <!-- Goal Settings -->
         <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
         <div class="settings-wrap" style="padding-top:0">
@@ -2845,10 +2805,10 @@
       <!-- Sticky footer -->
       <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1.5px solid var(--border);padding:16px 14px 20px;max-height:85vh;overflow-y:auto;box-shadow:0 -4px 16px rgba(0,0,0,0.08);">
         
-        <!-- Log Outcome Section — Moved from Log Lead into Quote Tool -->
+        <!-- Log Sale Section — Moved from Log Lead into Quote Tool -->
         <div id="ccLogSection" style="display:block;margin-bottom:16px;border-bottom:2.5px solid var(--border);padding-bottom:16px">
-          <div id="ccLogOutcomeHeading" style="font-size:11px;font-weight:800;letter-spacing:.6px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;display:flex;align-items:center;gap:6px">📝 Log Lead Outcome</div>
-          <div id="ccOutcomeBtnRow" style="display:flex;gap:8px;margin-bottom:14px">
+          <div id="ccLogOutcomeHeading" style="font-size:11px;font-weight:800;letter-spacing:.6px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;display:flex;align-items:center;gap:6px">📝 Log Sale</div>
+          <div id="ccOutcomeBtnRow" style="display:none;gap:8px;margin-bottom:14px">
             <button id="ccOutcomeSold" onclick="ccSetOutcome('sold')"
               style="flex:1;padding:11px;border:2px solid var(--green);border-radius:10px;background:#fff;color:var(--green);font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">✅ SALE</button>
             <button id="ccOutcomeNot" onclick="ccSetOutcome('not_sold')"
@@ -3899,60 +3859,15 @@
         card('Total Revenue (Volume)', c.rev, fmtDollar, p.rev),
         card('Paid Commissions (YTD)', ytdComm, fmtDollar, null, null, 'Marked paid · by install date', false, 'Jan 1 – today'),
         card('Avg Sale (AOV)', c.aov, fmtDollar, p.aov, c.caov ? fmtDollar(c.caov) + ' Combo AOV' : null, 'Combo AOV: avg combo sale'),
-        card('Close Rate', c.cr, fmtPct, p.cr, null, 'Excl. BTD, not home, one leg, no demo', false, 'vs previous period (same # of days)', blCr !== null ? { min: blCr } : null),
-        card('SLG% (Slugging %)', c.slg, fmtPct, p.slg, null, 'BTD = not sold; excl. Rehash', false, 'vs previous period (same # of days)', blSlg !== null ? { min: blSlg } : null),
-        card('Net to Gross', c.ntg, fmtPct, p.ntg, null, 'Good sales = all excl. BTD & cancelled', true, 'vs previous period (same # of days)', blNtg !== null ? { min: blNtg } : null),
-        card('NVPIL', c.nvpil, fmtDollar, p.nvpil, null, 'Volume ÷ Leads', false, 'vs previous period (same # of days)', blNvpil !== null ? { min: blNvpil } : null),
         card('Combo Sales', c.combo, fmtNum, p.combo),
-        card('Rehash Sales', c.rehash, fmtNum, p.rehash, null, null, true),
-        card('Self Generated Leads', c.selfgen, fmtNum, p.selfgen),
-        card('Bank Turn Downs', c.btd, fmtNum, p.btd, null, 'Lower is better', true),
         card('Cancelled (Sales)', c.cancelled, fmtNum, p.cancelled, null, 'Won sales later cancelled', true)
       ].join('');
-      renderNsBreakdown(cur);
       renderGoalBars(c);
       calcStreak();
       calcCommissionsDue();
 
-      // Follow-up alerts — uses same 3-step sequence logic as the Follow-Ups tab
-      const todayStr = localDate(new Date());
-      const todayDate = new Date(); todayDate.setHours(12, 0, 0, 0);
-      // Pull all non-done leads that have a followup_date set (any date — need to apply step logic)
-      const { data: allFu, error: fuErr } = await sb.from('leads')
-        .select('id,followup_date')
-        .eq('followup_done', false)
-        .not('followup_date', 'is', null);
-
-      if (fuErr) {
-        console.error('Follow-up load error. DB may need update:', fuErr);
-      }
-
-      // Apply the same step logic: a lead is "due today" if its active step date <= today
-      let fuDueCount = 0;
-      if (!fuErr && allFu) {
-        allFu.forEach(l => {
-          const d1 = new Date(l.followup_date + 'T12:00:00');
-          const d3 = new Date(l.followup_date + 'T12:00:00'); d3.setDate(d3.getDate() + 3);
-          const d7 = new Date(l.followup_date + 'T12:00:00'); d7.setDate(d7.getDate() + 7);
-          let activeDate;
-          if (todayDate < d1) activeDate = localDate(d1);
-          else if (todayDate < d3) activeDate = localDate(d1);
-          else if (todayDate < d7) activeDate = localDate(d3);
-          else activeDate = localDate(d7);
-          if (activeDate <= todayStr) fuDueCount++;
-        });
-      }
-
-      const fuBar = document.getElementById('fuActionCenter');
-      if (!fuErr && fuDueCount > 0) {
-        fuBar.style.display = 'flex';
-        document.getElementById('fuActionBadge').textContent = fuDueCount;
-        document.getElementById('fuActionTitle').textContent = fuDueCount === 1 ? '1 follow-up due today' : `${fuDueCount} follow-ups due today`;
-      } else {
-        fuBar.style.display = 'none';
-      }
-
       // Install alerts
+      const todayStr = localDate(new Date());
       const { data: instsToday, error: instErr } = await sb.from('leads')
         .select('id')
         .eq('install_date', todayStr)
@@ -3972,47 +3887,7 @@
       }
     }
 
-    function renderNsBreakdown(leads) {
-      const section = document.getElementById('nsBrkSection');
-      const list = document.getElementById('nsBrkList');
-      const nsLeads = leads.filter(l => l.status === 'not_sold');
-      if (!nsLeads.length) { section.style.display = 'none'; return; }
-
-      // Tally by reason ID
-      const tally = {};
-      const idToLabel = {};
-      nsLeads.forEach(l => {
-        const rid = l.reason_id || 'unknown';
-        const label = l.not_sold_reasons?.label || 'Unknown';
-        tally[rid] = (tally[rid] || 0) + 1;
-        idToLabel[rid] = label;
-      });
-
-      const sorted = Object.entries(tally).sort((a, b) => b[1] - a[1]);
-      const max = sorted[0][1];
-      const total = nsLeads.length;
-
-      list.innerHTML = sorted.map(([id, count], i) => {
-        const label = idToLabel[id];
-        const pct = Math.round(count / total * 100);
-        const barW = Math.round(count / max * 100);
-        const hue = Math.round(0 + (i / Math.max(sorted.length - 1, 1)) * 30);
-        const barColor = `hsl(${hue},85%,38%)`;
-
-        return `<div class="ns-row" onclick="drillIntoReason('${id}')" style="cursor:pointer">
-      <span class="ns-rank">${i + 1}</span>
-      <div class="ns-bar-col">
-        <span class="ns-label">${label}</span>
-        <div class="ns-bar-wrap">
-          <div class="ns-bar" style="width:${barW}%;background:${barColor}"></div>
-        </div>
-      </div>
-      <span class="ns-count">${count}</span>
-      <span class="ns-pct">${pct}%</span>
-    </div>`;
-      }).join('');
-      section.style.display = 'block';
-    }
+    // (Not-sold reason breakdown removed — app only tracks sales now.)
 
     // ─────────────────────────────────────────
     // STREAK COUNTER
@@ -4211,44 +4086,31 @@
       // Fetch week data
       const csDate = mon.toISOString().split('T')[0];
       const ceDate = now.toISOString().split('T')[0];
-      const { data } = await sb.from('leads').select('*, not_sold_reasons(label)')
-        .not('sales_date', 'is', null).gte('sales_date', csDate).lte('sales_date', ceDate);
+      const { data } = await sb.from('leads').select('*')
+        .eq('status', 'sold').not('sales_date', 'is', null).gte('sales_date', csDate).lte('sales_date', ceDate);
       const leads = data || [];
       const m = calcM(leads);
 
-      // Top not-sold reason
-      const nsLeads = leads.filter(l => l.status === 'not_sold');
-      let topReason = '—';
-      if (nsLeads.length) {
-        const tally = {};
-        nsLeads.forEach(l => { const lab = l.not_sold_reasons?.label || 'Unknown'; tally[lab] = (tally[lab] || 0) + 1; });
-        topReason = Object.entries(tally).sort((a, b) => b[1] - a[1])[0][0];
-      }
-
-      _recapMetrics = { m, topReason, streak, weekStr: `${fmt(mon)} – ${fmt(sun)}` };
+      _recapMetrics = { m, streak, weekStr: `${fmt(mon)} – ${fmt(sun)}` };
 
       document.getElementById('rcGrid').innerHTML = [
-        { v: m.leads, l: 'Total Appointments', fmt: v => v },
         { v: m.sales, l: 'Total Sales', fmt: v => v },
-        { v: m.slg, l: 'SLG%', fmt: v => v.toFixed(1) + '%' },
         { v: m.rev, l: 'Revenue', fmt: v => '$' + Math.round(v).toLocaleString() },
-        { v: m.nvpil, l: 'NVPIL', fmt: v => '$' + Math.round(v).toLocaleString() },
-        { v: topReason, l: 'Top Not-Sold Reason', fmt: v => v },
+        { v: m.commission, l: 'Commission (Paid)', fmt: v => '$' + Math.round(v).toLocaleString() },
+        { v: m.aov, l: 'Avg Sale', fmt: v => '$' + Math.round(v).toLocaleString() },
       ].map(({ v, l, fmt }) => `<div class="rc-stat"><div class="rc-stat-v">${fmt(v)}</div><div class="rc-stat-l">${l}</div></div>`).join('');
     }
 
     function shareRecap() {
       if (!_recapMetrics) return;
-      const { m, topReason, streak, weekStr } = _recapMetrics;
+      const { m, streak, weekStr } = _recapMetrics;
       const fire = streak >= 7 ? '🔥🔥' : streak >= 3 ? '🔥' : '';
       const txt = `🍃 LeafFilter Weekly Recap — ${weekStr}\n` +
         `${fire}${streak > 0 ? ' ' + streak + '-day streak!' : ''}\n\n` +
-        `📋 Appointments: ${m.leads}\n` +
         `✅ Sales: ${m.sales}\n` +
-        `📊 SLG%: ${m.slg.toFixed(1)}%\n` +
         `💰 Revenue: $${Math.round(m.rev).toLocaleString()}\n` +
-        `📈 NVPIL: $${Math.round(m.nvpil).toLocaleString()}\n` +
-        `❌ Top Not-Sold: ${topReason}`;
+        `💵 Commission (Paid): $${Math.round(m.commission).toLocaleString()}\n` +
+        `📈 Avg Sale: $${Math.round(m.aov).toLocaleString()}`;
       if (navigator.share) {
         navigator.share({ title: 'LeafFilter Weekly Recap', text: txt }).catch(() => { });
       } else {
@@ -4258,12 +4120,12 @@
 
     function copyRecap() {
       if (!_recapMetrics) return;
-      const { m, topReason, streak, weekStr } = _recapMetrics;
+      const { m, streak, weekStr } = _recapMetrics;
       const fire = streak >= 7 ? '🔥🔥' : streak >= 3 ? '🔥' : '';
       const txt = `🍃 LeafFilter Weekly Recap — ${weekStr}\n` +
         `${fire}${streak > 0 ? ' ' + streak + '-day streak!' : ''}\n\n` +
-        `📋 Appointments: ${m.leads}\n✅ Sales: ${m.sales}\n📊 SLG%: ${m.slg.toFixed(1)}%\n` +
-        `💰 Revenue: $${Math.round(m.rev).toLocaleString()}\n📈 NVPIL: $${Math.round(m.nvpil).toLocaleString()}\n❌ Top Not-Sold: ${topReason}`;
+        `✅ Sales: ${m.sales}\n💰 Revenue: $${Math.round(m.rev).toLocaleString()}\n` +
+        `💵 Commission (Paid): $${Math.round(m.commission).toLocaleString()}\n📈 Avg Sale: $${Math.round(m.aov).toLocaleString()}`;
       navigator.clipboard.writeText(txt).then(() => toast('Recap copied!', 'ok')).catch(() => toast('Copy failed', 'err'));
     }
 
@@ -5462,7 +5324,7 @@
         document.getElementById('editOverlay').classList.remove('open');
         editLeadId = null;
         if (document.getElementById('n-hist').classList.contains('active')) {
-          const isFu = document.querySelectorAll('.htab')[1].classList.contains('active');
+          const isFu = false; // Follow-Ups tab removed — app tracks sales only
           if (isFu) loadFollowUps();
           else if (window._lastHistArgs) filterHist(...window._lastHistArgs);
           else document.querySelector('.ftab.active')?.click();
@@ -5479,7 +5341,7 @@
       if (document.getElementById('n-comm').classList.contains('active')) {
         loadComm();
       } else if (document.getElementById('n-hist').classList.contains('active')) {
-        const isFu = document.querySelectorAll('.htab')[1].classList.contains('active');
+        const isFu = false; // Follow-Ups tab removed — app tracks sales only
         if (isFu) {
           loadFollowUps();
         } else if (window._lastHistArgs) {
@@ -5520,7 +5382,7 @@
       if (document.getElementById('n-comm').classList.contains('active')) {
         loadComm();
       } else if (document.getElementById('n-hist').classList.contains('active')) {
-        const isFu = document.querySelectorAll('.htab')[1].classList.contains('active');
+        const isFu = false; // Follow-Ups tab removed — app tracks sales only
         if (isFu) {
           loadFollowUps();
         } else if (window._lastHistArgs) {
@@ -5541,13 +5403,7 @@
       loadBaselines();
       loadQuoteSettings();
       gcalLoadSettingsUI();
-      await loadReasons();
-      const el = document.getElementById('reasonsSet');
-      if (!reasons.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;padding:8px 0">No reasons found.</p>'; return; }
-      el.innerHTML = reasons.map(r => `
-    <div class="ri" id="ri-${r.id}" style="padding-right:12px">
-      <span class="ri-txt">${r.label}</span>
-    </div>`).join('');
+      await loadReasons(); // still needed by the Edit Sale modal for viewing old not-sold records
     }
 
     function openAdd() {
@@ -5600,14 +5456,14 @@
     // COMMISSIONS
     // ─────────────────────────────────────────
     function weekKey(dateStr) {
-      // Week = Thu 00:00 → Wed 23:59. Returns {start, end} Date objects.
+      // Pay period = Mon 00:00 → Sat 23:59. Sunday rolls into the week that just ended. Returns {start, end} Date objects.
       const d = new Date(dateStr + 'T12:00:00');
       const day = d.getDay(); // 0=Sun…6=Sat
-      // Days since last Thursday: Thu=0,Fri=1,Sat=2,Sun=3,Mon=4,Tue=5,Wed=6
-      const offset = [3, 4, 5, 6, 0, 1, 2][day];
-      const thu = new Date(d); thu.setDate(d.getDate() - offset); thu.setHours(0, 0, 0, 0);
-      const wed = new Date(thu); wed.setDate(thu.getDate() + 6); wed.setHours(23, 59, 59, 999);
-      return { start: thu, end: wed, key: thu.toISOString().split('T')[0] };
+      // Days since last Monday: Mon=0,Tue=1,Wed=2,Thu=3,Fri=4,Sat=5,Sun=6
+      const offset = [6, 0, 1, 2, 3, 4, 5][day];
+      const mon = new Date(d); mon.setDate(d.getDate() - offset); mon.setHours(0, 0, 0, 0);
+      const sat = new Date(mon); sat.setDate(mon.getDate() + 5); sat.setHours(23, 59, 59, 999);
+      return { start: mon, end: sat, key: mon.toISOString().split('T')[0] };
     }
 
     function saveCommGoal() {
@@ -6553,18 +6409,7 @@
       document.querySelectorAll('#ccReasonList .ro').forEach(r => r.classList.remove('sel'));
       if (document.getElementById('qcSoldAt')) document.getElementById('qcSoldAt').value = '';
       if (document.getElementById('qcFinPlan')) document.getElementById('qcFinPlan').value = '';
-      // Un-select the big buttons
-      document.getElementById('ccSoldPanel').style.display = 'none';
-      const soldBtn   = document.getElementById('ccOutcomeSold');
-      const notBtn    = document.getElementById('ccOutcomeNot');
-      if(soldBtn) {
-        soldBtn.style.background = '#fff';
-        soldBtn.style.color = 'var(--green)';
-      }
-      if(notBtn) {
-        notBtn.style.background = '#fff';
-        notBtn.style.color = '#E53935';
-      }
+      // Sale form is always the only outcome now — keep it visible (no toggle buttons to reset)
       ccRemoveDrawSheet();
       ccNsRemoveDrawSheet();
     }
