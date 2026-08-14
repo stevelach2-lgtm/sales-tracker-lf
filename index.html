@@ -6822,12 +6822,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (type === 'sold') {
         soldPanel.style.display = '';
         notPanel.style.display  = 'none';
-        soldBtn.style.background = 'var(--green)';
-        soldBtn.style.color = '#fff';
-        soldBtn.style.borderColor = 'var(--green)';
-        notBtn.style.background = '#fff';
-        notBtn.style.color = '#E53935';
-        notBtn.style.borderColor = '#E53935';
+        if (soldBtn) { soldBtn.style.background = 'var(--green)'; soldBtn.style.color = '#fff'; soldBtn.style.borderColor = 'var(--green)'; }
+        if (notBtn) { notBtn.style.background = '#fff'; notBtn.style.color = '#E53935'; notBtn.style.borderColor = '#E53935'; }
         setTimeout(() => {
           const nameEl = document.getElementById('soldCustName');
           if (nameEl && !nameEl.value) nameEl.focus();
@@ -6835,12 +6831,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       } else {
         soldPanel.style.display  = 'none';
         notPanel.style.display   = '';
-        soldBtn.style.background = '#fff';
-        soldBtn.style.color = 'var(--green)';
-        soldBtn.style.borderColor = 'var(--green)';
-        notBtn.style.background  = '#E53935';
-        notBtn.style.color = '#fff';
-        notBtn.style.borderColor = '#E53935';
+        if (soldBtn) { soldBtn.style.background = '#fff'; soldBtn.style.color = 'var(--green)'; soldBtn.style.borderColor = 'var(--green)'; }
+        if (notBtn) { notBtn.style.background = '#E53935'; notBtn.style.color = '#fff'; notBtn.style.borderColor = '#E53935'; }
 
         // auto-fill last price given from Sold At field
         const soldAt = document.getElementById('qcSoldAt').value;
