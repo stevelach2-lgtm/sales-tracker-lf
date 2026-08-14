@@ -3099,7 +3099,7 @@
 
   <!-- Quote Calculator Overlay -->
   <div class="edit-overlay" id="quoteCalcOverlay" onclick="closeQuoteCalc(event)" style="z-index: 9999 !important;">
-    <div class="edit-sheet" id="quoteCalcSheet" style="max-height:94vh;position:relative">
+    <div class="edit-sheet" id="quoteCalcSheet" style="max-height:94vh">
       <div class="es-hdr" style="background:#FEF9C3;border-bottom:1.5px solid #FDE047">
         <span class="es-title" style="color:#713F12">💰 Customer Quote Calculator</span>
         <button class="es-close" onclick="closeQuoteCalc()" style="color:#713F12">✕</button>
@@ -3116,6 +3116,16 @@
         <!-- Log Sale Section — Moved from Log Lead into Quote Tool -->
         <div id="ccLogSection" style="display:block;margin-bottom:16px;border-bottom:2.5px solid var(--border);padding-bottom:16px">
           <div id="ccLogOutcomeHeading" style="font-size:11px;font-weight:800;letter-spacing:.6px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;display:flex;align-items:center;gap:6px">📝 Log Sale</div>
+          <div id="ccOutcomeBtnRow" style="display:none;gap:8px;margin-bottom:14px">
+            <button id="ccOutcomeSold" onclick="ccSetOutcome('sold')"
+              style="flex:1;padding:11px;border:2px solid var(--green);border-radius:10px;background:#fff;color:var(--green);font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">✅ SALE</button>
+            <button id="ccOutcomeNot" onclick="ccSetOutcome('not_sold')"
+              style="flex:1;padding:11px;border:2px solid #E53935;border-radius:10px;background:#fff;color:#E53935;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">❌ NO SALE</button>
+          </div>
+          <div id="ccSwitchToSaleWrap" style="display:none;margin:-6px 0 12px">
+            <button type="button" onclick="ccSetOutcome('sold')" style="background:transparent;border:none;padding:0;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--green);text-decoration:underline;cursor:pointer">← Switch to sale</button>
+          </div>
+
           <!-- Calendar lead banner (shown when opened via Today's Leads) -->
           <div id="ccCalBanner" style="display:none;background:#EEF2FF;border:1.5px solid #A5B4FC;border-radius:10px;padding:7px 10px;margin-bottom:10px">
             <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">
@@ -3173,6 +3183,16 @@
             </div>
             <div class="fg2" style="margin-bottom:8px">
               <div>
+                <label class="fl">Customer Name</label>
+                <input type="text" class="fi" id="soldCustName" placeholder="Michael" style="font-size:13px;padding:11px 13px">
+              </div>
+              <div>
+                <label class="fl">Phone Number</label>
+                <input type="tel" class="fi" id="soldCustPhone" placeholder="555-555-5555" maxlength="14" style="font-size:13px;padding:11px 13px">
+              </div>
+            </div>
+            <div class="fg2" style="margin-bottom:8px">
+              <div>
                 <label class="fl">Install Date</label>
                 <input type="date" class="fi" id="installDate" style="font-size:13px;padding:11px 13px">
               </div>
@@ -3184,6 +3204,22 @@
             <div class="paid-row" onclick="togglePaid()" style="margin-bottom:10px">
               <div class="paid-chk" id="paidChk"></div>
               <span class="paid-lbl">Commission Paid</span>
+            </div>
+            <div class="fg" style="margin-bottom:10px">
+              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <textarea class="fi" id="soldNotes" placeholder="e.g. 180ft, financing used..."></textarea>
+            </div>
+            <div class="fg" style="margin-bottom:10px">
+              <label class="fl">📋 Draw Sheet <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <input type="file" id="ccDrawFile" accept="image/*,application/pdf" style="display:none" onchange="ccOnDrawFileSelected(this)">
+              <div id="ccDrawPreview" style="display:none;margin-bottom:8px;position:relative">
+                <img id="ccDrawThumb" src="" style="width:100%;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;max-height:180px;object-fit:cover" onclick="viewDrawSheet(document.getElementById('ccDrawThumb').src)">
+                <button type="button" onclick="ccRemoveDrawSheet()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer">Remove</button>
+              </div>
+              <button type="button" id="ccDrawBtn" onclick="document.getElementById('ccDrawFile').click()"
+                style="width:100%;background:#F9FAFB;border:1.5px dashed var(--border);border-radius:10px;padding:11px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">
+                📸 Upload Draw Sheet
+              </button>
             </div>
             <button class="sbtn sold" onclick="submitLeadFromCalc('sold')">✅ Log Sale</button>
           </div>
@@ -5053,7 +5089,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           retail_percentage: parseFloat(document.getElementById('retailPct').value) || null,
           commission_percentage: parseFloat(document.getElementById('commPct').value) || null,
           commission_paid: isPaid,
-          notes: null,
+          notes: document.getElementById('soldNotes').value.trim() || null,
           followup_name: contact.name,
           followup_phone: contact.phone,
           lead_id: document.getElementById('calLeadId').value || null,
@@ -5553,20 +5589,15 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     }
 
     function ccRemoveDrawSheet() {
-      // Sold-panel draw sheet upload UI was removed — this is now a safe no-op guard
-      // kept because ccResetLogPanel() still calls it unconditionally on every open/close.
       if (ccDrawPreviewObjUrl) {
         URL.revokeObjectURL(ccDrawPreviewObjUrl);
         ccDrawPreviewObjUrl = null;
       }
       ccDrawPendingFile = null;
-      const thumb = document.getElementById('ccDrawThumb');
-      const preview = document.getElementById('ccDrawPreview');
-      const btn = document.getElementById('ccDrawBtn');
+      document.getElementById('ccDrawThumb').src = '';
+      document.getElementById('ccDrawPreview').style.display = 'none';
+      document.getElementById('ccDrawBtn').style.display = 'block';
       const fin = document.getElementById('ccDrawFile');
-      if (thumb) thumb.src = '';
-      if (preview) preview.style.display = 'none';
-      if (btn) btn.style.display = 'block';
       if (fin) fin.value = '';
     }
 
@@ -6318,14 +6349,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       { s: 'Gutter Extras', l: 'Outside Vendor (materials × 3.5)', u: '$mat', p: 3.5 },
     ];
 
-    let PRICE_LIST = (() => {
-      try {
-        const stored = JSON.parse(localStorage.getItem('cc_price_list'));
-        if (Array.isArray(stored) && stored.length > 0) return stored;
-      } catch (e) { /* corrupted localStorage value — fall through to default */ }
-      localStorage.removeItem('cc_price_list');
-      return DEFAULT_PRICE_LIST;
-    })();
+    let PRICE_LIST = JSON.parse(localStorage.getItem('cc_price_list')) || DEFAULT_PRICE_LIST;
 
     let ccTarget = 'log'; // 'log' or 'edit'
 
@@ -6829,8 +6853,12 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (type === 'sold') {
         soldPanel.style.display = '';
         notPanel.style.display  = 'none';
-        if (soldBtn) { soldBtn.style.background = 'var(--green)'; soldBtn.style.color = '#fff'; soldBtn.style.borderColor = 'var(--green)'; }
-        if (notBtn) { notBtn.style.background = '#fff'; notBtn.style.color = '#E53935'; notBtn.style.borderColor = '#E53935'; }
+        soldBtn.style.background = 'var(--green)';
+        soldBtn.style.color = '#fff';
+        soldBtn.style.borderColor = 'var(--green)';
+        notBtn.style.background = '#fff';
+        notBtn.style.color = '#E53935';
+        notBtn.style.borderColor = '#E53935';
         setTimeout(() => {
           const nameEl = document.getElementById('soldCustName');
           if (nameEl && !nameEl.value) nameEl.focus();
@@ -6838,8 +6866,12 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       } else {
         soldPanel.style.display  = 'none';
         notPanel.style.display   = '';
-        if (soldBtn) { soldBtn.style.background = '#fff'; soldBtn.style.color = 'var(--green)'; soldBtn.style.borderColor = 'var(--green)'; }
-        if (notBtn) { notBtn.style.background = '#E53935'; notBtn.style.color = '#fff'; notBtn.style.borderColor = '#E53935'; }
+        soldBtn.style.background = '#fff';
+        soldBtn.style.color = 'var(--green)';
+        soldBtn.style.borderColor = 'var(--green)';
+        notBtn.style.background  = '#E53935';
+        notBtn.style.color = '#fff';
+        notBtn.style.borderColor = '#E53935';
 
         // auto-fill last price given from Sold At field
         const soldAt = document.getElementById('qcSoldAt').value;
@@ -6878,6 +6910,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (rr) { rr.style.display = 'none'; rr.innerHTML = ''; }
       ccSetOutcome('sold');
       document.getElementById('commAmt').value = '';
+      document.getElementById('soldNotes').value = '';
       document.getElementById('jobNum').value = '';
       document.getElementById('saleAmt').value = '';
       const today = localDate(new Date());
@@ -6968,8 +7001,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
             document.getElementById('quoteCalcOverlay').classList.remove('open');
             ccResetLogPanel();
             document.getElementById('ccSoldPanel').style.display = 'none';
-            const soldBtn = document.getElementById('ccOutcomeSold');
-            if (soldBtn) { soldBtn.style.background = '#fff'; soldBtn.style.color = 'var(--green)'; }
+            document.getElementById('ccOutcomeSold').style.background = '#fff';
+            document.getElementById('ccOutcomeSold').style.color = 'var(--green)';
           }
         } catch (e) {
           console.error('[sold save]', e);
@@ -7055,8 +7088,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         showUndo('Not sold lead logged + Follow-up scheduled');
         ccResetLogPanel();
         document.getElementById('ccNotPanel').style.display = 'none';
-        const notBtn = document.getElementById('ccOutcomeNot');
-        if (notBtn) { notBtn.style.background = '#fff'; notBtn.style.color = '#E53935'; }
+        document.getElementById('ccOutcomeNot').style.background = '#fff';
+        document.getElementById('ccOutcomeNot').style.color = '#E53935';
       }
     }
 
@@ -7085,10 +7118,6 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
 
     function renderQCItems() {
       const container = document.getElementById('qcItems');
-      if (!container) return;
-      if (!Array.isArray(PRICE_LIST) || PRICE_LIST.length === 0) {
-        PRICE_LIST = DEFAULT_PRICE_LIST;
-      }
       let html = '';
       let curSection = '';
       PRICE_LIST.forEach((item, i) => {
