@@ -7107,6 +7107,12 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       updateQcOverageChk();
       calcQuote();
       document.getElementById('quoteCalcOverlay').classList.add('open');
+      // Force scroll back to top every time — the sheet element persists in the DOM between
+      // opens, so without this it can stay scrolled to wherever it was left last time,
+      // hiding the item list behind the Log Sale panel below it.
+      const sheet = document.getElementById('quoteCalcSheet');
+      if (sheet) sheet.scrollTop = 0;
+      setTimeout(() => { if (sheet) sheet.scrollTop = 0; }, 50);
     }
 
     function closeQuoteCalc(e) {
