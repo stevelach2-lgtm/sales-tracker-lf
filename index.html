@@ -2843,6 +2843,15 @@
         </svg>
         <span>Map</span>
       </button>
+      <button class="ni" id="n-quote" onclick="goTo('quote')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9.5 9a2.5 2.5 0 015 0c0 1.5-2.5 2-2.5 3.5"/>
+          <line x1="12" y1="16.5" x2="12" y2="16.5"/>
+        </svg>
+        <span>Quote</span>
+      </button>
     </nav>
   </div><!-- /app -->
 
@@ -3097,23 +3106,123 @@
     </div>
   </div>
 
-  <!-- Quote Calculator Overlay -->
-  <div class="edit-overlay" id="quoteCalcOverlay" onclick="closeQuoteCalc(event)" style="z-index: 9999 !important;">
-    <div class="edit-sheet" id="quoteCalcSheet" style="max-height:94vh;position:relative">
-      <div class="es-hdr" style="background:#FEF9C3;border-bottom:1.5px solid #FDE047">
-        <span class="es-title" style="color:#713F12">💰 Customer Quote Calculator</span>
-        <button class="es-close" onclick="closeQuoteCalc()" style="color:#713F12">✕</button>
-      </div>
-      <div class="es-body" style="padding-bottom:340px">
-        <div id="qcItems" style="display:flex;flex-direction:column;gap:6px">
+  <!-- QUOTE TAB -->
+  <div id="p-quote" class="page">
+    <div style="padding:14px 14px 0">
+      <div style="font-size:17px;font-weight:800">💰 Customer Quote Calculator</div>
+    </div>
+
+    <div style="padding:10px 14px 0">
+      <div id="qcItems" style="display:flex;flex-direction:column;gap:6px">
           <!-- rows injected by JS -->
         </div>
+    </div>
 
-      </div>
-      <!-- Sticky footer -->
-      <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1.5px solid var(--border);padding:16px 14px 20px;max-height:85vh;overflow-y:auto;box-shadow:0 -4px 16px rgba(0,0,0,0.08);">
-        
-        <!-- Log Sale Section — Moved from Log Lead into Quote Tool -->
+    <div style="padding:14px 14px 0">
+      <!-- Opening Price + PAR+Admin -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div style="background:#FEF9C3;border:1.5px solid #FDE047;border-radius:9px;padding:9px 11px">
+            <div id="qcOpeningLabel" style="font-size:9px;font-weight:700;color:#854D0E;letter-spacing:.5px">OPENING PRICE</div>
+            <div id="qcOpening" style="font-size:17px;font-weight:800;color:#854D0E">$0.00</div>
+            <div id="qcOpeningPct" style="font-size:10px;font-weight:700;color:#A16207"></div>
+          </div>
+          <div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:9px;padding:9px 11px">
+            <div style="font-size:9px;font-weight:700;color:#166534;letter-spacing:.5px">PAR + ADMIN</div>
+            <div id="qcParAdmin" style="font-size:17px;font-weight:800;color:#166534">$0.00</div>
+            <div style="font-size:9px;font-weight:600;color:#15803D">admin included</div>
+          </div>
+        </div>
+        <!-- Sold At + Commission -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:6px;background:#F9FAFB;border-radius:9px;padding:7px 10px">
+            <span style="font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap">Sold $</span>
+            <input type="number" id="qcSoldAt" inputmode="decimal" placeholder="0.00"
+              style="flex:1;border:none;background:transparent;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:var(--text);outline:none;min-width:0"
+              oninput="calcQuote()">
+          </div>
+          <div id="qcCommBox" style="background:#F9FAFB;border-radius:9px;padding:7px 10px;display:none">
+            <div style="font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.5px">COMMISSION</div>
+            <div id="qcComm" style="font-size:15px;font-weight:800;color:var(--green-dark)">$0.00</div>
+            <div id="qcParGapLine" style="font-size:9px;font-weight:700;margin-top:2px"></div>
+            <div id="qcCommTier" style="font-size:9px;font-weight:600;color:var(--muted)"></div>
+          </div>
+        </div>
+        <!-- Financing -->
+        <div style="margin-bottom:8px">
+          <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">🏦 Financing Plan (Wells Fargo)</label>
+          <select id="qcFinPlan" class="fi" style="font-size:12px;padding:9px 11px" onchange="calcQuote()">
+            <option value="">— No Financing / Cash / Own Financing —</option>
+            <optgroup label="Credit Card (PCI 877-391-2547)">
+              <option value="CC-MC|3.00">MasterCard / VISA / Discover (3.00%)</option>
+              <option value="CC-AMEX|5.00">American Express (5.00%)</option>
+            </optgroup>
+            <optgroup label="─────────────────────────"></optgroup>
+            <optgroup label="Plan C — Min payment 3.5% or $35">
+              <option value="1148|1.75">1148 — 6 Mo, no interest, reg payments (1.75%)</option>
+              <option value="1019|3.75">1019 — 12 Mo, no interest, reg payments (3.75%)</option>
+            </optgroup>
+            <optgroup label="Plan A">
+              <option value="1157|6.75">1157 — 6.9% APR, custom 1/50th monthly (6.75%)</option>
+              <option value="1197|5.25">1197 — 9.99% APR, 3.5% monthly payment (5.25%)</option>
+              <option value="2225|4.00">2225 — 12.9% APR, custom 1/50th monthly (4.00%)</option>
+            </optgroup>
+            <optgroup label="Plan B — Equal Payments (0% interest)">
+              <option value="4073|9.50">4073 — 18 Mo, 0% interest, equal payments (9.50%)</option>
+              <option value="4079|11.00">4079 — 24 Mo, 0% interest, equal payments (11.00%)</option>
+              <option value="4091|13.00">4091 — 36 Mo, 0% interest, equal payments (13.00%)</option>
+              <option value="4103|16.25">4103 — 48 Mo, 0% interest, equal payments (16.25%)</option>
+              <option value="4115|18.75">4115 — 60 Mo, 0% interest, equal payments (18.75%)</option>
+            </optgroup>
+            <optgroup label="Plan B — Special Rate / Min $2,500">
+              <option value="3198|11.00">3198 — 5.99% APR, 60 equal payments (11.00%)</option>
+              <option value="1529|4.95">1529 — 8.99% APR, 84 equal payments (4.95%)</option>
+            </optgroup>
+            <optgroup label="Plan B — Min $7,500">
+              <option value="3672|7.80">3672 — 7.99% APR, 96 equal payments (7.80%)</option>
+              <option value="3667|8.30">3667 — 7.99% APR, 108 equal payments (8.30%)</option>
+              <option value="3668|8.80">3668 — 7.99% APR, 120 equal payments (8.80%)</option>
+              <option value="3669|5.70">3669 — 9.99% APR, 96 equal payments (5.70%)</option>
+              <option value="3670|6.20">3670 — 9.99% APR, 108 equal payments (6.20%)</option>
+              <option value="3671|6.70">3671 — 9.99% APR, 120 equal payments (6.70%)</option>
+            </optgroup>
+            <optgroup label="─────────────────────────"></optgroup>
+            <optgroup label="Green Sky / Experian (866-936-0602)">
+              <option value="2511|5.75">2511 — 6 Mo, 0% interest, no payments during promo (5.75%)</option>
+              <option value="2521|8.55">2521 — 12 Mo, 0% interest, no payments during promo (8.55%)</option>
+              <option value="2531|13.25">2531 — 18 Mo, 0% interest, no payments during promo (13.25%)</option>
+              <option value="2749|14.00">2749 — 9.99% APR, 144 Mo, 1.19% payment (Over $10k) (14.00%)</option>
+            </optgroup>
+            <optgroup label="─────────────────────────"></optgroup>
+            <optgroup label="Lowe's (877-477-1115)">
+              <option value="LOWES-CHK|4.00">Check — Digital ACH (4.00%)</option>
+              <option value="LOWES-CC|4.00">CC — Credit Card (4.00%)</option>
+              <option value="LOWES-6|4.00">6 Mo — 0% APR, equal payments, $300 min (4.00%)</option>
+              <option value="LOWES-36|4.00">36 Mo — 7.99% APR, $2k min (4.00%)</option>
+              <option value="LOWES-60|4.00">60 Mo — 8.99% APR, $2k min (4.00%)</option>
+              <option value="LOWES-84|4.00">84 Mo — 9.99% APR, $2k min (4.00%)</option>
+              <option value="LOWES-120|4.00">120 Mo — 9.99% APR, $2,500 min (4.00%)</option>
+            </optgroup>
+            <optgroup label="─────────────────────────"></optgroup>
+            <optgroup label="Concora">
+              <option value="CONCORA|11.75">19.9% APR, 3% monthly payments (11.75%)</option>
+            </optgroup>
+          </select>
+        </div>
+        <!-- Overage toggle -->
+        <button type="button" onclick="toggleQcOverage()"
+          style="width:100%;display:flex;align-items:center;gap:10px;background:#F9FAFB;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;margin-bottom:8px;cursor:pointer;user-select:none;font-family:'Inter',sans-serif;text-align:left">
+          <div id="qcOverageChk" style="width:20px;height:20px;border:2px solid var(--border);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;transition:.15s"></div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--text)">Include Overage Markup</div>
+            <div style="font-size:10px;color:var(--muted)">Apply opening % markup to opening price</div>
+          </div>
+        </button>
+        <!-- Min-to-PAR indicator -->
+        <div id="qcMinParBox" style="display:none;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;line-height:1.6"></div>
+    </div>
+
+    <div style="padding:16px 14px 100px;margin-top:16px;border-top:2.5px solid var(--border)">
+      <!-- Log Sale Section — Moved from Log Lead into Quote Tool -->
         <div id="ccLogSection" style="display:block;margin-bottom:16px;border-bottom:2.5px solid var(--border);padding-bottom:16px">
           <div id="ccLogOutcomeHeading" style="font-size:11px;font-weight:800;letter-spacing:.6px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;display:flex;align-items:center;gap:6px">📝 Log Sale</div>
           <div id="ccOutcomeBtnRow" style="display:none;gap:8px;margin-bottom:14px">
@@ -3297,108 +3406,6 @@
             <button class="sbtn ns" onclick="submitLeadFromCalc('not_sold')">❌ Log Not Sold</button>
           </div>
         </div>
-
-        <!-- Opening Price + PAR+Admin -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-          <div style="background:#FEF9C3;border:1.5px solid #FDE047;border-radius:9px;padding:9px 11px">
-            <div id="qcOpeningLabel" style="font-size:9px;font-weight:700;color:#854D0E;letter-spacing:.5px">OPENING PRICE</div>
-            <div id="qcOpening" style="font-size:17px;font-weight:800;color:#854D0E">$0.00</div>
-            <div id="qcOpeningPct" style="font-size:10px;font-weight:700;color:#A16207"></div>
-          </div>
-          <div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:9px;padding:9px 11px">
-            <div style="font-size:9px;font-weight:700;color:#166534;letter-spacing:.5px">PAR + ADMIN</div>
-            <div id="qcParAdmin" style="font-size:17px;font-weight:800;color:#166534">$0.00</div>
-            <div style="font-size:9px;font-weight:600;color:#15803D">admin included</div>
-          </div>
-        </div>
-        <!-- Sold At + Commission -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center;margin-bottom:8px">
-          <div style="display:flex;align-items:center;gap:6px;background:#F9FAFB;border-radius:9px;padding:7px 10px">
-            <span style="font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap">Sold $</span>
-            <input type="number" id="qcSoldAt" inputmode="decimal" placeholder="0.00"
-              style="flex:1;border:none;background:transparent;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:var(--text);outline:none;min-width:0"
-              oninput="calcQuote()">
-          </div>
-          <div id="qcCommBox" style="background:#F9FAFB;border-radius:9px;padding:7px 10px;display:none">
-            <div style="font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.5px">COMMISSION</div>
-            <div id="qcComm" style="font-size:15px;font-weight:800;color:var(--green-dark)">$0.00</div>
-            <div id="qcParGapLine" style="font-size:9px;font-weight:700;margin-top:2px"></div>
-            <div id="qcCommTier" style="font-size:9px;font-weight:600;color:var(--muted)"></div>
-          </div>
-        </div>
-        <!-- Financing -->
-        <div style="margin-bottom:8px">
-          <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">🏦 Financing Plan (Wells Fargo)</label>
-          <select id="qcFinPlan" class="fi" style="font-size:12px;padding:9px 11px" onchange="calcQuote()">
-            <option value="">— No Financing / Cash / Own Financing —</option>
-            <optgroup label="Credit Card (PCI 877-391-2547)">
-              <option value="CC-MC|3.00">MasterCard / VISA / Discover (3.00%)</option>
-              <option value="CC-AMEX|5.00">American Express (5.00%)</option>
-            </optgroup>
-            <optgroup label="─────────────────────────"></optgroup>
-            <optgroup label="Plan C — Min payment 3.5% or $35">
-              <option value="1148|1.75">1148 — 6 Mo, no interest, reg payments (1.75%)</option>
-              <option value="1019|3.75">1019 — 12 Mo, no interest, reg payments (3.75%)</option>
-            </optgroup>
-            <optgroup label="Plan A">
-              <option value="1157|6.75">1157 — 6.9% APR, custom 1/50th monthly (6.75%)</option>
-              <option value="1197|5.25">1197 — 9.99% APR, 3.5% monthly payment (5.25%)</option>
-              <option value="2225|4.00">2225 — 12.9% APR, custom 1/50th monthly (4.00%)</option>
-            </optgroup>
-            <optgroup label="Plan B — Equal Payments (0% interest)">
-              <option value="4073|9.50">4073 — 18 Mo, 0% interest, equal payments (9.50%)</option>
-              <option value="4079|11.00">4079 — 24 Mo, 0% interest, equal payments (11.00%)</option>
-              <option value="4091|13.00">4091 — 36 Mo, 0% interest, equal payments (13.00%)</option>
-              <option value="4103|16.25">4103 — 48 Mo, 0% interest, equal payments (16.25%)</option>
-              <option value="4115|18.75">4115 — 60 Mo, 0% interest, equal payments (18.75%)</option>
-            </optgroup>
-            <optgroup label="Plan B — Special Rate / Min $2,500">
-              <option value="3198|11.00">3198 — 5.99% APR, 60 equal payments (11.00%)</option>
-              <option value="1529|4.95">1529 — 8.99% APR, 84 equal payments (4.95%)</option>
-            </optgroup>
-            <optgroup label="Plan B — Min $7,500">
-              <option value="3672|7.80">3672 — 7.99% APR, 96 equal payments (7.80%)</option>
-              <option value="3667|8.30">3667 — 7.99% APR, 108 equal payments (8.30%)</option>
-              <option value="3668|8.80">3668 — 7.99% APR, 120 equal payments (8.80%)</option>
-              <option value="3669|5.70">3669 — 9.99% APR, 96 equal payments (5.70%)</option>
-              <option value="3670|6.20">3670 — 9.99% APR, 108 equal payments (6.20%)</option>
-              <option value="3671|6.70">3671 — 9.99% APR, 120 equal payments (6.70%)</option>
-            </optgroup>
-            <optgroup label="─────────────────────────"></optgroup>
-            <optgroup label="Green Sky / Experian (866-936-0602)">
-              <option value="2511|5.75">2511 — 6 Mo, 0% interest, no payments during promo (5.75%)</option>
-              <option value="2521|8.55">2521 — 12 Mo, 0% interest, no payments during promo (8.55%)</option>
-              <option value="2531|13.25">2531 — 18 Mo, 0% interest, no payments during promo (13.25%)</option>
-              <option value="2749|14.00">2749 — 9.99% APR, 144 Mo, 1.19% payment (Over $10k) (14.00%)</option>
-            </optgroup>
-            <optgroup label="─────────────────────────"></optgroup>
-            <optgroup label="Lowe's (877-477-1115)">
-              <option value="LOWES-CHK|4.00">Check — Digital ACH (4.00%)</option>
-              <option value="LOWES-CC|4.00">CC — Credit Card (4.00%)</option>
-              <option value="LOWES-6|4.00">6 Mo — 0% APR, equal payments, $300 min (4.00%)</option>
-              <option value="LOWES-36|4.00">36 Mo — 7.99% APR, $2k min (4.00%)</option>
-              <option value="LOWES-60|4.00">60 Mo — 8.99% APR, $2k min (4.00%)</option>
-              <option value="LOWES-84|4.00">84 Mo — 9.99% APR, $2k min (4.00%)</option>
-              <option value="LOWES-120|4.00">120 Mo — 9.99% APR, $2,500 min (4.00%)</option>
-            </optgroup>
-            <optgroup label="─────────────────────────"></optgroup>
-            <optgroup label="Concora">
-              <option value="CONCORA|11.75">19.9% APR, 3% monthly payments (11.75%)</option>
-            </optgroup>
-          </select>
-        </div>
-        <!-- Overage toggle -->
-        <button type="button" onclick="toggleQcOverage()"
-          style="width:100%;display:flex;align-items:center;gap:10px;background:#F9FAFB;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;margin-bottom:8px;cursor:pointer;user-select:none;font-family:'Inter',sans-serif;text-align:left">
-          <div id="qcOverageChk" style="width:20px;height:20px;border:2px solid var(--border);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;transition:.15s"></div>
-          <div>
-            <div style="font-size:12px;font-weight:700;color:var(--text)">Include Overage Markup</div>
-            <div style="font-size:10px;color:var(--muted)">Apply opening % markup to opening price</div>
-          </div>
-        </button>
-        <!-- Min-to-PAR indicator -->
-        <div id="qcMinParBox" style="display:none;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;line-height:1.6"></div>
-      </div>
     </div>
   </div>
 
@@ -4031,6 +4038,9 @@
     // NAVIGATION
     // ─────────────────────────────────────────
     function goTo(id) {
+      window.scrollTo(0, 0); // Always start each tab at the top — avoids a stale scroll
+      // position from a previous tab (or a previous visit to this tab) leaving content
+      // hidden above the fold, which is exactly the bug the old Quote popup had.
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
       document.getElementById('p-' + id).classList.add('active');
@@ -4045,6 +4055,7 @@
 
       if (id === 'comm') loadComm();
       if (id === 'map') loadMap();
+      if (id === 'quote') initQuoteTab();
     }
 
     // ─────────────────────────────────────────
@@ -6833,13 +6844,9 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       const notPanel  = document.getElementById('ccNotPanel');
       const soldBtn   = document.getElementById('ccOutcomeSold');
       const notBtn    = document.getElementById('ccOutcomeNot');
-      const esBody    = document.querySelector('#quoteCalcSheet .es-body');
       const outcomeRow = document.getElementById('ccOutcomeBtnRow');
       const switchSale = document.getElementById('ccSwitchToSaleWrap');
       const heading = document.getElementById('ccLogOutcomeHeading');
-
-      // Expand padding when picking an outcome so it doesn't get hidden behind footer
-      esBody.style.paddingBottom = type === 'sold' ? '640px' : '720px';
 
       // After choosing not sold, hide SALE/NO SALE toggles (already committed); offer one link to switch back
       if (outcomeRow) outcomeRow.style.display = type === 'not_sold' ? 'none' : 'flex';
@@ -6997,7 +7004,6 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         try {
           const ok = await submitLead('sold');
           if (ok) {
-            document.getElementById('quoteCalcOverlay').classList.remove('open');
             ccResetLogPanel();
             document.getElementById('ccSoldPanel').style.display = 'none';
             document.getElementById('ccOutcomeSold').style.background = '#fff';
@@ -7083,7 +7089,6 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           }
         }
 
-        document.getElementById('quoteCalcOverlay').classList.remove('open');
         showUndo('Not sold lead logged + Follow-up scheduled');
         ccResetLogPanel();
         document.getElementById('ccNotPanel').style.display = 'none';
@@ -7099,26 +7104,26 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     let qcAdminInOpening = false;
     let qcOverageEnabled = true;
 
+    // openQuoteCalc() is the public entry point used by buttons elsewhere in the app
+    // (header Quote button, calendar lead rows, rehash lookup, etc). It just navigates
+    // to the Quote tab; goTo() calls initQuoteTab() to do the actual setup below, so
+    // this can't recurse into itself.
     function openQuoteCalc() {
+      goTo('quote');
+    }
+
+    // closeQuoteCalc() is kept as a harmless no-op for backward compatibility — the
+    // Quote Calculator used to be a popup you could close; now it's a normal tab with
+    // nothing to "close", so this intentionally does nothing.
+    function closeQuoteCalc(e) {}
+
+    function initQuoteTab() {
       qcAdminIncluded = localStorage.getItem('cc_admin_default') !== 'false';
       qcAdminInOpening = localStorage.getItem('cc_admin_in_opening') === 'true';
-      ccResetLogPanel(); // Ensures the whole form is blank each time it is opened
+      ccResetLogPanel(); // Ensures the whole form is blank each time the tab is opened
       renderQCItems();
       updateQcOverageChk();
       calcQuote();
-      document.getElementById('quoteCalcOverlay').classList.add('open');
-      // Force scroll back to top every time — the sheet element persists in the DOM between
-      // opens, so without this it can stay scrolled to wherever it was left last time,
-      // hiding the item list behind the Log Sale panel below it.
-      const sheet = document.getElementById('quoteCalcSheet');
-      if (sheet) sheet.scrollTop = 0;
-      setTimeout(() => { if (sheet) sheet.scrollTop = 0; }, 50);
-    }
-
-    function closeQuoteCalc(e) {
-      if (e && e.target !== document.getElementById('quoteCalcOverlay')) return;
-      document.getElementById('quoteCalcOverlay').classList.remove('open');
-      ccResetLogPanel();
     }
 
     function renderQCItems() {
