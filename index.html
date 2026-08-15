@@ -6123,14 +6123,13 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     // COMMISSIONS
     // ─────────────────────────────────────────
     function weekKey(dateStr) {
-      // Week = Thu 00:00 → Wed 23:59. Returns {start, end} Date objects.
+      // Pay period = Sun 00:00 → Sat 23:59. Returns {start, end} Date objects.
       const d = new Date(dateStr + 'T12:00:00');
       const day = d.getDay(); // 0=Sun…6=Sat
-      // Days since last Thursday: Thu=0,Fri=1,Sat=2,Sun=3,Mon=4,Tue=5,Wed=6
-      const offset = [3, 4, 5, 6, 0, 1, 2][day];
-      const thu = new Date(d); thu.setDate(d.getDate() - offset); thu.setHours(0, 0, 0, 0);
-      const wed = new Date(thu); wed.setDate(thu.getDate() + 6); wed.setHours(23, 59, 59, 999);
-      return { start: thu, end: wed, key: thu.toISOString().split('T')[0] };
+      const offset = day; // days since last Sunday
+      const sun = new Date(d); sun.setDate(d.getDate() - offset); sun.setHours(0, 0, 0, 0);
+      const sat = new Date(sun); sat.setDate(sun.getDate() + 6); sat.setHours(23, 59, 59, 999);
+      return { start: sun, end: sat, key: sun.toISOString().split('T')[0] };
     }
 
     function saveCommGoal() {
@@ -6162,7 +6161,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         return;
       }
 
-      // Group by Thu–Wed week
+      // Group by Sun–Sat pay period
       const weeks = {};
       leads.forEach(l => {
         const w = weekKey(l.install_date);
@@ -6181,11 +6180,14 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const unpaid = w.jobs.reduce((s, j) => s + (j.commission_paid ? 0 : (parseFloat(j.commission_amount) || 0)), 0);
         const remaining = Math.max(0, savedGoal - totalComm);
 
+        const payDate = new Date(w.end); payDate.setDate(w.end.getDate() + 6);
+
         html += `
     <div style="background:#fff;border:1.5px solid var(--border);border-radius:14px;margin-bottom:14px;overflow:hidden">
       <!-- Week header -->
       <div style="background:#F9FAFB;padding:10px 14px;border-bottom:1px solid var(--border)">
         <div style="font-size:12px;font-weight:800;color:var(--text)">Week ${fmt(w.start)} – ${fmt(w.end)}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text);margin-top:3px">💵 Pay Date: ${fmt(payDate)}</div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px">
           Commission goal $${savedGoal.toLocaleString()}
           ${remaining > 0 ? ` — <span style="color:var(--red);font-weight:700">$${remaining.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} to go</span>` : ' <span style="color:var(--green);font-weight:700">✓ Goal reached!</span>'}
