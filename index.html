@@ -2794,6 +2794,308 @@
         </div>
       </div>
 
+  <!-- QUOTE TAB -->
+  <div id="p-quote" class="page">
+    <div style="padding:14px 14px 0">
+      <div style="font-size:17px;font-weight:800">💰 Customer Quote Calculator</div>
+    </div>
+
+    <div style="padding:10px 14px 0">
+      <div id="qcItems" style="display:flex;flex-direction:column;gap:6px">
+          <!-- rows injected by JS -->
+        </div>
+    </div>
+
+    <div style="padding:14px 14px 0">
+      <!-- Opening Price + PAR+Admin -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div style="background:#FEF9C3;border:1.5px solid #FDE047;border-radius:9px;padding:9px 11px">
+            <div id="qcOpeningLabel" style="font-size:9px;font-weight:700;color:#854D0E;letter-spacing:.5px">OPENING PRICE</div>
+            <div id="qcOpening" style="font-size:17px;font-weight:800;color:#854D0E">$0.00</div>
+            <div id="qcOpeningPct" style="font-size:10px;font-weight:700;color:#A16207"></div>
+          </div>
+          <div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:9px;padding:9px 11px">
+            <div style="font-size:9px;font-weight:700;color:#166534;letter-spacing:.5px">PAR + ADMIN</div>
+            <div id="qcParAdmin" style="font-size:17px;font-weight:800;color:#166534">$0.00</div>
+            <div style="font-size:9px;font-weight:600;color:#15803D">admin included</div>
+          </div>
+        </div>
+        <!-- Sold At + Commission -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:6px;background:#F9FAFB;border-radius:9px;padding:7px 10px">
+            <span style="font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap">Sold $</span>
+            <input type="number" id="qcSoldAt" inputmode="decimal" placeholder="0.00"
+              style="flex:1;border:none;background:transparent;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:var(--text);outline:none;min-width:0"
+              oninput="calcQuote()">
+          </div>
+          <div id="qcCommBox" style="background:#F9FAFB;border-radius:9px;padding:7px 10px;display:none">
+            <div style="font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.5px">COMMISSION</div>
+            <div id="qcComm" style="font-size:15px;font-weight:800;color:var(--green-dark)">$0.00</div>
+            <div id="qcParGapLine" style="font-size:9px;font-weight:700;margin-top:2px"></div>
+            <div id="qcCommTier" style="font-size:9px;font-weight:600;color:var(--muted)"></div>
+          </div>
+        </div>
+        <!-- Financing -->
+        <div style="margin-bottom:8px">
+          <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">🏦 Financing Plan (Wells Fargo)</label>
+          <select id="qcFinPlan" class="fi" style="font-size:12px;padding:9px 11px" onchange="calcQuote()">
+            <option value="">— No Financing / Cash / Own Financing —</option>
+            <optgroup label="Credit Card (PCI 877-391-2547)">
+              <option value="CC-MC|3.00">MasterCard / VISA / Discover (3.00%)</option>
+              <option value="CC-AMEX|5.00">American Express (5.00%)</option>
+            </optgroup>
+            <optgroup label="─────────────────────────"></optgroup>
+            <optgroup label="Plan C — Min payment 3.5% or $35">
+              <option value="1148|1.75">1148 — 6 Mo, no interest, reg payments (1.75%)</option>
+              <option value="1019|3.75">1019 — 12 Mo, no interest, reg payments (3.75%)</option>
+            </optgroup>
+            <optgroup label="Plan A">
+              <option value="1157|6.75">1157 — 6.9% APR, custom 1/50th monthly (6.75%)</option>
+              <option value="1197|5.25">1197 — 9.99% APR, 3.5% monthly payment (5.25%)</option>
+              <option value="2225|4.00">2225 — 12.9% APR, custom 1/50th monthly (4.00%)</option>
+            </optgroup>
+            <optgroup label="Plan B — Equal Payments (0% interest)">
+              <option value="4073|9.50">4073 — 18 Mo, 0% interest, equal payments (9.50%)</option>
+              <option value="4079|11.00">4079 — 24 Mo, 0% interest, equal payments (11.00%)</option>
+              <option value="4091|13.00">4091 — 36 Mo, 0% interest, equal payments (13.00%)</option>
+              <option value="4103|16.25">4103 — 48 Mo, 0% interest, equal payments (16.25%)</option>
+              <option value="4115|18.75">4115 — 60 Mo, 0% interest, equal payments (18.75%)</option>
+            </optgroup>
+            <optgroup label="Plan B — Special Rate / Min $2,500">
+              <option value="3198|11.00">3198 — 5.99% APR, 60 equal payments (11.00%)</option>
+              <option value="1529|4.95">1529 — 8.99% APR, 84 equal payments (4.95%)</option>
+            </optgroup>
+            <optgroup label="Plan B — Min $7,500">
+              <option value="3672|7.80">3672 — 7.99% APR, 96 equal payments (7.80%)</option>
+              <option value="3667|8.30">3667 — 7.99% APR, 108 equal payments (8.30%)</option>
+              <option value="3668|8.80">3668 — 7.99% APR, 120 equal payments (8.80%)</option>
+              <option value="3669|5.70">3669 — 9.99% APR, 96 equal payments (5.70%)</option>
+              <option value="3670|6.20">3670 — 9.99% APR, 108 equal payments (6.20%)</option>
+              <option value="3671|6.70">3671 — 9.99% APR, 120 equal payments (6.70%)</option>
+            </optgroup>
+            <optgroup label="─────────────────────────"></optgroup>
+            <optgroup label="Green Sky / Experian (866-936-0602)">
+              <option value="2511|5.75">2511 — 6 Mo, 0% interest, no payments during promo (5.75%)</option>
+              <option value="2521|8.55">2521 — 12 Mo, 0% interest, no payments during promo (8.55%)</option>
+              <option value="2531|13.25">2531 — 18 Mo, 0% interest, no payments during promo (13.25%)</option>
+              <option value="2749|14.00">2749 — 9.99% APR, 144 Mo, 1.19% payment (Over $10k) (14.00%)</option>
+            </optgroup>
+            <optgroup label="─────────────────────────"></optgroup>
+            <optgroup label="Lowe's (877-477-1115)">
+              <option value="LOWES-CHK|4.00">Check — Digital ACH (4.00%)</option>
+              <option value="LOWES-CC|4.00">CC — Credit Card (4.00%)</option>
+              <option value="LOWES-6|4.00">6 Mo — 0% APR, equal payments, $300 min (4.00%)</option>
+              <option value="LOWES-36|4.00">36 Mo — 7.99% APR, $2k min (4.00%)</option>
+              <option value="LOWES-60|4.00">60 Mo — 8.99% APR, $2k min (4.00%)</option>
+              <option value="LOWES-84|4.00">84 Mo — 9.99% APR, $2k min (4.00%)</option>
+              <option value="LOWES-120|4.00">120 Mo — 9.99% APR, $2,500 min (4.00%)</option>
+            </optgroup>
+            <optgroup label="─────────────────────────"></optgroup>
+            <optgroup label="Concora">
+              <option value="CONCORA|11.75">19.9% APR, 3% monthly payments (11.75%)</option>
+            </optgroup>
+          </select>
+        </div>
+        <!-- Overage toggle -->
+        <button type="button" onclick="toggleQcOverage()"
+          style="width:100%;display:flex;align-items:center;gap:10px;background:#F9FAFB;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;margin-bottom:8px;cursor:pointer;user-select:none;font-family:'Inter',sans-serif;text-align:left">
+          <div id="qcOverageChk" style="width:20px;height:20px;border:2px solid var(--border);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;transition:.15s"></div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--text)">Include Overage Markup</div>
+            <div style="font-size:10px;color:var(--muted)">Apply opening % markup to opening price</div>
+          </div>
+        </button>
+        <!-- Min-to-PAR indicator -->
+        <div id="qcMinParBox" style="display:none;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;line-height:1.6"></div>
+    </div>
+
+    <div style="padding:16px 14px 100px;margin-top:16px;border-top:2.5px solid var(--border)">
+      <!-- Log Sale Section — Moved from Log Lead into Quote Tool -->
+        <div id="ccLogSection" style="display:block;margin-bottom:16px;border-bottom:2.5px solid var(--border);padding-bottom:16px">
+          <div id="ccLogOutcomeHeading" style="font-size:11px;font-weight:800;letter-spacing:.6px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;display:flex;align-items:center;gap:6px">📝 Log Sale</div>
+          <div id="ccOutcomeBtnRow" style="display:none;gap:8px;margin-bottom:14px">
+            <button id="ccOutcomeSold" onclick="ccSetOutcome('sold')"
+              style="flex:1;padding:11px;border:2px solid var(--green);border-radius:10px;background:#fff;color:var(--green);font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">✅ SALE</button>
+            <button id="ccOutcomeNot" onclick="ccSetOutcome('not_sold')"
+              style="flex:1;padding:11px;border:2px solid #E53935;border-radius:10px;background:#fff;color:#E53935;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">❌ NO SALE</button>
+          </div>
+          <div id="ccSwitchToSaleWrap" style="display:none;margin:-6px 0 12px">
+            <button type="button" onclick="ccSetOutcome('sold')" style="background:transparent;border:none;padding:0;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--green);text-decoration:underline;cursor:pointer">← Switch to sale</button>
+          </div>
+
+          <!-- Calendar lead banner (shown when opened via Today's Leads) -->
+          <div id="ccCalBanner" style="display:none;background:#EEF2FF;border:1.5px solid #A5B4FC;border-radius:10px;padding:7px 10px;margin-bottom:10px">
+            <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">
+              <span style="font-size:10px;font-weight:800;color:#3730A3;letter-spacing:.5px">📅</span>
+              <span id="ccCalBannerName" style="font-size:13px;font-weight:800;color:#1E1B4B"></span>
+              <span id="ccCalBannerMeta" style="font-size:10px;color:#6366F1"></span>
+            </div>
+            <div id="ccCalBannerAddr" style="font-size:10px;color:#4338CA;margin-top:1px"></div>
+            <div id="ccCalBannerLeadId" style="display:none;margin-top:5px;font-size:11px;font-weight:700;color:#1E1B4B;background:#C7D2FE;border-radius:6px;padding:4px 8px;cursor:pointer;text-align:center"></div>
+          </div>
+
+          <!-- SOLD panel -->
+          <div id="ccSoldPanel" style="display:none">
+            <input type="hidden" id="saleAmt">
+            <input type="hidden" id="retailPct">
+            <input type="hidden" id="commPct">
+            <input type="hidden" id="qcRetailHidden">
+            <input type="hidden" id="qcParHidden">
+            <input type="hidden" id="calLeadId">
+            <input type="hidden" id="calCustName">
+            <input type="hidden" id="calCustAddr">
+            <input type="hidden" id="calCustPhone">
+            <input type="hidden" id="calLeadCode">
+            <div class="chk-row" style="margin-bottom:10px">
+              <div class="chk-box" id="chkCombo" onclick="toggleChk('chkCombo')">
+                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Combo</span></div>
+                <div class="chk-sub">Gutter + LeafFilter</div>
+              </div>
+              <div class="chk-box" id="chkRehash" onclick="toggleChk('chkRehash');toggleRehashLookup()">
+                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Rehash</span></div>
+                <div class="chk-sub">Not in SLG%</div>
+              </div>
+              <div class="chk-box" id="chkSelfGen" onclick="toggleChk('chkSelfGen')">
+                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Self Gen</span></div>
+                <div class="chk-sub">Counts as issued</div>
+              </div>
+            </div>
+            <!-- Rehash customer lookup (shown when Rehash is checked) -->
+            <div id="rehashLookupBox" style="display:none;background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:10px;padding:10px 12px;margin-bottom:10px">
+              <div style="font-size:10px;font-weight:800;color:#92400E;letter-spacing:.5px;margin-bottom:6px">🔎 FIND PRIOR CUSTOMER</div>
+              <div style="display:flex;gap:6px;margin-bottom:6px">
+                <input type="text" id="rehashSearchInput" class="fi" placeholder="Lead ID or phone number" style="flex:1;padding:9px 11px;font-size:12px" oninput="rehashSearch(this.value)">
+              </div>
+              <div id="rehashResults" style="display:none;background:#fff;border:1.5px solid var(--border);border-radius:8px;overflow:hidden"></div>
+            </div>
+            <div class="fg2" style="margin-bottom:8px">
+              <div>
+                <label class="fl">Job #</label>
+                <input type="text" class="fi" id="jobNum" placeholder="Job number" style="font-size:14px;padding:11px 13px">
+              </div>
+              <div>
+                <label class="fl">Sales Date</label>
+                <input type="date" class="fi" id="salesDate" style="font-size:13px;padding:11px 13px">
+              </div>
+            </div>
+            <div class="fg2" style="margin-bottom:8px">
+              <div>
+                <label class="fl">Customer Name</label>
+                <input type="text" class="fi" id="soldCustName" placeholder="Michael" style="font-size:13px;padding:11px 13px">
+              </div>
+              <div>
+                <label class="fl">Phone Number</label>
+                <input type="tel" class="fi" id="soldCustPhone" placeholder="555-555-5555" maxlength="14" style="font-size:13px;padding:11px 13px">
+              </div>
+            </div>
+            <div class="fg2" style="margin-bottom:8px">
+              <div>
+                <label class="fl">Install Date</label>
+                <input type="date" class="fi" id="installDate" style="font-size:13px;padding:11px 13px">
+              </div>
+              <div>
+                <label class="fl">Commission ($)</label>
+                <input type="number" class="fi" id="commAmt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px">
+              </div>
+            </div>
+            <div class="paid-row" onclick="togglePaid()" style="margin-bottom:10px">
+              <div class="paid-chk" id="paidChk"></div>
+              <span class="paid-lbl">Commission Paid</span>
+            </div>
+            <div class="fg" style="margin-bottom:10px">
+              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <textarea class="fi" id="soldNotes" placeholder="e.g. 180ft, financing used..."></textarea>
+            </div>
+            <div class="fg" style="margin-bottom:10px">
+              <label class="fl">📋 Draw Sheet <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <input type="file" id="ccDrawFile" accept="image/*,application/pdf" style="display:none" onchange="ccOnDrawFileSelected(this)">
+              <div id="ccDrawPreview" style="display:none;margin-bottom:8px;position:relative">
+                <img id="ccDrawThumb" src="" style="width:100%;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;max-height:180px;object-fit:cover" onclick="viewDrawSheet(document.getElementById('ccDrawThumb').src)">
+                <button type="button" onclick="ccRemoveDrawSheet()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer">Remove</button>
+              </div>
+              <button type="button" id="ccDrawBtn" onclick="document.getElementById('ccDrawFile').click()"
+                style="width:100%;background:#F9FAFB;border:1.5px dashed var(--border);border-radius:10px;padding:11px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">
+                📸 Upload Draw Sheet
+              </button>
+            </div>
+            <button class="sbtn sold" onclick="submitLeadFromCalc('sold')">✅ Log Sale</button>
+          </div>
+
+          <!-- NOT SOLD panel -->
+          <div id="ccNotPanel" style="display:none">
+            <div class="fg">
+              <label class="fl">Reason</label>
+              <div class="rl" id="ccReasonList"></div>
+            </div>
+            <div id="ccNotPriceRow" class="fg2" style="margin-bottom:8px">
+              <div>
+                <label class="fl">Last Price Given $ <span style="color:#E53935">*</span></label>
+                <input type="number" class="fi" id="ccNotLeftAt" placeholder="0.00" inputmode="decimal" step="0.01" required style="font-size:14px;padding:11px 13px" oninput="this.classList.remove('fi-error')">
+              </div>
+              <div>
+                <label class="fl">Visit Date</label>
+                <input type="date" class="fi" id="ccNotSoldDate" style="font-size:13px;padding:11px 13px">
+              </div>
+            </div>
+            <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;padding:12px;margin-bottom:12px" id="ccNotContactBlock">
+              <div style="font-size:11px;font-weight:800;color:#991B1B;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
+                📞 Customer &amp; Follow-Up
+              </div>
+              <div class="fg2" style="margin-bottom:8px">
+                <div>
+                  <label class="fl" style="font-size:10px">Customer Name</label>
+                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px">
+                </div>
+                <div>
+                  <label class="fl" style="font-size:10px">Phone Number</label>
+                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555-555-5555" maxlength="14" style="padding:8px 10px;font-size:12px">
+                </div>
+              </div>
+              <div class="fg" style="margin-bottom:0">
+                <label class="fl" style="font-size:10px">Follow-Up Date <span style="color:#E53935">*</span></label>
+                <input type="date" class="fi" id="ccNotFuDate" required style="padding:8px 10px;font-size:12px">
+              </div>
+            </div>
+            <div class="fg" style="margin-bottom:12px">
+              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <textarea class="fi" id="ccNotNotes" placeholder="e.g. Call back in spring, left card..."></textarea>
+            </div>
+            <div id="ccFollowUpBox" style="background:#F9FAFB;border:1.5px dashed var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
+              <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
+                📞 Quick Follow-Up <span style="font-weight:400;text-transform:none">(optional)</span>
+              </div>
+              <div id="ccNotContactRow" class="fg2" style="margin-bottom:8px">
+                <div>
+                  <label class="fl" style="font-size:10px">Customer First Name</label>
+                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px" oninput="this.classList.remove('fi-error')">
+                </div>
+                <div>
+                  <label class="fl" style="font-size:10px">Phone Number</label>
+                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555..." style="padding:8px 10px;font-size:12px" oninput="this.classList.remove('fi-error')">
+                </div>
+              </div>
+              <div class="fg" style="margin-bottom:0">
+                <label class="fl" style="font-size:10px">Follow-Up Date</label>
+                <input type="date" class="fi" id="ccNotFuDate" style="padding:8px 10px;font-size:12px" oninput="this.classList.remove('fi-error')">
+              </div>
+            </div>
+            <div id="ccDrawSheetBox" class="fg" style="margin-bottom:12px">
+              <label class="fl">📋 Draw Sheet <span id="ccDrawSheetReqLabel" style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <input type="file" id="ccNsDrawFile" accept="image/*,application/pdf" style="display:none" onchange="ccNsOnDrawFileSelected(this)">
+              <div id="ccNsDrawPreview" style="display:none;margin-bottom:8px;position:relative">
+                <img id="ccNsDrawThumb" src="" style="width:100%;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;max-height:180px;object-fit:cover" onclick="viewDrawSheet(document.getElementById('ccNsDrawThumb').src)">
+                <button type="button" onclick="ccNsRemoveDrawSheet()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer">Remove</button>
+              </div>
+              <button type="button" id="ccNsDrawBtn" onclick="document.getElementById('ccNsDrawFile').click()"
+                style="width:100%;background:#F9FAFB;border:1.5px dashed var(--border);border-radius:10px;padding:11px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">
+                📸 Upload Draw Sheet
+              </button>
+            </div>
+            <button class="sbtn ns" onclick="submitLeadFromCalc('not_sold')">❌ Log Not Sold</button>
+          </div>
+        </div>
+    </div>
+  </div>
     </div><!-- /main -->
 
     <!-- BOTTOM NAV -->
@@ -3106,308 +3408,6 @@
     </div>
   </div>
 
-  <!-- QUOTE TAB -->
-  <div id="p-quote" class="page">
-    <div style="padding:14px 14px 0">
-      <div style="font-size:17px;font-weight:800">💰 Customer Quote Calculator</div>
-    </div>
-
-    <div style="padding:10px 14px 0">
-      <div id="qcItems" style="display:flex;flex-direction:column;gap:6px">
-          <!-- rows injected by JS -->
-        </div>
-    </div>
-
-    <div style="padding:14px 14px 0">
-      <!-- Opening Price + PAR+Admin -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-          <div style="background:#FEF9C3;border:1.5px solid #FDE047;border-radius:9px;padding:9px 11px">
-            <div id="qcOpeningLabel" style="font-size:9px;font-weight:700;color:#854D0E;letter-spacing:.5px">OPENING PRICE</div>
-            <div id="qcOpening" style="font-size:17px;font-weight:800;color:#854D0E">$0.00</div>
-            <div id="qcOpeningPct" style="font-size:10px;font-weight:700;color:#A16207"></div>
-          </div>
-          <div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:9px;padding:9px 11px">
-            <div style="font-size:9px;font-weight:700;color:#166534;letter-spacing:.5px">PAR + ADMIN</div>
-            <div id="qcParAdmin" style="font-size:17px;font-weight:800;color:#166534">$0.00</div>
-            <div style="font-size:9px;font-weight:600;color:#15803D">admin included</div>
-          </div>
-        </div>
-        <!-- Sold At + Commission -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center;margin-bottom:8px">
-          <div style="display:flex;align-items:center;gap:6px;background:#F9FAFB;border-radius:9px;padding:7px 10px">
-            <span style="font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap">Sold $</span>
-            <input type="number" id="qcSoldAt" inputmode="decimal" placeholder="0.00"
-              style="flex:1;border:none;background:transparent;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:var(--text);outline:none;min-width:0"
-              oninput="calcQuote()">
-          </div>
-          <div id="qcCommBox" style="background:#F9FAFB;border-radius:9px;padding:7px 10px;display:none">
-            <div style="font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.5px">COMMISSION</div>
-            <div id="qcComm" style="font-size:15px;font-weight:800;color:var(--green-dark)">$0.00</div>
-            <div id="qcParGapLine" style="font-size:9px;font-weight:700;margin-top:2px"></div>
-            <div id="qcCommTier" style="font-size:9px;font-weight:600;color:var(--muted)"></div>
-          </div>
-        </div>
-        <!-- Financing -->
-        <div style="margin-bottom:8px">
-          <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">🏦 Financing Plan (Wells Fargo)</label>
-          <select id="qcFinPlan" class="fi" style="font-size:12px;padding:9px 11px" onchange="calcQuote()">
-            <option value="">— No Financing / Cash / Own Financing —</option>
-            <optgroup label="Credit Card (PCI 877-391-2547)">
-              <option value="CC-MC|3.00">MasterCard / VISA / Discover (3.00%)</option>
-              <option value="CC-AMEX|5.00">American Express (5.00%)</option>
-            </optgroup>
-            <optgroup label="─────────────────────────"></optgroup>
-            <optgroup label="Plan C — Min payment 3.5% or $35">
-              <option value="1148|1.75">1148 — 6 Mo, no interest, reg payments (1.75%)</option>
-              <option value="1019|3.75">1019 — 12 Mo, no interest, reg payments (3.75%)</option>
-            </optgroup>
-            <optgroup label="Plan A">
-              <option value="1157|6.75">1157 — 6.9% APR, custom 1/50th monthly (6.75%)</option>
-              <option value="1197|5.25">1197 — 9.99% APR, 3.5% monthly payment (5.25%)</option>
-              <option value="2225|4.00">2225 — 12.9% APR, custom 1/50th monthly (4.00%)</option>
-            </optgroup>
-            <optgroup label="Plan B — Equal Payments (0% interest)">
-              <option value="4073|9.50">4073 — 18 Mo, 0% interest, equal payments (9.50%)</option>
-              <option value="4079|11.00">4079 — 24 Mo, 0% interest, equal payments (11.00%)</option>
-              <option value="4091|13.00">4091 — 36 Mo, 0% interest, equal payments (13.00%)</option>
-              <option value="4103|16.25">4103 — 48 Mo, 0% interest, equal payments (16.25%)</option>
-              <option value="4115|18.75">4115 — 60 Mo, 0% interest, equal payments (18.75%)</option>
-            </optgroup>
-            <optgroup label="Plan B — Special Rate / Min $2,500">
-              <option value="3198|11.00">3198 — 5.99% APR, 60 equal payments (11.00%)</option>
-              <option value="1529|4.95">1529 — 8.99% APR, 84 equal payments (4.95%)</option>
-            </optgroup>
-            <optgroup label="Plan B — Min $7,500">
-              <option value="3672|7.80">3672 — 7.99% APR, 96 equal payments (7.80%)</option>
-              <option value="3667|8.30">3667 — 7.99% APR, 108 equal payments (8.30%)</option>
-              <option value="3668|8.80">3668 — 7.99% APR, 120 equal payments (8.80%)</option>
-              <option value="3669|5.70">3669 — 9.99% APR, 96 equal payments (5.70%)</option>
-              <option value="3670|6.20">3670 — 9.99% APR, 108 equal payments (6.20%)</option>
-              <option value="3671|6.70">3671 — 9.99% APR, 120 equal payments (6.70%)</option>
-            </optgroup>
-            <optgroup label="─────────────────────────"></optgroup>
-            <optgroup label="Green Sky / Experian (866-936-0602)">
-              <option value="2511|5.75">2511 — 6 Mo, 0% interest, no payments during promo (5.75%)</option>
-              <option value="2521|8.55">2521 — 12 Mo, 0% interest, no payments during promo (8.55%)</option>
-              <option value="2531|13.25">2531 — 18 Mo, 0% interest, no payments during promo (13.25%)</option>
-              <option value="2749|14.00">2749 — 9.99% APR, 144 Mo, 1.19% payment (Over $10k) (14.00%)</option>
-            </optgroup>
-            <optgroup label="─────────────────────────"></optgroup>
-            <optgroup label="Lowe's (877-477-1115)">
-              <option value="LOWES-CHK|4.00">Check — Digital ACH (4.00%)</option>
-              <option value="LOWES-CC|4.00">CC — Credit Card (4.00%)</option>
-              <option value="LOWES-6|4.00">6 Mo — 0% APR, equal payments, $300 min (4.00%)</option>
-              <option value="LOWES-36|4.00">36 Mo — 7.99% APR, $2k min (4.00%)</option>
-              <option value="LOWES-60|4.00">60 Mo — 8.99% APR, $2k min (4.00%)</option>
-              <option value="LOWES-84|4.00">84 Mo — 9.99% APR, $2k min (4.00%)</option>
-              <option value="LOWES-120|4.00">120 Mo — 9.99% APR, $2,500 min (4.00%)</option>
-            </optgroup>
-            <optgroup label="─────────────────────────"></optgroup>
-            <optgroup label="Concora">
-              <option value="CONCORA|11.75">19.9% APR, 3% monthly payments (11.75%)</option>
-            </optgroup>
-          </select>
-        </div>
-        <!-- Overage toggle -->
-        <button type="button" onclick="toggleQcOverage()"
-          style="width:100%;display:flex;align-items:center;gap:10px;background:#F9FAFB;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;margin-bottom:8px;cursor:pointer;user-select:none;font-family:'Inter',sans-serif;text-align:left">
-          <div id="qcOverageChk" style="width:20px;height:20px;border:2px solid var(--border);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;transition:.15s"></div>
-          <div>
-            <div style="font-size:12px;font-weight:700;color:var(--text)">Include Overage Markup</div>
-            <div style="font-size:10px;color:var(--muted)">Apply opening % markup to opening price</div>
-          </div>
-        </button>
-        <!-- Min-to-PAR indicator -->
-        <div id="qcMinParBox" style="display:none;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;line-height:1.6"></div>
-    </div>
-
-    <div style="padding:16px 14px 100px;margin-top:16px;border-top:2.5px solid var(--border)">
-      <!-- Log Sale Section — Moved from Log Lead into Quote Tool -->
-        <div id="ccLogSection" style="display:block;margin-bottom:16px;border-bottom:2.5px solid var(--border);padding-bottom:16px">
-          <div id="ccLogOutcomeHeading" style="font-size:11px;font-weight:800;letter-spacing:.6px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;display:flex;align-items:center;gap:6px">📝 Log Sale</div>
-          <div id="ccOutcomeBtnRow" style="display:none;gap:8px;margin-bottom:14px">
-            <button id="ccOutcomeSold" onclick="ccSetOutcome('sold')"
-              style="flex:1;padding:11px;border:2px solid var(--green);border-radius:10px;background:#fff;color:var(--green);font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">✅ SALE</button>
-            <button id="ccOutcomeNot" onclick="ccSetOutcome('not_sold')"
-              style="flex:1;padding:11px;border:2px solid #E53935;border-radius:10px;background:#fff;color:#E53935;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">❌ NO SALE</button>
-          </div>
-          <div id="ccSwitchToSaleWrap" style="display:none;margin:-6px 0 12px">
-            <button type="button" onclick="ccSetOutcome('sold')" style="background:transparent;border:none;padding:0;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--green);text-decoration:underline;cursor:pointer">← Switch to sale</button>
-          </div>
-
-          <!-- Calendar lead banner (shown when opened via Today's Leads) -->
-          <div id="ccCalBanner" style="display:none;background:#EEF2FF;border:1.5px solid #A5B4FC;border-radius:10px;padding:7px 10px;margin-bottom:10px">
-            <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">
-              <span style="font-size:10px;font-weight:800;color:#3730A3;letter-spacing:.5px">📅</span>
-              <span id="ccCalBannerName" style="font-size:13px;font-weight:800;color:#1E1B4B"></span>
-              <span id="ccCalBannerMeta" style="font-size:10px;color:#6366F1"></span>
-            </div>
-            <div id="ccCalBannerAddr" style="font-size:10px;color:#4338CA;margin-top:1px"></div>
-            <div id="ccCalBannerLeadId" style="display:none;margin-top:5px;font-size:11px;font-weight:700;color:#1E1B4B;background:#C7D2FE;border-radius:6px;padding:4px 8px;cursor:pointer;text-align:center"></div>
-          </div>
-
-          <!-- SOLD panel -->
-          <div id="ccSoldPanel" style="display:none">
-            <input type="hidden" id="saleAmt">
-            <input type="hidden" id="retailPct">
-            <input type="hidden" id="commPct">
-            <input type="hidden" id="qcRetailHidden">
-            <input type="hidden" id="qcParHidden">
-            <input type="hidden" id="calLeadId">
-            <input type="hidden" id="calCustName">
-            <input type="hidden" id="calCustAddr">
-            <input type="hidden" id="calCustPhone">
-            <input type="hidden" id="calLeadCode">
-            <div class="chk-row" style="margin-bottom:10px">
-              <div class="chk-box" id="chkCombo" onclick="toggleChk('chkCombo')">
-                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Combo</span></div>
-                <div class="chk-sub">Gutter + LeafFilter</div>
-              </div>
-              <div class="chk-box" id="chkRehash" onclick="toggleChk('chkRehash');toggleRehashLookup()">
-                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Rehash</span></div>
-                <div class="chk-sub">Not in SLG%</div>
-              </div>
-              <div class="chk-box" id="chkSelfGen" onclick="toggleChk('chkSelfGen')">
-                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Self Gen</span></div>
-                <div class="chk-sub">Counts as issued</div>
-              </div>
-            </div>
-            <!-- Rehash customer lookup (shown when Rehash is checked) -->
-            <div id="rehashLookupBox" style="display:none;background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:10px;padding:10px 12px;margin-bottom:10px">
-              <div style="font-size:10px;font-weight:800;color:#92400E;letter-spacing:.5px;margin-bottom:6px">🔎 FIND PRIOR CUSTOMER</div>
-              <div style="display:flex;gap:6px;margin-bottom:6px">
-                <input type="text" id="rehashSearchInput" class="fi" placeholder="Lead ID or phone number" style="flex:1;padding:9px 11px;font-size:12px" oninput="rehashSearch(this.value)">
-              </div>
-              <div id="rehashResults" style="display:none;background:#fff;border:1.5px solid var(--border);border-radius:8px;overflow:hidden"></div>
-            </div>
-            <div class="fg2" style="margin-bottom:8px">
-              <div>
-                <label class="fl">Job #</label>
-                <input type="text" class="fi" id="jobNum" placeholder="Job number" style="font-size:14px;padding:11px 13px">
-              </div>
-              <div>
-                <label class="fl">Sales Date</label>
-                <input type="date" class="fi" id="salesDate" style="font-size:13px;padding:11px 13px">
-              </div>
-            </div>
-            <div class="fg2" style="margin-bottom:8px">
-              <div>
-                <label class="fl">Customer Name</label>
-                <input type="text" class="fi" id="soldCustName" placeholder="Michael" style="font-size:13px;padding:11px 13px">
-              </div>
-              <div>
-                <label class="fl">Phone Number</label>
-                <input type="tel" class="fi" id="soldCustPhone" placeholder="555-555-5555" maxlength="14" style="font-size:13px;padding:11px 13px">
-              </div>
-            </div>
-            <div class="fg2" style="margin-bottom:8px">
-              <div>
-                <label class="fl">Install Date</label>
-                <input type="date" class="fi" id="installDate" style="font-size:13px;padding:11px 13px">
-              </div>
-              <div>
-                <label class="fl">Commission ($)</label>
-                <input type="number" class="fi" id="commAmt" placeholder="0.00" inputmode="decimal" step="0.01" style="font-size:14px;padding:11px 13px">
-              </div>
-            </div>
-            <div class="paid-row" onclick="togglePaid()" style="margin-bottom:10px">
-              <div class="paid-chk" id="paidChk"></div>
-              <span class="paid-lbl">Commission Paid</span>
-            </div>
-            <div class="fg" style="margin-bottom:10px">
-              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-              <textarea class="fi" id="soldNotes" placeholder="e.g. 180ft, financing used..."></textarea>
-            </div>
-            <div class="fg" style="margin-bottom:10px">
-              <label class="fl">📋 Draw Sheet <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-              <input type="file" id="ccDrawFile" accept="image/*,application/pdf" style="display:none" onchange="ccOnDrawFileSelected(this)">
-              <div id="ccDrawPreview" style="display:none;margin-bottom:8px;position:relative">
-                <img id="ccDrawThumb" src="" style="width:100%;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;max-height:180px;object-fit:cover" onclick="viewDrawSheet(document.getElementById('ccDrawThumb').src)">
-                <button type="button" onclick="ccRemoveDrawSheet()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer">Remove</button>
-              </div>
-              <button type="button" id="ccDrawBtn" onclick="document.getElementById('ccDrawFile').click()"
-                style="width:100%;background:#F9FAFB;border:1.5px dashed var(--border);border-radius:10px;padding:11px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">
-                📸 Upload Draw Sheet
-              </button>
-            </div>
-            <button class="sbtn sold" onclick="submitLeadFromCalc('sold')">✅ Log Sale</button>
-          </div>
-
-          <!-- NOT SOLD panel -->
-          <div id="ccNotPanel" style="display:none">
-            <div class="fg">
-              <label class="fl">Reason</label>
-              <div class="rl" id="ccReasonList"></div>
-            </div>
-            <div id="ccNotPriceRow" class="fg2" style="margin-bottom:8px">
-              <div>
-                <label class="fl">Last Price Given $ <span style="color:#E53935">*</span></label>
-                <input type="number" class="fi" id="ccNotLeftAt" placeholder="0.00" inputmode="decimal" step="0.01" required style="font-size:14px;padding:11px 13px" oninput="this.classList.remove('fi-error')">
-              </div>
-              <div>
-                <label class="fl">Visit Date</label>
-                <input type="date" class="fi" id="ccNotSoldDate" style="font-size:13px;padding:11px 13px">
-              </div>
-            </div>
-            <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;padding:12px;margin-bottom:12px" id="ccNotContactBlock">
-              <div style="font-size:11px;font-weight:800;color:#991B1B;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
-                📞 Customer &amp; Follow-Up
-              </div>
-              <div class="fg2" style="margin-bottom:8px">
-                <div>
-                  <label class="fl" style="font-size:10px">Customer Name</label>
-                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px">
-                </div>
-                <div>
-                  <label class="fl" style="font-size:10px">Phone Number</label>
-                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555-555-5555" maxlength="14" style="padding:8px 10px;font-size:12px">
-                </div>
-              </div>
-              <div class="fg" style="margin-bottom:0">
-                <label class="fl" style="font-size:10px">Follow-Up Date <span style="color:#E53935">*</span></label>
-                <input type="date" class="fi" id="ccNotFuDate" required style="padding:8px 10px;font-size:12px">
-              </div>
-            </div>
-            <div class="fg" style="margin-bottom:12px">
-              <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-              <textarea class="fi" id="ccNotNotes" placeholder="e.g. Call back in spring, left card..."></textarea>
-            </div>
-            <div id="ccFollowUpBox" style="background:#F9FAFB;border:1.5px dashed var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
-              <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
-                📞 Quick Follow-Up <span style="font-weight:400;text-transform:none">(optional)</span>
-              </div>
-              <div id="ccNotContactRow" class="fg2" style="margin-bottom:8px">
-                <div>
-                  <label class="fl" style="font-size:10px">Customer First Name</label>
-                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px" oninput="this.classList.remove('fi-error')">
-                </div>
-                <div>
-                  <label class="fl" style="font-size:10px">Phone Number</label>
-                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555..." style="padding:8px 10px;font-size:12px" oninput="this.classList.remove('fi-error')">
-                </div>
-              </div>
-              <div class="fg" style="margin-bottom:0">
-                <label class="fl" style="font-size:10px">Follow-Up Date</label>
-                <input type="date" class="fi" id="ccNotFuDate" style="padding:8px 10px;font-size:12px" oninput="this.classList.remove('fi-error')">
-              </div>
-            </div>
-            <div id="ccDrawSheetBox" class="fg" style="margin-bottom:12px">
-              <label class="fl">📋 Draw Sheet <span id="ccDrawSheetReqLabel" style="font-weight:400;color:var(--muted)">(optional)</span></label>
-              <input type="file" id="ccNsDrawFile" accept="image/*,application/pdf" style="display:none" onchange="ccNsOnDrawFileSelected(this)">
-              <div id="ccNsDrawPreview" style="display:none;margin-bottom:8px;position:relative">
-                <img id="ccNsDrawThumb" src="" style="width:100%;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;max-height:180px;object-fit:cover" onclick="viewDrawSheet(document.getElementById('ccNsDrawThumb').src)">
-                <button type="button" onclick="ccNsRemoveDrawSheet()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer">Remove</button>
-              </div>
-              <button type="button" id="ccNsDrawBtn" onclick="document.getElementById('ccNsDrawFile').click()"
-                style="width:100%;background:#F9FAFB;border:1.5px dashed var(--border);border-radius:10px;padding:11px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">
-                📸 Upload Draw Sheet
-              </button>
-            </div>
-            <button class="sbtn ns" onclick="submitLeadFromCalc('not_sold')">❌ Log Not Sold</button>
-          </div>
-        </div>
-    </div>
-  </div>
 
   <!-- Digital Business Card Overlay -->
   <div id="bizCardOverlay" onclick="closeBizCard(event)"
