@@ -2311,7 +2311,6 @@
               <div class="dash-date" id="heroDate"></div>
               <div class="dash-title">LeafFilter Performance Dashboard</div>
               <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">
-                <div id="streakBadge" class="streak-badge cold" style="display:none;margin-top:0"></div>
                 <div id="dashCommStrip" class="dash-comm-strip" style="display:none">
                   <div id="dashCommDueStat" class="dash-comm-stat due-stat" style="display:none">
                     <span class="dash-comm-lbl">Comm Due</span>
@@ -2330,10 +2329,6 @@
                 </div>
               </div>
             </div>
-            <button onclick="openRecap()"
-              style="background:rgba(255,255,255,.18);border:none;border-radius:10px;padding:7px 11px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:5px;flex-shrink:0;margin-top:2px">
-              📤 Share Week
-            </button>
           </div>
         </div>
         <div class="period-bar">
@@ -2401,30 +2396,6 @@
           </div>
         </div>
       </div>
-
-      <!-- RECAP CARD OVERLAY -->
-      <div class="recap-overlay" id="recapOverlay" onclick="if(event.target===this)closeRecap()">
-        <div class="recap-card" id="recapCard">
-          <div class="rc-header">
-            <div>
-              <div class="rc-logo" style="display:flex;align-items:center;gap:6px;"><img src="logo.png"
-                  alt="LeafFilter Logo"
-                  style="width:16px;height:16px;object-fit:contain;background:#fff;border-radius:50%;padding:1px;">
-                LeafFilter Sales</div>
-              <div class="rc-week" id="rcWeek"></div>
-              <div id="rcStreak" style="margin-top:4px;font-size:11px;opacity:.8"></div>
-            </div>
-            <button class="rc-close" onclick="closeRecap()">✕ Close</button>
-          </div>
-          <div class="rc-grid" id="rcGrid"></div>
-          <div class="rc-actions">
-            <button class="rc-btn share" onclick="shareRecap()">📤 Share</button>
-            <button class="rc-btn copy" onclick="copyRecap()">📋 Copy</button>
-          </div>
-        </div>
-      </div>
-
-
 
 
       <!-- HISTORY -->
@@ -2796,8 +2767,12 @@
 
   <!-- QUOTE TAB -->
   <div id="p-quote" class="page">
-    <div style="padding:14px 14px 0">
+    <div style="padding:14px 14px 0;display:flex;align-items:center;justify-content:space-between;gap:10px">
       <div style="font-size:17px;font-weight:800">💰 Customer Quote Calculator</div>
+      <button onclick="openPriceListEditor()"
+        style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">
+        🏷️ Edit Prices
+      </button>
     </div>
 
     <div style="padding:10px 14px 0">
@@ -4256,7 +4231,6 @@
         card('Cancelled (Sales)', c.cancelled, fmtNum, p.cancelled, null, 'Won sales later cancelled', true)
       ].join('');
       renderGoalBars(c);
-      calcStreak();
       calcCommissionsDue();
 
       // Install alerts
@@ -4281,44 +4255,6 @@
     }
 
     // (Not-sold reason breakdown removed — app only tracks sales now.)
-
-    // ─────────────────────────────────────────
-    // STREAK COUNTER
-    // ─────────────────────────────────────────
-    let _lastStreakData = null; // cache for recap card
-
-    async function calcStreak() {
-      const badge = document.getElementById('streakBadge');
-      try {
-        // Fetch last 200 leads sorted oldest→newest so we can walk from the end
-        const { data } = await sb.from('leads')
-          .select('status,is_cancelled,is_btd,created_at')
-          .order('created_at', { ascending: true })
-          .limit(200);
-
-        if (!data || !data.length) { badge.style.display = 'none'; _lastStreakData = { streak: 0 }; return; }
-
-        // Walk backwards through leads and count consecutive sold (non-cancelled, non-BTD)
-        // Stop as soon as we hit a not-sold lead
-        let streak = 0;
-        for (let i = data.length - 1; i >= 0; i--) {
-          const l = data[i];
-          if (l.is_cancelled) continue; // skip cancelled — don't count or break
-          if (l.status === 'sold' && !l.is_btd) {
-            streak++;
-          } else {
-            break; // not_sold or BTD breaks the streak
-          }
-        }
-
-        _lastStreakData = { streak };
-        if (streak === 0) { badge.style.display = 'none'; return; }
-        badge.style.display = 'inline-flex';
-        badge.className = 'streak-badge' + (streak >= 3 ? '' : ' cold');
-        const fire = streak >= 7 ? '🔥🔥' : streak >= 3 ? '🔥' : '⚡';
-        badge.textContent = `${fire} ${streak}-lead sales streak!`;
-      } catch (e) { badge.style.display = 'none'; }
-    }
 
     function avgPctField(arr, field) {
       const vals = (arr || []).map(l => parseFloat(l[field])).filter(v => !isNaN(v));
@@ -4445,81 +4381,6 @@
       weeklyBar.className = 'goal-fill' + (pctR >= 100 ? ' hit' : pctR >= 60 ? '' : ' warn');
 
       _lastGoalData = { dailyGoal: scaledSalesGoal, weeklyGoal: scaledRevGoal, dailySales: c.sales, weeklyRev: c.rev };
-    }
-
-    // ─────────────────────────────────────────
-    // WEEKLY RECAP CARD
-    // ─────────────────────────────────────────
-    let _recapMetrics = null;
-
-    function openRecap() {
-      // Always use week data for recap
-      buildRecap().then(() => {
-        document.getElementById('recapOverlay').classList.add('open');
-      });
-    }
-    function closeRecap() {
-      document.getElementById('recapOverlay').classList.remove('open');
-    }
-
-    async function buildRecap() {
-      const now = new Date();
-      const dow = now.getDay() || 7;
-      const mon = new Date(now); mon.setDate(now.getDate() - dow + 1);
-      const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
-      const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      document.getElementById('rcWeek').textContent = `Week of ${fmt(mon)} – ${fmt(sun)}`;
-
-      // Streak
-      const streak = _lastStreakData?.streak || 0;
-      document.getElementById('rcStreak').textContent = streak >= 1
-        ? (streak >= 7 ? '🔥🔥' : streak >= 3 ? '🔥' : '⚡') + ` ${streak}-day streak`
-        : '';
-
-      // Fetch week data
-      const csDate = mon.toISOString().split('T')[0];
-      const ceDate = now.toISOString().split('T')[0];
-      const { data } = await sb.from('leads').select('*')
-        .eq('status', 'sold').not('sales_date', 'is', null).gte('sales_date', csDate).lte('sales_date', ceDate);
-      const leads = data || [];
-      const m = calcM(leads);
-
-      _recapMetrics = { m, streak, weekStr: `${fmt(mon)} – ${fmt(sun)}` };
-
-      document.getElementById('rcGrid').innerHTML = [
-        { v: m.sales, l: 'Total Sales', fmt: v => v },
-        { v: m.rev, l: 'Revenue', fmt: v => '$' + Math.round(v).toLocaleString() },
-        { v: m.commission, l: 'Commission (Paid)', fmt: v => '$' + Math.round(v).toLocaleString() },
-        { v: m.aov, l: 'Avg Sale', fmt: v => '$' + Math.round(v).toLocaleString() },
-      ].map(({ v, l, fmt }) => `<div class="rc-stat"><div class="rc-stat-v">${fmt(v)}</div><div class="rc-stat-l">${l}</div></div>`).join('');
-    }
-
-    function shareRecap() {
-      if (!_recapMetrics) return;
-      const { m, streak, weekStr } = _recapMetrics;
-      const fire = streak >= 7 ? '🔥🔥' : streak >= 3 ? '🔥' : '';
-      const txt = `🍃 LeafFilter Weekly Recap — ${weekStr}\n` +
-        `${fire}${streak > 0 ? ' ' + streak + '-day streak!' : ''}\n\n` +
-        `✅ Sales: ${m.sales}\n` +
-        `💰 Revenue: $${Math.round(m.rev).toLocaleString()}\n` +
-        `💵 Commission (Paid): $${Math.round(m.commission).toLocaleString()}\n` +
-        `📈 Avg Sale: $${Math.round(m.aov).toLocaleString()}`;
-      if (navigator.share) {
-        navigator.share({ title: 'LeafFilter Weekly Recap', text: txt }).catch(() => { });
-      } else {
-        navigator.clipboard.writeText(txt).then(() => toast('Copied to clipboard!', 'ok'));
-      }
-    }
-
-    function copyRecap() {
-      if (!_recapMetrics) return;
-      const { m, streak, weekStr } = _recapMetrics;
-      const fire = streak >= 7 ? '🔥🔥' : streak >= 3 ? '🔥' : '';
-      const txt = `🍃 LeafFilter Weekly Recap — ${weekStr}\n` +
-        `${fire}${streak > 0 ? ' ' + streak + '-day streak!' : ''}\n\n` +
-        `✅ Sales: ${m.sales}\n💰 Revenue: $${Math.round(m.rev).toLocaleString()}\n` +
-        `💵 Commission (Paid): $${Math.round(m.commission).toLocaleString()}\n📈 Avg Sale: $${Math.round(m.aov).toLocaleString()}`;
-      navigator.clipboard.writeText(txt).then(() => toast('Recap copied!', 'ok')).catch(() => toast('Copy failed', 'err'));
     }
 
     // ─────────────────────────────────────────
