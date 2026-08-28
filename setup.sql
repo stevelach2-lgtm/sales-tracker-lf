@@ -113,6 +113,9 @@ do $$ begin
   if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='commission_percentage') then
     alter table public.leads add column commission_percentage numeric(10,2);
   end if;
+  if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='product') then
+    alter table public.leads add column product text default 'leaffilter' check (product in ('leaffilter','roofline'));
+  end if;
 end $$;
 
 

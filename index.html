@@ -264,6 +264,27 @@
       color: #fff
     }
 
+    .qc-prod-btn {
+      flex: 1;
+      padding: 9px 0;
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #fff;
+      color: var(--muted);
+      transition: .15s;
+      font-family: 'Inter', sans-serif;
+      text-align: center
+    }
+
+    .qc-prod-btn.active {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff
+    }
+
     .mgrid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -2478,6 +2499,11 @@
       </button>
     </div>
 
+    <div style="padding:10px 14px 0;display:flex;gap:8px">
+      <button id="qcProdBtnLeaffilter" class="qc-prod-btn active" onclick="setQcProduct('leaffilter')">🍃 LeafFilter</button>
+      <button id="qcProdBtnRoofline" class="qc-prod-btn" onclick="setQcProduct('roofline')">💡 Roof Line Lighting</button>
+    </div>
+
     <div style="padding:10px 14px 0">
       <div id="qcItems" style="display:flex;flex-direction:column;gap:6px">
           <!-- rows injected by JS -->
@@ -4602,6 +4628,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const payload = {
           status: 'sold',
           sale_amount: amt,
+          product: _qcProduct,
           sale_type: isCombo ? 'combo' : 'single',
           lead_type: isRehash ? 'rehash' : isSelfGen ? 'self_gen' : 'company',
           job_number: document.getElementById('jobNum').value.trim() || null,
@@ -4621,7 +4648,12 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           lead_code: document.getElementById('calLeadCode').value || null
         };
 
-        const { data, error } = await sb.from('leads').insert(payload).select().single();
+        let { data, error } = await sb.from('leads').insert(payload).select().single();
+        if (error && (error.message || '').includes('product')) {
+          const fallback = { ...payload };
+          delete fallback.product;
+          ({ data, error } = await sb.from('leads').insert(fallback).select().single());
+        }
         if (error) {
           toast('Save failed: ' + (error.message || 'unknown error'), 'err');
           console.error('[sold save]', error);
@@ -5835,7 +5867,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     // ─────────────────────────────────────────
     // COMMISSION CALCULATOR
     // ─────────────────────────────────────────
-    const DEFAULT_PRICE_LIST = [
+    const DEFAULT_LEAFFILTER_PRICE_LIST = [
       // label, unit, price, section
       { s: 'LeafFilter Installation', l: '1st Floor – 5"', u: 'ft', p: 39 },
       { s: 'LeafFilter Installation', l: '1st Floor – 6"', u: 'ft', p: 40 },
@@ -5871,7 +5903,38 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       { s: 'Gutter Extras', l: 'Outside Vendor (materials × 3.5)', u: '$mat', p: 3.5 },
     ];
 
-    let PRICE_LIST = JSON.parse(localStorage.getItem('cc_price_list')) || DEFAULT_PRICE_LIST;
+    const DEFAULT_ROOFLINE_PRICE_LIST = [
+      { s: 'Roof Line Lighting Installation', l: 'Installed Lighting (All Stories)', u: 'ft', p: 44 },
+      { s: 'Roof Line Lighting Add-Ons', l: 'Control Box (1 required per job, powers up to 225\')', u: 'ea', p: 800 },
+      { s: 'Roof Line Lighting Add-Ons', l: 'Booster Box (1 per additional 225\')', u: 'ea', p: 600 },
+      { s: 'Roof Line Lighting Add-Ons', l: 'Wifi Extender', u: 'ea', p: 150 },
+      { s: 'Roof Line Lighting Add-Ons', l: 'Electrical Outlet (outside vendor)', u: 'ea', p: 875 },
+      { s: 'Roof Line Lighting Add-Ons', l: 'Labor – Extended Jumps', u: 'ea', p: 250 },
+      { s: 'Roof Line Lighting Add-Ons', l: 'Labor – Attic', u: 'ea', p: 250 },
+      { s: 'Roof Line Lighting Add-Ons', l: 'Labor – Wall Fish', u: 'ea', p: 250 },
+      { s: 'Roof Line Lighting Add-Ons', l: 'Remove Permanent Lighting', u: 'ft', p: 3 },
+      { s: 'Roof Line Lighting Add-Ons', l: 'Re-Install Lighting', u: 'ft', p: 9 },
+      { s: 'Roof Line Lighting Add-Ons', l: 'Remove DIY Lighting', u: 'ft', p: 1 },
+      { s: 'Roof Line Lighting Add-Ons', l: 'Additional Zone (beyond 2)', u: 'ea', p: 500 },
+    ];
+
+    // Which product's price list is active in the Quote Calculator right now.
+    let _qcProduct = 'leaffilter'; // 'leaffilter' | 'roofline'
+
+    function qcPriceListKey() {
+      return _qcProduct === 'roofline' ? 'cc_price_list_roofline' : 'cc_price_list';
+    }
+    function qcDefaultPriceList() {
+      return _qcProduct === 'roofline' ? DEFAULT_ROOFLINE_PRICE_LIST : DEFAULT_LEAFFILTER_PRICE_LIST;
+    }
+    function qcLoadPriceList() {
+      let stored = null;
+      try { stored = JSON.parse(localStorage.getItem(qcPriceListKey())); } catch (e) { stored = null; }
+      PRICE_LIST = (Array.isArray(stored) && stored.length) ? stored : qcDefaultPriceList();
+    }
+
+    let PRICE_LIST = [];
+    qcLoadPriceList();
 
     let ccTarget = 'log'; // 'log' or 'edit'
 
@@ -5901,7 +5964,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     function openPriceListEditor() {
       renderPriceListEditor();
       document.getElementById('priceListOverlay').classList.add('open');
-      document.querySelector('#priceListOverlay .es-title').textContent = '🏷️ Edit Price List';
+      const productLabel = _qcProduct === 'roofline' ? 'Roof Line Lighting' : 'LeafFilter';
+      document.querySelector('#priceListOverlay .es-title').textContent = `🏷️ Edit Price List — ${productLabel}`;
       document.getElementById('plAddRow').style.display = 'block';
       document.getElementById('plSaveBtn').onclick = savePriceList;
     }
@@ -6009,9 +6073,11 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
 
     function savePriceList() {
       PRICE_LIST = _localPriceList;
-      localStorage.setItem('cc_price_list', JSON.stringify(PRICE_LIST));
+      localStorage.setItem(qcPriceListKey(), JSON.stringify(PRICE_LIST));
       toast('Price list updated ✓');
       closePriceListEditor();
+      renderQCItems();
+      calcQuote();
     }
 
     // SMS TEMPLATE EDITOR
@@ -6544,6 +6610,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const payload = {
           status: 'not_sold',
           reason_id: selCcReason,
+          product: _qcProduct,
           notes: notes || null,
           sales_date: nsDate,
           sale_amount: contact.leftAt,
@@ -6564,6 +6631,11 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           const fallback = { ...payload };
           delete fallback.retail_price;
           delete fallback.par_price;
+          ({ data, error } = await sb.from('leads').insert(fallback).select().single());
+        }
+        if (error && (error.message || '').includes('product')) {
+          const fallback = { ...payload };
+          delete fallback.product;
           ({ data, error } = await sb.from('leads').insert(fallback).select().single());
         }
         if (error) {
@@ -6631,10 +6703,29 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     function initQuoteTab() {
       qcAdminIncluded = localStorage.getItem('cc_admin_default') !== 'false';
       qcAdminInOpening = localStorage.getItem('cc_admin_in_opening') === 'true';
+      _qcProduct = 'leaffilter';
+      qcLoadPriceList();
+      updateQcProductButtons();
       ccResetLogPanel(); // Ensures the whole form is blank each time the tab is opened
       renderQCItems();
       updateQcOverageChk();
       calcQuote();
+    }
+
+    function setQcProduct(p) {
+      if (_qcProduct === p) return;
+      _qcProduct = p;
+      qcLoadPriceList();
+      updateQcProductButtons();
+      renderQCItems();
+      calcQuote();
+    }
+
+    function updateQcProductButtons() {
+      const lf = document.getElementById('qcProdBtnLeaffilter');
+      const rl = document.getElementById('qcProdBtnRoofline');
+      if (lf) lf.classList.toggle('active', _qcProduct === 'leaffilter');
+      if (rl) rl.classList.toggle('active', _qcProduct === 'roofline');
     }
 
     function renderQCItems() {
