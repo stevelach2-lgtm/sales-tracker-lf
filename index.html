@@ -5761,7 +5761,10 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       const paidWeeks = {};
       leads.filter(l => l.commission_paid).forEach(l => {
         const w = weekKey(l.install_date);
-        if (!paidWeeks[w.key]) paidWeeks[w.key] = { start: w.start, end: w.end, total: 0, jobs: 0, leads: [] };
+        if (!paidWeeks[w.key]) {
+          const pd = new Date(w.end); pd.setDate(w.end.getDate() + 6);
+          paidWeeks[w.key] = { start: w.start, end: w.end, payDate: pd, total: 0, jobs: 0, leads: [] };
+        }
         paidWeeks[w.key].total += parseFloat(l.commission_amount) || 0;
         paidWeeks[w.key].jobs++;
         paidWeeks[w.key].leads.push(l);
@@ -5818,7 +5821,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           html += `
           <div onclick="toggleCommSummaryWeek('${safeKey}')" style="display:grid;grid-template-columns:1fr auto auto auto;padding:11px 14px;border-bottom:1px solid #F9FAFB;align-items:center;cursor:pointer${isTop4 ? ';background:#FAFFF7' : ''}">
             <div>
-              <div style="font-size:12px;font-weight:700;color:var(--text)">${fmtShort(w.start)} – ${fmtShort(w.end)}</div>
+              <div style="font-size:12px;font-weight:700;color:var(--text)">💵 ${fmt(w.payDate)}</div>
               ${isTop4 ? '<div style="font-size:9px;color:var(--green-dark);font-weight:700">IN 4-WK AVG</div>' : ''}
             </div>
             <span style="font-size:13px;color:var(--muted);text-align:center;padding:0 12px">${w.jobs}</span>
