@@ -4902,7 +4902,25 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       const el = document.getElementById('histList');
       if (!leads.length) { el.innerHTML = '<div class="empty"><div class="ei">📋</div><p>No leads in this range yet</p></div>'; return; }
       const todayStr = localDate(new Date());
+
+      // Group by Job # so combo jobs (e.g. LeafFilter + Roof Line Lighting sold to the
+      // same customer, sharing one Job #) show as linked with a combined total, even
+      // though each product is still its own separate lead row underneath.
+      const jobTotals = {};
+      leads.forEach(l => {
+        const jn = (l.job_number || '').trim();
+        if (!jn) return;
+        if (!jobTotals[jn]) jobTotals[jn] = { count: 0, sale: 0, comm: 0 };
+        jobTotals[jn].count++;
+        if (l.status === 'sold' && !l.is_cancelled) {
+          jobTotals[jn].sale += parseFloat(l.sale_amount) || 0;
+          jobTotals[jn].comm += parseFloat(l.commission_amount) || 0;
+        }
+      });
+
       el.innerHTML = leads.map(l => {
+        const jobNum = (l.job_number || '').trim();
+        const linked = jobNum && jobTotals[jobNum] && jobTotals[jobNum].count > 1 ? jobTotals[jobNum] : null;
         const sold = l.status === 'sold';
         const installToday = sold && !l.is_cancelled && l.install_date === todayStr;
         const installComplete = sold && !l.is_cancelled && !!l.install_date && l.install_date <= todayStr;
@@ -4921,6 +4939,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         if (l.is_cancelled) tags.push('<span style="font-size:9px;font-weight:700;background:#FEE2E2;color:#DC2626;border-radius:4px;padding:1px 5px">CANCELLED</span>');
         if (l.is_btd) tags.push('<span style="font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 5px">BANK TURN DOWN</span>');
         if (installToday) tags.push('<span style="font-size:9px;font-weight:700;background:#DCFCE7;color:#166534;border-radius:4px;padding:1px 5px">INSTALL TODAY</span>');
+        if (linked) tags.push(`<span style="font-size:9px;font-weight:700;background:#EDE9FE;color:#5B21B6;border-radius:4px;padding:1px 5px">🔗 LINKED ×${linked.count}</span>`);
         const sub = [];
         if (l.job_number) sub.push('Job #' + l.job_number);
         if (l.install_date) sub.push('Install ' + new Date(l.install_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
@@ -4950,6 +4969,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         ${sub.length ? `<div class="hcard-note">${sub.join(' · ')}</div>` : (l.notes ? `<div class="hcard-note">${l.notes}</div>` : '')}
         <div class="hcard-detail">
           ${sub.length ? sub.join(' &nbsp;·&nbsp; ') + '<br>' : ''}
+          ${linked ? `<div style="font-size:11px;font-weight:700;color:#5B21B6;margin:4px 0">🔗 Job #${jobNum} combined: $${linked.sale.toLocaleString('en-US', { maximumFractionDigits: 0 })} sale / $${linked.comm.toLocaleString('en-US', { maximumFractionDigits: 0 })} comm across ${linked.count} sales</div>` : ''}
           ${l.notes ? '<strong>Notes:</strong> ' + l.notes + '<br>' : ''}
           ${l.draw_sheet_url ? `<div style="margin:6px 0 2px"><button onclick="viewDrawSheet('${l.draw_sheet_url}');event.stopPropagation()" style="background:#EFF6FF;border:1.5px solid #BFDBFE;color:#1D4ED8;border-radius:8px;padding:5px 12px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;cursor:pointer">📋 View Draw Sheet</button></div>` : ''}
           ${installComplete ? `<div style="margin:8px 0 4px">${installCheckControl}</div>` : ''}
@@ -5587,8 +5607,10 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const unpaid = w.jobs.reduce((s, j) => s + (j.commission_paid ? 0 : (parseFloat(j.commission_amount) || 0)), 0);
         const remaining = Math.max(0, savedGoal - totalComm);
 
-        // Pay date = the Friday following this Sun–Sat pay period (period ends Sat, pay is 6 days later)
-        const payDate = new Date(w.end); payDate.setDate(w.end.getDate() + 6);
+        // Pay date = the Friday of the week AFTER the one following this Sun–Sat pay period
+        // (period ends Sat; the very next Friday is only 6 days later — pay actually lands
+        // 13 days out, the Friday after that).
+        const payDate = new Date(w.end); payDate.setDate(w.end.getDate() + 13);
 
         const isWorkingWeek = today >= w.start && today <= w.end;
         const isPayThisWeek = payDate >= thisCalWeekStart && payDate <= thisCalWeekEnd;
