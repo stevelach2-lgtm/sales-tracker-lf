@@ -5649,8 +5649,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         <span>
           <span onclick="openLeadEdit('${j.id}')" style="font-size:13px;font-weight:700;color:var(--green-dark);text-decoration:underline;text-underline-offset:2px;cursor:pointer">${j.job_number || '<span style="color:var(--muted);font-weight:400;text-decoration:none">tap to edit</span>'}</span>
           ${pushWeeks > 0
-            ? `<div style="font-size:9px;font-weight:700;color:#9333EA;margin-top:2px">⏭️ Pushed +${pushWeeks} cycle${pushWeeks > 1 ? 's' : ''} &nbsp;<span onclick="resetCommPush('${j.id}')" style="text-decoration:underline;cursor:pointer;color:var(--muted);font-weight:600">undo</span></div>`
-            : `<div style="margin-top:2px"><span onclick="pushCommCycle('${j.id}',${pushWeeks})" style="font-size:9px;font-weight:700;color:#9333EA;text-decoration:underline;cursor:pointer">⏭️ Push to next cycle</span></div>`}
+            ? `<div style="font-size:9px;font-weight:700;color:#9333EA;margin-top:2px">⏭️ Pushed +${pushWeeks} cycle${pushWeeks > 1 ? 's' : ''} &nbsp;<span onclick="pushCommCycle('${j.id}',${pushWeeks},'${j.install_date}')" style="text-decoration:underline;cursor:pointer;color:#9333EA;font-weight:700">push again</span> &nbsp;<span onclick="resetCommPush('${j.id}')" style="text-decoration:underline;cursor:pointer;color:var(--muted);font-weight:600">undo</span></div>`
+            : `<div style="margin-top:2px"><span onclick="pushCommCycle('${j.id}',${pushWeeks},'${j.install_date}')" style="font-size:9px;font-weight:700;color:#9333EA;text-decoration:underline;cursor:pointer">⏭️ Push to next cycle</span></div>`}
         </span>
         <span style="font-size:13px;font-weight:700;text-align:right;color:${j.commission_amount ? 'var(--text)' : 'var(--muted)'}">${fmtMoney(j.commission_amount)}</span>
         <div style="display:flex;justify-content:center">
@@ -5680,8 +5680,21 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     // Bumps a job into the next pay cycle when it was expected this week but got held up
     // for some admin reason. Doesn't touch the real install date — just shifts which
     // week card / pay date it's grouped under for tracking purposes.
-    async function pushCommCycle(id, currentPushWeeks) {
-      const { error } = await sb.from('leads').update({ pay_push_weeks: (currentPushWeeks || 0) + 1 }).eq('id', id);
+    // If the job is already overdue by more than one cycle, a flat +7 days could still
+    // land on a pay date that's today or already past — so keep adding 7-day cycles
+    // until it lands on a pay date that's genuinely in the future.
+    async function pushCommCycle(id, currentPushWeeks, installDate) {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      let pushWeeks = currentPushWeeks || 0;
+      let payDate;
+      do {
+        pushWeeks++;
+        const effDate = addDaysToDateStr(installDate, pushWeeks * 7);
+        const w = weekKey(effDate);
+        payDate = new Date(w.end); payDate.setDate(w.end.getDate() + 6);
+      } while (payDate <= today);
+
+      const { error } = await sb.from('leads').update({ pay_push_weeks: pushWeeks }).eq('id', id);
       if (error && (error.message || '').includes('pay_push_weeks')) {
         toast('Push failed — run the latest setup.sql in Supabase first', 'err');
         return;
