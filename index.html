@@ -5541,6 +5541,12 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     // ─────────────────────────────────────────
     // COMMISSIONS
     // ─────────────────────────────────────────
+    function addDaysToDateStr(dateStr, days) {
+      const d = new Date(dateStr + 'T12:00:00');
+      d.setDate(d.getDate() + days);
+      return d.toISOString().split('T')[0];
+    }
+
     function weekKey(dateStr) {
       // Pay period = Sun 00:00 → Sat 23:59. Returns {start, end} Date objects.
       const d = new Date(dateStr + 'T12:00:00');
@@ -5568,7 +5574,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       // Fetch all unpaid sold leads with install dates — exclude cancelled
       const { data: leads, error } = await sb
         .from('leads')
-        .select('id,job_number,install_date,sales_date,commission_amount,commission_paid,sale_amount,is_cancelled,is_btd')
+        .select('id,job_number,install_date,sales_date,commission_amount,commission_paid,sale_amount,is_cancelled,is_btd,pay_push_weeks')
         .eq('status', 'sold')
         .neq('is_cancelled', true)
         .not('install_date', 'is', null)
@@ -5581,10 +5587,14 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         return;
       }
 
-      // Group by Sun–Sat pay period
+      // Group by Sun–Sat pay period. A job that got missed for admin reasons can be
+      // manually pushed to the next pay cycle (pay_push_weeks) — that shifts which
+      // week bucket / pay date it counts under without touching its real install date.
       const weeks = {};
       leads.forEach(l => {
-        const w = weekKey(l.install_date);
+        const pushWeeks = l.pay_push_weeks || 0;
+        const effDate = pushWeeks > 0 ? addDaysToDateStr(l.install_date, pushWeeks * 7) : l.install_date;
+        const w = weekKey(effDate);
         if (!weeks[w.key]) weeks[w.key] = { start: w.start, end: w.end, jobs: [] };
         weeks[w.key].jobs.push(l);
       });
@@ -5634,17 +5644,22 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         <span>INSTALL / SALE DATE</span><span>JOB #</span><span style="text-align:right">COMMISSION</span><span style="text-align:center">PAID</span>
       </div>
       <!-- Jobs -->
-      ${w.jobs.map(j => `
+      ${w.jobs.map(j => { const pushWeeks = j.pay_push_weeks || 0; return `
       <div style="display:grid;grid-template-columns:100px 1fr 90px 44px;padding:10px 12px;border-bottom:1px solid #F9FAFB;align-items:center" id="cr-${j.id}">
         <span style="font-size:13px;color:var(--muted);line-height:1.5">${fmtInstall(j.install_date)}${fmtSalesDate(j.sales_date) ? `<br><span style="font-size:10px;color:#9CA3AF">Sold ${fmtSalesDate(j.sales_date)}</span>` : ''}</span>
-        <span onclick="openLeadEdit('${j.id}')" style="font-size:13px;font-weight:700;color:var(--green-dark);text-decoration:underline;text-underline-offset:2px;cursor:pointer">${j.job_number || '<span style="color:var(--muted);font-weight:400;text-decoration:none">tap to edit</span>'}</span>
+        <span>
+          <span onclick="openLeadEdit('${j.id}')" style="font-size:13px;font-weight:700;color:var(--green-dark);text-decoration:underline;text-underline-offset:2px;cursor:pointer">${j.job_number || '<span style="color:var(--muted);font-weight:400;text-decoration:none">tap to edit</span>'}</span>
+          ${pushWeeks > 0
+            ? `<div style="font-size:9px;font-weight:700;color:#9333EA;margin-top:2px">⏭️ Pushed +${pushWeeks} cycle${pushWeeks > 1 ? 's' : ''} &nbsp;<span onclick="resetCommPush('${j.id}')" style="text-decoration:underline;cursor:pointer;color:var(--muted);font-weight:600">undo</span></div>`
+            : `<div style="margin-top:2px"><span onclick="pushCommCycle('${j.id}',${pushWeeks})" style="font-size:9px;font-weight:700;color:#9333EA;text-decoration:underline;cursor:pointer">⏭️ Push to next cycle</span></div>`}
+        </span>
         <span style="font-size:13px;font-weight:700;text-align:right;color:${j.commission_amount ? 'var(--text)' : 'var(--muted)'}">${fmtMoney(j.commission_amount)}</span>
         <div style="display:flex;justify-content:center">
           <div onclick="toggleCommPaid('${j.id}',${!j.commission_paid})" style="width:20px;height:20px;border-radius:5px;border:2px solid ${j.commission_paid ? 'var(--green)' : 'var(--border)'};background:${j.commission_paid ? 'var(--green)' : '#fff'};cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0">
             ${j.commission_paid ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
           </div>
         </div>
-      </div>`).join('')}
+      </div>`; }).join('')}
       <!-- Footer -->
       <div style="display:grid;grid-template-columns:1fr auto;padding:10px 12px;background:#F0FDF4;border-top:1.5px solid var(--green-light)">
         <span style="font-size:12px;font-weight:700;color:var(--green-dark)">Total jobs scheduled: ${w.jobs.length}</span>
@@ -5661,6 +5676,27 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (error) { toast('Error updating', 'err'); return; }
       toast(newVal ? 'Marked paid ✓' : 'Marked unpaid', 'ok');
       loadComm(); // refresh
+    }
+
+    // Bumps a job into the next pay cycle when it was expected this week but got held up
+    // for some admin reason. Doesn't touch the real install date — just shifts which
+    // week card / pay date it's grouped under for tracking purposes.
+    async function pushCommCycle(id, currentPushWeeks) {
+      const { error } = await sb.from('leads').update({ pay_push_weeks: (currentPushWeeks || 0) + 1 }).eq('id', id);
+      if (error && (error.message || '').includes('pay_push_weeks')) {
+        toast('Push failed — run the latest setup.sql in Supabase first', 'err');
+        return;
+      }
+      if (error) { toast('Error updating', 'err'); return; }
+      toast('Pushed to next pay cycle ⏭️', 'ok');
+      loadComm();
+    }
+
+    async function resetCommPush(id) {
+      const { error } = await sb.from('leads').update({ pay_push_weeks: 0 }).eq('id', id);
+      if (error) { toast('Error updating', 'err'); return; }
+      toast('Back to original pay cycle', 'ok');
+      loadComm();
     }
 
     function switchCommTab(tab, btn) {

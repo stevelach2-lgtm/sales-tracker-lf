@@ -116,6 +116,9 @@ do $$ begin
   if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='product') then
     alter table public.leads add column product text default 'leaffilter' check (product in ('leaffilter','roofline'));
   end if;
+  if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='pay_push_weeks') then
+    alter table public.leads add column pay_push_weeks integer not null default 0;
+  end if;
 end $$;
 
 
