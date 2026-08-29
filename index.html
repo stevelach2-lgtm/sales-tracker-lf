@@ -5617,10 +5617,9 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const unpaid = w.jobs.reduce((s, j) => s + (j.commission_paid ? 0 : (parseFloat(j.commission_amount) || 0)), 0);
         const remaining = Math.max(0, savedGoal - totalComm);
 
-        // Pay date = the Friday of the week AFTER the one following this Sun–Sat pay period
-        // (period ends Sat; the very next Friday is only 6 days later — pay actually lands
-        // 13 days out, the Friday after that).
-        const payDate = new Date(w.end); payDate.setDate(w.end.getDate() + 13);
+        // Pay date = the Friday following this Sun–Sat pay period's ending Saturday
+        // (period ends Sat; pay lands the very next Friday, 6 days later).
+        const payDate = new Date(w.end); payDate.setDate(w.end.getDate() + 6);
 
         const isWorkingWeek = today >= w.start && today <= w.end;
         const isPayThisWeek = payDate >= thisCalWeekStart && payDate <= thisCalWeekEnd;
