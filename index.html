@@ -2674,7 +2674,7 @@
             </div>
             <div class="fg2" style="margin-bottom:8px">
               <div>
-                <label class="fl">Job #</label>
+                <label class="fl">Job # <span id="jobNumLtgHint" style="display:none;color:#B45309;font-weight:800">+ LTG</span></label>
                 <input type="text" class="fi" id="jobNum" placeholder="Job number" style="font-size:14px;padding:11px 13px">
               </div>
               <div>
@@ -4631,7 +4631,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           product: _qcProduct,
           sale_type: isCombo ? 'combo' : 'single',
           lead_type: isRehash ? 'rehash' : isSelfGen ? 'self_gen' : 'company',
-          job_number: document.getElementById('jobNum').value.trim() || null,
+          job_number: tagJobNum(document.getElementById('jobNum').value, _qcProduct),
           sales_date: document.getElementById('salesDate').value || null,
           install_date: document.getElementById('installDate').value || null,
           commission_amount: parseFloat(document.getElementById('commAmt').value) || null,
@@ -4908,7 +4908,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       // though each product is still its own separate lead row underneath.
       const jobTotals = {};
       leads.forEach(l => {
-        const jn = (l.job_number || '').trim();
+        const jn = baseJobNum(l.job_number);
         if (!jn) return;
         if (!jobTotals[jn]) jobTotals[jn] = { count: 0, sale: 0, comm: 0 };
         jobTotals[jn].count++;
@@ -4919,7 +4919,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       });
 
       el.innerHTML = leads.map(l => {
-        const jobNum = (l.job_number || '').trim();
+        const jobNum = baseJobNum(l.job_number);
         const linked = jobNum && jobTotals[jobNum] && jobTotals[jobNum].count > 1 ? jobTotals[jobNum] : null;
         const sold = l.status === 'sold';
         const installToday = sold && !l.is_cancelled && l.install_date === todayStr;
@@ -5007,10 +5007,12 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       return lines.join('\n').trim();
     }
 
+    let esProduct = 'leaffilter';
     async function openLeadEdit(id) {
       editLeadId = id;
       const { data: l, error } = await sb.from('leads').select('*, not_sold_reasons(label)').eq('id', id).single();
       if (error || !l) { toast('Could not load lead', 'err'); return; }
+      esProduct = l.product || 'leaffilter';
 
       esInitialStatus = l.status;
       esStatus = l.status;
@@ -5337,7 +5339,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const isRehash = document.getElementById('esChkRehash').classList.contains('active');
         const isSelfGen = document.getElementById('esChkSelfGen').classList.contains('active');
         payload.lead_type = isRehash ? 'rehash' : isSelfGen ? 'self_gen' : 'company';
-        payload.job_number = document.getElementById('esJobNum').value.trim() || null;
+        payload.job_number = tagJobNum(document.getElementById('esJobNum').value, esProduct);
         payload.sales_date = document.getElementById('esSalesDate').value || null;
         payload.install_date = document.getElementById('esInstallDate').value || null;
         payload.commission_amount = parseFloat(document.getElementById('esCommAmt').value) || null;
@@ -5994,6 +5996,18 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
 
     // Which product's price list is active in the Quote Calculator right now.
     let _qcProduct = 'leaffilter'; // 'leaffilter' | 'roofline'
+
+    // Lighting jobs get "LTG" tagged after the Job # (e.g. "123456 LTG").
+    function tagJobNum(jn, product) {
+      jn = (jn || '').trim();
+      if (!jn) return null;
+      if (product !== 'roofline') return jn;
+      return /LTG$/i.test(jn) ? jn.replace(/\s*LTG$/i, ' LTG') : jn + ' LTG';
+    }
+    // Base Job # without the LTG tag — so combo jobs still link together.
+    function baseJobNum(jn) {
+      return (jn || '').trim().replace(/\s*LTG$/i, '').trim();
+    }
 
     function qcPriceListKey() {
       return _qcProduct === 'roofline' ? 'cc_price_list_roofline' : 'cc_price_list';
@@ -6800,6 +6814,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       const rl = document.getElementById('qcProdBtnRoofline');
       if (lf) lf.classList.toggle('active', _qcProduct === 'leaffilter');
       if (rl) rl.classList.toggle('active', _qcProduct === 'roofline');
+      const ltg = document.getElementById('jobNumLtgHint');
+      if (ltg) ltg.style.display = _qcProduct === 'roofline' ? 'inline' : 'none';
     }
 
     function renderQCItems() {
