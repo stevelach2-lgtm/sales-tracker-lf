@@ -1338,6 +1338,26 @@
       color: #fff
     }
 
+    .hprod {
+      padding: 7px 14px;
+      border: 2px solid var(--border);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      background: #fff;
+      color: var(--muted);
+      transition: .15s;
+      font-family: 'Inter', sans-serif
+    }
+
+    .hprod.active {
+      background: #1E3A5F;
+      border-color: #1E3A5F;
+      color: #fff
+    }
+
     .hlist {
       padding: 4px 14px 0;
       display: flex;
@@ -1416,6 +1436,16 @@
     .hbadge.ns {
       background: var(--red-light);
       color: var(--red)
+    }
+
+    .hbadge.lf {
+      background: #E8F5E9;
+      color: #166534
+    }
+
+    .hbadge.ltg {
+      background: #FEF3C7;
+      color: #92400E
     }
 
     .hcard-main {
@@ -2216,6 +2246,11 @@
           <div class="ftabs" style="padding-top:0">
             <button id="ft-no-install" class="ftab" onclick="filterHist('no_install',this)">No Install Date</button>
           </div>
+          <div class="ftabs" style="padding-top:0" id="histProductTabs">
+            <button type="button" id="hprod-all" class="hprod active" onclick="setHistProduct('all', this)">All</button>
+            <button type="button" id="hprod-lf" class="hprod" onclick="setHistProduct('leaffilter', this)">LeafFilter</button>
+            <button type="button" id="hprod-ltg" class="hprod" onclick="setHistProduct('roofline', this)">Lighting</button>
+          </div>
           <!-- History Custom Date Inputs -->
           <div id="histCustomPicker"
             style="display:none; padding:10px 14px; background:#F9FAFB; border:1px solid var(--border); border-top:none; border-bottom-left-radius:14px; border-bottom-right-radius:14px; gap:8px; align-items:center; justify-content:space-between; margin-bottom:12px">
@@ -2862,6 +2897,7 @@
               <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
               <textarea class="fi" id="ccNotNotes" placeholder="e.g. Call back in spring, left card..."></textarea>
             </div>
+            <div id="ccNotProductHint" style="font-size:12px;font-weight:800;color:#166534;margin-bottom:8px">Saving as LeafFilter</div>
             <button class="sbtn ns" onclick="submitLeadFromCalc('not_sold')">❌ Log Not Sold</button>
           </div>
         </div>
@@ -2934,6 +2970,11 @@
       <div style="font-size:17px;font-weight:800;margin-bottom:4px">Did you drive there?</div>
       <div id="driveQuestionName" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px"></div>
       <div style="font-size:12px;color:var(--muted);line-height:1.4;margin-bottom:10px">Both are saved as not sold and get a reschedule text. You can undo for a few seconds.</div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">Product quoted</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button type="button" id="driveProdLf" class="qc-prod-btn active" onclick="setDriveProduct('leaffilter')">🍃 LeafFilter</button>
+        <button type="button" id="driveProdLtg" class="qc-prod-btn" onclick="setDriveProduct('roofline')">💡 Lighting</button>
+      </div>
       <label class="fl" style="font-size:10px">Phone for the reschedule text</label>
       <input type="tel" class="fi" id="driveQuestionPhone" placeholder="555-555-5555" maxlength="14" style="margin-bottom:12px;font-size:14px;padding:10px 12px">
       <button type="button" id="driveQuestionYes" onclick="confirmDriveQuestion(true)"
@@ -3265,6 +3306,10 @@
         <div class="es-seg">
           <button class="es-seg-opt sold" id="esSold" onclick="esSetStatus('sold')">✅ Sold</button>
           <button class="es-seg-opt ns" id="esNot" onclick="esSetStatus('not_sold')">❌ Not Sold</button>
+        </div>
+        <div style="display:flex;gap:8px;margin:0 0 12px">
+          <button type="button" id="esProdLf" class="qc-prod-btn active" onclick="esSetProduct('leaffilter')">🍃 LeafFilter</button>
+          <button type="button" id="esProdLtg" class="qc-prod-btn" onclick="esSetProduct('roofline')">💡 Lighting</button>
         </div>
         <div id="esAddressRow" style="display:none;margin:0 0 12px;font-size:13px;line-height:1.4"></div>
 
@@ -3875,6 +3920,10 @@
       const rev = sold.reduce((s, l) => s + (parseFloat(l.sale_amount) || 0), 0);
       const n = leads.length;
       const ns = leads.filter(l => l.status === 'not_sold');
+      const quoteLf = leads.filter(l => leadProductKey(l.product) !== 'roofline').length;
+      const quoteLtg = leads.filter(l => leadProductKey(l.product) === 'roofline').length;
+      const nsLf = ns.filter(l => leadProductKey(l.product) !== 'roofline').length;
+      const nsLtg = ns.filter(l => leadProductKey(l.product) === 'roofline').length;
       // close rate excludes BTD/not-home/one-leg/no-demo
       const excLabels = ['not home', 'no show', 'one leg', 'no demo', 'bank turn'];
       // Close rate & SLG typically measure primary performance; exclude 'rehash' sales from numerator
@@ -3889,6 +3938,7 @@
       const caov = combos.length ? combos.reduce((s, l) => s + (parseFloat(l.sale_amount) || 0), 0) / combos.length : 0;
       return {
         leads: n, sales: sold.length, rev, aov, caov,
+        quoteLf, quoteLtg, nsLf, nsLtg,
         cr, slg, ntg, nvpil: n ? rev / n : 0,
         combo: combos.length,
         rehash: sold.filter(l => l.lead_type === 'rehash').length,
@@ -3962,7 +4012,9 @@
       const blCr = parseFloat(localStorage.getItem('bl_cr')) || 50;
       const g = document.getElementById('mgrid');
       g.innerHTML = [
-        card('Total Appointments (Leads)', c.leads, fmtNum, p.leads, null, 'Rehash not counted'),
+        card('Total Appointments (Leads)', c.leads, fmtNum, p.leads,
+          'LF ' + c.quoteLf + ' · LTG ' + c.quoteLtg,
+          'No sales LF ' + c.nsLf + ' · LTG ' + c.nsLtg + '<br>Rehash not counted'),
         card('Total Sales', c.sales, fmtNum, p.sales),
         card('Total Revenue (Volume)', c.rev, fmtDollar, p.rev),
         card('Paid Commissions (YTD)', ytdComm, fmtDollar, null, null, 'Marked paid · by install date', false, 'Jan 1 – today'),
@@ -4472,7 +4524,7 @@
         reason: reason || 'No reason',
         address: lead.customer_address || '',
         notes: lead.notes || '',
-        product: lead.product || 'leaffilter',
+        product: leadProductKey(lead.product),
         salesDate: lead.sales_date || '',
         plan: plan,
         stepLabel: stepLabel
@@ -4538,10 +4590,18 @@
 
     function openFuFromBtn(btn) {
       if (!btn) return;
-      openFu(btn.dataset.id, btn.dataset.reason || '', btn.dataset.name || '', btn.dataset.phone || '', btn.dataset.notes || '');
+      openFu(btn.dataset.id, btn.dataset.reason || '', btn.dataset.name || '', btn.dataset.phone || '', btn.dataset.notes || '', btn.dataset.product || '');
     }
 
-    async function openFu(leadId, reasonLabel, name, phone, notes) {
+    async function openFu(leadId, reasonLabel, name, phone, notes, product) {
+      const cached = (_fuCache || []).find(r => r.id === leadId);
+      if (cached) {
+        if (!reasonLabel) reasonLabel = cached.reason || '';
+        if (!name) name = cached.name || '';
+        if (!phone) phone = cached.phone || '';
+        if (!notes) notes = cached.notes || '';
+        if (!product) product = cached.product || '';
+      }
       document.getElementById('fuLeadId').value = leadId || '';
       document.getElementById('fuName').value = name || '';
       document.getElementById('fuPhone').value = phone || '';
@@ -4554,7 +4614,7 @@
       } else {
         ctx.style.display = 'none';
       }
-      _fuLead = { id: leadId, reason: reasonLabel || '', notes: notes || '', product: 'leaffilter', view: null };
+      _fuLead = { id: leadId, reason: reasonLabel || '', notes: notes || '', product: leadProductKey(product), view: null };
       document.getElementById('fuMsg').value = '';
       document.getElementById('fuOverlay').classList.add('open');
       updateFuSendButton();
@@ -4574,7 +4634,7 @@
       const tRes = await sb.from('followup_touches').select('step_key,sent_at').eq('lead_id', leadId);
       if (!tRes.error) touches = tRes.data || [];
       const view = fuView(data, touches, todayEtKey());
-      _fuLead = { id: leadId, reason: reason, notes: data.notes || '', product: data.product || 'leaffilter', view: view, raw: data };
+      _fuLead = { id: leadId, reason: reason, notes: data.notes || '', product: leadProductKey(data.product), view: view, raw: data };
       const due = view && view.plan && view.plan.date;
       document.getElementById('fuDate').value = due || data.sales_date || todayEtKey();
       refreshFuMsg();
@@ -4676,7 +4736,7 @@
       const msg = msgOverride || messageForRow(row);
       if (!msg) { toast('No message for this step', 'err'); return; }
       if (phone.length < 10) {
-        openFu(row.id, row.reason, row.name, phone, row.notes || '');
+        openFu(row.id, row.reason, row.name, phone, row.notes || '', row.product);
         toast('Add a phone number first', 'err');
         return;
       }
@@ -4827,6 +4887,8 @@
       if (!el) return;
       const due = (rows || []).filter(r => r.plan && (r.plan.bucket === 'today' || r.plan.bucket === 'overdue'));
       due.sort((a, b) => String(a.plan.date).localeCompare(String(b.plan.date)) || a.name.localeCompare(b.name));
+      const dueLf = due.filter(r => leadProductKey(r.product) !== 'roofline').length;
+      const dueLtg = due.filter(r => leadProductKey(r.product) === 'roofline').length;
       const shown = due.slice(0, 12);
       const open = smsWindowOpen();
       const btnLabel = open ? 'Text' : 'Text after 8 AM';
@@ -4838,7 +4900,7 @@
           const late = r.plan.bucket === 'overdue';
           return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #FDE68A">'
             + '<div style="flex:1;min-width:0">'
-            + '<div style="font-size:14px;font-weight:800;color:#1F2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(r.name) + '</div>'
+            + '<div style="display:flex;align-items:center;gap:6px;min-width:0">' + productBadgeHtml(r.product) + '<div style="font-size:14px;font-weight:800;color:#1F2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(r.name) + '</div></div>'
             + '<div style="font-size:11px;color:#92400E">' + escHtml(r.reason) + ' · ' + escHtml(r.stepLabel) + (late ? ' · overdue' : '') + '</div>'
             + '</div>'
             + '<button type="button" onclick="textFollowUpById(\'' + r.id + '\')" style="background:' + (open ? '#2563EB' : '#fff') + ';color:' + (open ? '#fff' : '#92400E') + ';border:1.5px solid ' + (open ? '#2563EB' : '#FCD34D') + ';border-radius:8px;padding:8px 10px;font-family:\'Inter\',sans-serif;font-size:12px;font-weight:800;cursor:pointer;flex-shrink:0">' + btnLabel + '</button>'
@@ -4852,7 +4914,7 @@
       el.innerHTML = '<div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:14px;padding:12px 14px">'
         + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
         + '<div style="min-width:0"><div style="font-size:13px;font-weight:800;color:#92400E">Text today</div>'
-        + '<div style="font-size:11px;color:#B45309">No-sales due or overdue</div></div>'
+        + '<div style="font-size:11px;color:#B45309">No-sales due or overdue · LF ' + dueLf + ' · LTG ' + dueLtg + '</div></div>'
         + '<div style="display:flex;align-items:center;gap:8px">'
         + '<button type="button" onclick="openFollowUps()" style="background:transparent;border:none;color:#92400E;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer">See all</button>'
         + '<div style="background:#F59E0B;color:#fff;font-size:12px;font-weight:900;padding:4px 10px;border-radius:20px">' + due.length + '</div>'
@@ -4894,7 +4956,7 @@
               : escHtml(r.reason) + ' · ' + escHtml(r.stepLabel);
             const tel = digits10(r.phone);
             return '<div class="fup-card ' + statusClass + '" onclick="openFu(\'' + r.id + '\')" style="cursor:pointer">'
-              + '<div class="fup-top"><div class="fup-name">' + escHtml(r.name) + '</div>'
+              + '<div class="fup-top"><div class="fup-name" style="display:flex;align-items:center;gap:6px">' + productBadgeHtml(r.product) + '<span>' + escHtml(r.name) + '</span></div>'
               + '<div style="font-size:11px;font-weight:700;color:var(--muted)">' + escHtml(dateLabel) + '</div></div>'
               + '<div class="fup-reason" style="margin-bottom:8px">' + meta + '</div>'
               + (r.address ? '<div style="font-size:11px;color:var(--muted);margin:-2px 0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + mapsDirLink(r.address) + '</div>' : '')
@@ -5187,6 +5249,7 @@
         const payload = {
           status: 'not_sold',
           reason_id: selReason,
+          product: _qcProduct === 'roofline' ? 'roofline' : 'leaffilter',
           notes: notes || null,
           sales_date: nsDate,
           sale_amount: contact.leftAt,
@@ -5373,8 +5436,40 @@
 
       const { data: d, error } = await query;
       if (error) { el.innerHTML = '<p style="color:var(--red);padding:12px">Error loading</p>'; return; }
-      window._currentHistLeads = sortByDate((d || []).filter(l => l.status !== 'pending'));
+      window._histLeadsRaw = sortByDate((d || []).filter(l => l.status !== 'pending'));
+      window._currentHistLeads = applyHistProduct(window._histLeadsRaw);
       renderHist(window._currentHistLeads);
+    }
+
+    let histProductFilter = 'all';
+
+    function leadProductKey(product) {
+      return product === 'roofline' ? 'roofline' : 'leaffilter';
+    }
+
+    function productBadgeHtml(product) {
+      const ltg = leadProductKey(product) === 'roofline';
+      return '<span class="hbadge ' + (ltg ? 'ltg' : 'lf') + '">' + (ltg ? 'LTG' : 'LF') + '</span>';
+    }
+
+    function applyHistProduct(leads) {
+      const rows = leads || [];
+      if (histProductFilter === 'all') return rows;
+      return rows.filter(l => leadProductKey(l.product) === histProductFilter);
+    }
+
+    function setHistProduct(p, btn) {
+      histProductFilter = p === 'roofline' || p === 'leaffilter' ? p : 'all';
+      document.querySelectorAll('.hprod').forEach(t => t.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      else {
+        const id = histProductFilter === 'roofline' ? 'hprod-ltg' : histProductFilter === 'leaffilter' ? 'hprod-lf' : 'hprod-all';
+        document.getElementById(id)?.classList.add('active');
+      }
+      if (window._histLeadsRaw) {
+        window._currentHistLeads = applyHistProduct(window._histLeadsRaw);
+        renderHist(window._currentHistLeads);
+      }
     }
 
     function exportKML() {
@@ -5434,7 +5529,12 @@
     function renderHist(leads) {
       leads = (leads || []).filter(l => l.status !== 'pending');
       const el = document.getElementById('histList');
-      if (!leads.length) { el.innerHTML = '<div class="empty"><div class="ei">📋</div><p>No leads in this range yet</p></div>'; return; }
+      if (!leads.length) {
+        const emptyLabel = histProductFilter === 'roofline' ? 'Lighting' : histProductFilter === 'leaffilter' ? 'LeafFilter' : '';
+        const emptyMsg = emptyLabel ? 'No ' + emptyLabel + ' leads in this range' : 'No leads in this range yet';
+        el.innerHTML = '<div class="empty"><div class="ei">📋</div><p>' + emptyMsg + '</p></div>';
+        return;
+      }
       const todayStr = localDate(new Date());
 
       // Group by Job # so combo jobs (e.g. LeafFilter + Roof Line Lighting sold to the
@@ -5494,7 +5594,10 @@
       <div class="hcard-ico" onclick="openLeadEdit('${l.id}')" style="cursor:pointer">${sold ? '✅' : '❌'}</div>
       <div class="hcard-body" onclick="toggleHistCard(event, this)" style="cursor:pointer">
         <div class="hcard-top">
-          <span class="hbadge ${sold ? 'sold' : 'ns'}">${sold ? 'SOLD' : 'NOT SOLD'}</span>
+          <span style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+            <span class="hbadge ${sold ? 'sold' : 'ns'}">${sold ? 'SOLD' : 'NOT SOLD'}</span>
+            ${productBadgeHtml(l.product)}
+          </span>
           <span class="hcard-time">${displayDate}</span>
         </div>
         <div class="hcard-main ${sold ? 'g' : ''}">${main}</div>
@@ -5514,7 +5617,7 @@
       <div style="display:flex;flex-direction:column;gap:4px;align-items:center">
         <button class="edit-btn" onclick="openLeadEdit('${l.id}')">✏️</button>
         ${installComplete ? (installSmsHref ? `<a class="edit-btn" href="${installSmsHrefAttr}" data-no-card-toggle onclick="event.stopPropagation()" style="font-size:12px;text-decoration:none" title="How did install go?">🛠️</a>` : `<button class="edit-btn" data-no-card-toggle onclick="event.stopPropagation(); sendInstallCheckSMS(${JSON.stringify(custPhone)}, ${JSON.stringify(custName)}, ${JSON.stringify(l.id)})" style="font-size:12px" title="How did install go?">🛠️</button>`) : ''}
-        ${sold ? `<button class="edit-btn" onclick="event.stopPropagation(); sendReviewSMS()" style="font-size:12px" title="Request Google Review">⭐</button>` : `<button class="edit-btn" data-id="${l.id}" data-reason="${escHtml(l.not_sold_reasons?.label || '')}" data-name="${escHtml(custName)}" data-phone="${escHtml(custPhone)}" data-notes="${escHtml(l.notes || '')}" onclick="event.stopPropagation(); openFuFromBtn(this)" style="font-size:12px" title="Text follow-up">📞</button>`}
+        ${sold ? `<button class="edit-btn" onclick="event.stopPropagation(); sendReviewSMS()" style="font-size:12px" title="Request Google Review">⭐</button>` : `<button class="edit-btn" data-id="${l.id}" data-reason="${escHtml(l.not_sold_reasons?.label || '')}" data-name="${escHtml(custName)}" data-phone="${escHtml(custPhone)}" data-notes="${escHtml(l.notes || '')}" data-product="${escHtml(l.product || 'leaffilter')}" onclick="event.stopPropagation(); openFuFromBtn(this)" style="font-size:12px" title="Text follow-up">📞</button>`}
       </div>
     </div>`;
 
@@ -5551,7 +5654,8 @@
         startAppointment(l);
         return;
       }
-      esProduct = l.product || 'leaffilter';
+      esProduct = leadProductKey(l.product);
+      esSetProduct(esProduct);
 
       esInitialStatus = l.status;
       esStatus = l.status;
@@ -5655,6 +5759,14 @@
       document.getElementById('esRehashBtn').style.display = 'none';
     }
 
+    function esSetProduct(p) {
+      esProduct = leadProductKey(p);
+      const lf = document.getElementById('esProdLf');
+      const ltg = document.getElementById('esProdLtg');
+      if (lf) lf.classList.toggle('active', esProduct !== 'roofline');
+      if (ltg) ltg.classList.toggle('active', esProduct === 'roofline');
+    }
+
     function esSetStatus(s) {
       esStatus = s;
       document.getElementById('esSold').classList.toggle('active', s === 'sold');
@@ -5720,7 +5832,7 @@
 
     async function saveLeadEdit() {
       if (!editLeadId) return;
-      const payload = { status: esStatus };
+      const payload = { status: esStatus, product: leadProductKey(esProduct) };
       if (esStatus === 'sold') {
         const amt = parseFloat(document.getElementById('esSaleAmt').value);
         if (!amt || amt <= 0) { toast('Enter a valid sale amount', 'err'); return; }
@@ -7126,12 +7238,12 @@
         const personPhone = contact.fuPhone || calPhone;
         const closeDate = nsDate || todayEtKey();
         const reasonLabelNow = reasons.find(r => r.id === selCcReason)?.label || '';
-        const enroll = fuEnrollPatch(reasonLabelNow, notes, closeDate, _qcProduct, personPhone, personName || calName);
+        const enroll = fuEnrollPatch(reasonLabelNow, notes, closeDate, _qcProduct === 'roofline' ? 'roofline' : 'leaffilter', personPhone, personName || calName);
         
         const payload = {
           status: 'not_sold',
           reason_id: selCcReason,
-          product: _qcProduct,
+          product: _qcProduct === 'roofline' ? 'roofline' : 'leaffilter',
           notes: notes || null,
           sales_date: closeDate,
           sale_amount: contact.leftAt,
@@ -7157,11 +7269,6 @@
           const fallback = { ...payload };
           delete fallback.retail_price;
           delete fallback.par_price;
-          ({ data, error } = await writeNs(fallback));
-        }
-        if (error && (error.message || '').includes('product')) {
-          const fallback = { ...payload };
-          delete fallback.product;
           ({ data, error } = await writeNs(fallback));
         }
         if (error && /followup_status|followup_stopped_reason/i.test(error.message || '')) {
@@ -7624,6 +7731,12 @@
       if (rl) rl.classList.toggle('active', _qcProduct === 'roofline');
       const ltg = document.getElementById('jobNumLtgHint');
       if (ltg) ltg.style.display = _qcProduct === 'roofline' ? 'inline' : 'none';
+      const hint = document.getElementById('ccNotProductHint');
+      if (hint) {
+        const lighting = _qcProduct === 'roofline';
+        hint.textContent = lighting ? 'Saving as Lighting' : 'Saving as LeafFilter';
+        hint.style.color = lighting ? '#92400E' : '#166534';
+      }
     }
 
     function renderQCItems() {
@@ -9510,11 +9623,23 @@
       });
     }
 
+    let driveQuestionProduct = 'leaffilter';
+
+    function setDriveProduct(p) {
+      if (driveQuestionBusy) return;
+      driveQuestionProduct = p === 'roofline' ? 'roofline' : 'leaffilter';
+      const lf = document.getElementById('driveProdLf');
+      const ltg = document.getElementById('driveProdLtg');
+      if (lf) lf.classList.toggle('active', driveQuestionProduct !== 'roofline');
+      if (ltg) ltg.classList.toggle('active', driveQuestionProduct === 'roofline');
+    }
+
     function openDriveQuestion(id) {
       const appt = pendingAppointments.find(a => a.id === id);
       if (!appt) { toast('Appointment not found', 'err'); return; }
       pendingNoShowId = id;
       driveQuestionBusy = false;
+      setDriveProduct(appt.product || 'leaffilter');
       const nameEl = document.getElementById('driveQuestionName');
       if (nameEl) nameEl.textContent = appt.customer_name || 'This appointment';
       const phoneEl = document.getElementById('driveQuestionPhone');
@@ -9544,9 +9669,11 @@
       const close = apptDateKey(appt.appointment_at) || todayEtKey();
       const typedPhone = (document.getElementById('driveQuestionPhone')?.value || '').trim();
       const phone = typedPhone || appt.customer_phone || '';
-      const enroll = fuEnrollPatch('No show', noteLine, close, appt.product || 'leaffilter', phone, appt.customer_name || '');
+      const noShowProduct = driveQuestionProduct === 'roofline' ? 'roofline' : 'leaffilter';
+      const enroll = fuEnrollPatch('No show', noteLine, close, noShowProduct, phone, appt.customer_name || '');
       const payload = {
         status: 'not_sold',
+        product: noShowProduct,
         sales_date: close,
         notes: appendNoShowNote(appt.notes, noteLine),
         reason_id: reason ? reason.id : null,
