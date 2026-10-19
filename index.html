@@ -5117,13 +5117,12 @@
     }
 
     async function geocodeAddress(address) {
+      // Map pins use the same lookup as mileage: /api/geocode, then Nominatim.
       try {
-        const url = 'https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(address) + '&format=json&limit=1';
-        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-        const json = await res.json();
-        if (json && json[0]) return { lat: parseFloat(json[0].lat), lng: parseFloat(json[0].lon) };
-      } catch (_) {}
-      return null;
+        return await mileageGeocode(address);
+      } catch (_) {
+        return null;
+      }
     }
 
     function saveLocationForLead(leadId, address) {
@@ -8498,8 +8497,11 @@
 
     // ─────────────────────────────────────────
     // MILEAGE LOG
-    // Geocoding: Nominatim (the Census geocoder does not send CORS headers, so the
-    // browser blocks it). Driving distance: OSRM. Results are cached by address.
+    // Geocoding: /api/geocode (Census on the server, then a cleaned address, then
+    // Nominatim with an identifying User-Agent). The Census geocoder sends no CORS
+    // headers, so the browser cannot call it directly. Direct Nominatim is only a
+    // last resort. Driving distance: OSRM, retried once if a lookup fails.
+    // Results are cached by address.
     // Closing a lead recalculates that day in the background and does not wait.
     // Miles Steve types stay until he taps Recalculate.
     // ─────────────────────────────────────────
@@ -8716,6 +8718,24 @@
       }
     }
 
+    function mileageCoords(lat, lng) {
+      const la = typeof lat === 'number' ? lat : parseFloat(lat);
+      const ln = typeof lng === 'number' ? lng : parseFloat(lng);
+      if (!isFinite(la) || !isFinite(ln)) return null;
+      return { lat: la, lng: ln };
+    }
+
+    async function mileageNominatim(address) {
+      await mileageGeoWait();
+      let json = await mileageFetchJson('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=' + encodeURIComponent(address), 8000);
+      if (!Array.isArray(json) || !json[0]) {
+        await mileageGeoWait();
+        json = await mileageFetchJson('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(address), 8000);
+      }
+      if (!Array.isArray(json) || !json[0]) return null;
+      return mileageCoords(json[0].lat, json[0].lon);
+    }
+
     async function mileageGeocode(address) {
       const trimmed = String(address || '').trim();
       const key = mileageNormAddr(trimmed);
@@ -8723,27 +8743,35 @@
       const cache = mileageGeoCache();
       const hit = cache[key];
       if (hit && typeof hit.lat === 'number' && typeof hit.lng === 'number') return hit;
-      await mileageGeoWait();
-      let json = await mileageFetchJson('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=' + encodeURIComponent(trimmed), 8000);
-      if (!Array.isArray(json) || !json[0]) {
-        await mileageGeoWait();
-        json = await mileageFetchJson('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(trimmed), 8000);
+      const viaApi = await mileageFetchJson('/api/geocode?address=' + encodeURIComponent(trimmed), 12000);
+      const apiCoords = viaApi ? mileageCoords(viaApi.lat, viaApi.lng) : null;
+      if (apiCoords) {
+        mileageRememberGeo(key, apiCoords);
+        return apiCoords;
       }
-      if (!Array.isArray(json) || !json[0]) return null;
-      const coords = { lat: parseFloat(json[0].lat), lng: parseFloat(json[0].lon) };
-      if (!isFinite(coords.lat) || !isFinite(coords.lng)) return null;
+      const coords = await mileageNominatim(trimmed);
+      if (!coords) return null;
       mileageRememberGeo(key, coords);
       return coords;
+    }
+
+    function mileageOsrmParsed(json, pointCount) {
+      if (!json || json.code !== 'Ok' || !json.routes || !json.routes[0] || !json.routes[0].legs) return null;
+      const legs = json.routes[0].legs;
+      if (legs.length !== pointCount - 1) return null;
+      return legs.map(leg => mileageRound1((Number(leg.distance) || 0) / 1609.344));
     }
 
     async function mileageOsrmMiles(coords) {
       if (!coords || coords.length < 2 || coords.some(c => !c)) return null;
       const path = coords.map(c => c.lng + ',' + c.lat).join(';');
-      const json = await mileageFetchJson('https://router.project-osrm.org/route/v1/driving/' + path + '?overview=false', 12000);
-      if (!json || json.code !== 'Ok' || !json.routes || !json.routes[0] || !json.routes[0].legs) return null;
-      const legs = json.routes[0].legs;
-      if (legs.length !== coords.length - 1) return null;
-      return legs.map(leg => mileageRound1((Number(leg.distance) || 0) / 1609.344));
+      const url = 'https://router.project-osrm.org/route/v1/driving/' + path + '?overview=false';
+      let miles = mileageOsrmParsed(await mileageFetchJson(url, 12000), coords.length);
+      if (!miles) {
+        await new Promise(r => setTimeout(r, 400));
+        miles = mileageOsrmParsed(await mileageFetchJson(url, 12000), coords.length);
+      }
+      return miles;
     }
 
     async function mileageBuildLegs(home, stops, previousLegs, force) {
