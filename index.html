@@ -2738,18 +2738,6 @@
               <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
               <textarea class="fi" id="soldNotes" placeholder="e.g. 180ft, financing used..."></textarea>
             </div>
-            <div class="fg" style="margin-bottom:10px">
-              <label class="fl">📋 Draw Sheet <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-              <input type="file" id="ccDrawFile" accept="image/*,application/pdf" style="display:none" onchange="ccOnDrawFileSelected(this)">
-              <div id="ccDrawPreview" style="display:none;margin-bottom:8px;position:relative">
-                <img id="ccDrawThumb" src="" style="width:100%;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;max-height:180px;object-fit:cover" onclick="viewDrawSheet(document.getElementById('ccDrawThumb').src)">
-                <button type="button" onclick="ccRemoveDrawSheet()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer">Remove</button>
-              </div>
-              <button type="button" id="ccDrawBtn" onclick="document.getElementById('ccDrawFile').click()"
-                style="width:100%;background:#F9FAFB;border:1.5px dashed var(--border);border-radius:10px;padding:11px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">
-                📸 Upload Draw Sheet
-              </button>
-            </div>
             <button class="sbtn sold" onclick="submitLeadFromCalc('sold')">✅ Log Sale</button>
           </div>
 
@@ -2810,18 +2798,6 @@
                 <label class="fl" style="font-size:10px">Follow-Up Date</label>
                 <input type="date" class="fi" id="ccNotFuDate" style="padding:8px 10px;font-size:12px" oninput="this.classList.remove('fi-error')">
               </div>
-            </div>
-            <div id="ccDrawSheetBox" class="fg" style="margin-bottom:12px">
-              <label class="fl">📋 Draw Sheet <span id="ccDrawSheetReqLabel" style="font-weight:400;color:var(--muted)">(optional)</span></label>
-              <input type="file" id="ccNsDrawFile" accept="image/*,application/pdf" style="display:none" onchange="ccNsOnDrawFileSelected(this)">
-              <div id="ccNsDrawPreview" style="display:none;margin-bottom:8px;position:relative">
-                <img id="ccNsDrawThumb" src="" style="width:100%;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;max-height:180px;object-fit:cover" onclick="viewDrawSheet(document.getElementById('ccNsDrawThumb').src)">
-                <button type="button" onclick="ccNsRemoveDrawSheet()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer">Remove</button>
-              </div>
-              <button type="button" id="ccNsDrawBtn" onclick="document.getElementById('ccNsDrawFile').click()"
-                style="width:100%;background:#F9FAFB;border:1.5px dashed var(--border);border-radius:10px;padding:11px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">
-                📸 Upload Draw Sheet
-              </button>
             </div>
             <button class="sbtn ns" onclick="submitLeadFromCalc('not_sold')">❌ Log Not Sold</button>
           </div>
@@ -3187,13 +3163,6 @@
   </div>
 
 
-  <!-- Draw Sheet Lightbox -->
-  <div id="drawSheetOverlay" onclick="closeDrawSheet()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:10000;align-items:center;justify-content:center;flex-direction:column;padding:20px">
-    <button onclick="closeDrawSheet()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;width:38px;height:38px;border-radius:50%;cursor:pointer">✕</button>
-    <img id="drawSheetImg" src="" style="max-width:100%;max-height:85vh;border-radius:10px;object-fit:contain">
-    <a id="drawSheetDl" href="" download target="_blank" style="margin-top:14px;color:#fff;font-size:12px;font-weight:700;text-decoration:underline;opacity:.7">Open full size</a>
-  </div>
-
   <!-- Lead edit sheet -->
 
   <div class="edit-overlay" id="editOverlay" onclick="closeLeadEdit(event)">
@@ -3348,20 +3317,6 @@
               <span class="paid-lbl" style="font-size:12px">Follow-up done</span>
             </label>
           </div>
-        </div>
-        <!-- Draw Sheet Upload -->
-        <div class="fg" style="margin-bottom:4px">
-          <label class="fl">📋 Draw Sheet</label>
-          <input type="file" id="esDrawFile" accept="image/*,application/pdf" style="display:none" onchange="esHandleDrawUpload(this)">
-          <div id="esDrawPreview" style="display:none;margin-bottom:8px;position:relative">
-            <img id="esDrawThumb" src="" style="width:100%;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;max-height:180px;object-fit:cover" onclick="viewDrawSheet(document.getElementById('esDrawThumb').src)">
-            <button onclick="esRemoveDrawSheet()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer">Remove</button>
-          </div>
-          <button type="button" id="esDrawBtn" onclick="document.getElementById('esDrawFile').click()"
-            style="width:100%;background:#F9FAFB;border:1.5px dashed var(--border);border-radius:10px;padding:11px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">
-            📸 Upload Draw Sheet
-          </button>
-          <div id="esDrawUploading" style="display:none;font-size:11px;color:var(--muted);margin-top:4px;text-align:center">Uploading…</div>
         </div>
       </div>
 
@@ -4716,21 +4671,6 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         lastId = data.id;
         saveLocationForLead(data.id, document.getElementById('calCustAddr').value || null);
 
-        // Same Supabase path as edit flow: bucket draw-sheets → {user_id}/{lead_id}.{ext}, then leads.draw_sheet_url
-        if (ccDrawPendingFile && data.id) {
-          const { data: auth } = await sb.auth.getUser();
-          const user = auth?.user;
-          if (user) {
-            const res = await uploadDrawSheetFile(ccDrawPendingFile, user.id, data.id);
-            if (res.error) {
-              toast('Sale saved; draw sheet upload failed — add it from History (edit).', 'err');
-            } else {
-              const { error: linkErr } = await sb.from('leads').update({ draw_sheet_url: res.publicUrl }).eq('id', data.id);
-              if (linkErr) console.error(linkErr);
-            }
-          }
-        }
-
         showUndo(quotingAppt
           ? 'Sale of $' + amt.toLocaleString() + ' saved on the appointment'
           : 'Sale of $' + amt.toLocaleString() + ' logged!');
@@ -5056,7 +4996,6 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           ${sub.length ? sub.join(' &nbsp;·&nbsp; ') + '<br>' : ''}
           ${linked ? `<div style="font-size:11px;font-weight:700;color:#5B21B6;margin:4px 0">🔗 Job #${jobNum} combined: $${linked.sale.toLocaleString('en-US', { maximumFractionDigits: 0 })} sale / $${linked.comm.toLocaleString('en-US', { maximumFractionDigits: 0 })} comm across ${linked.count} sales</div>` : ''}
           ${l.notes ? '<strong>Notes:</strong> ' + l.notes + '<br>' : ''}
-          ${l.draw_sheet_url ? `<div style="margin:6px 0 2px"><button onclick="viewDrawSheet('${l.draw_sheet_url}');event.stopPropagation()" style="background:#EFF6FF;border:1.5px solid #BFDBFE;color:#1D4ED8;border-radius:8px;padding:5px 12px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;cursor:pointer">📋 View Draw Sheet</button></div>` : ''}
           ${installComplete ? `<div style="margin:8px 0 4px">${installCheckControl}</div>` : ''}
           Tap to collapse
         </div>
@@ -5138,14 +5077,6 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       document.getElementById('esNsRetail').value = nsRetail;
       document.getElementById('esNsLeftAt').value = nsLeftAt;
       esCalcPar();
-      // Draw sheet
-      esDrawSheetUrl = l.draw_sheet_url || null;
-      document.getElementById('esDrawFile').value = '';
-      if (esDrawSheetUrl) {
-        esShowDrawPreview(esDrawSheetUrl);
-      } else {
-        esRemoveDrawSheet();
-      }
 
       if (l.status === 'not_sold') {
         document.getElementById('esNsFuName').value = l.followup_name || '';
@@ -5239,160 +5170,6 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       }
     }
 
-    let esDrawSheetUrl = null;
-    /** Pending file for new sale — uploaded after insert so storage key matches not-sold edit: {uid}/{lead_id}.{ext} */
-    let ccDrawPendingFile = null;
-    let ccDrawPreviewObjUrl = null;
-    /** Pending draw sheet for Quote Calculator → Not Sold panel (separate from Sold panel state). */
-    let ccNsDrawPendingFile = null;
-    let ccNsDrawPreviewObjUrl = null;
-
-    function ccShowDrawPreview(url) {
-      document.getElementById('ccDrawThumb').src = url;
-      document.getElementById('ccDrawPreview').style.display = 'block';
-      document.getElementById('ccDrawBtn').style.display = 'none';
-    }
-
-    function ccRemoveDrawSheet() {
-      if (ccDrawPreviewObjUrl) {
-        URL.revokeObjectURL(ccDrawPreviewObjUrl);
-        ccDrawPreviewObjUrl = null;
-      }
-      ccDrawPendingFile = null;
-      document.getElementById('ccDrawThumb').src = '';
-      document.getElementById('ccDrawPreview').style.display = 'none';
-      document.getElementById('ccDrawBtn').style.display = 'block';
-      const fin = document.getElementById('ccDrawFile');
-      if (fin) fin.value = '';
-    }
-
-    function ccOnDrawFileSelected(input) {
-      const file = input.files[0];
-      if (!file) return;
-      if (ccDrawPreviewObjUrl) {
-        URL.revokeObjectURL(ccDrawPreviewObjUrl);
-        ccDrawPreviewObjUrl = null;
-      }
-      ccDrawPendingFile = file;
-      ccDrawPreviewObjUrl = URL.createObjectURL(file);
-      ccShowDrawPreview(ccDrawPreviewObjUrl);
-    }
-
-    function ccNsShowDrawPreview(url) {
-      document.getElementById('ccNsDrawThumb').src = url;
-      document.getElementById('ccNsDrawPreview').style.display = 'block';
-      document.getElementById('ccNsDrawBtn').style.display = 'none';
-    }
-
-    function ccNsRemoveDrawSheet() {
-      if (ccNsDrawPreviewObjUrl) {
-        URL.revokeObjectURL(ccNsDrawPreviewObjUrl);
-        ccNsDrawPreviewObjUrl = null;
-      }
-      ccNsDrawPendingFile = null;
-      const thumb = document.getElementById('ccNsDrawThumb');
-      const prev = document.getElementById('ccNsDrawPreview');
-      const btn = document.getElementById('ccNsDrawBtn');
-      const fin = document.getElementById('ccNsDrawFile');
-      if (thumb) thumb.src = '';
-      if (prev) prev.style.display = 'none';
-      if (btn) btn.style.display = 'block';
-      if (fin) fin.value = '';
-    }
-
-    function ccNsOnDrawFileSelected(input) {
-      const file = input.files[0];
-      if (!file) return;
-      if (ccNsDrawPreviewObjUrl) {
-        URL.revokeObjectURL(ccNsDrawPreviewObjUrl);
-        ccNsDrawPreviewObjUrl = null;
-      }
-      ccNsDrawPendingFile = file;
-      ccNsDrawPreviewObjUrl = URL.createObjectURL(file);
-      ccNsShowDrawPreview(ccNsDrawPreviewObjUrl);
-      // Clear error highlight once file is chosen
-      const drawBtn = document.getElementById('ccNsDrawBtn');
-      const drawBox = document.getElementById('ccDrawSheetBox');
-      if (drawBtn) { drawBtn.style.borderColor = ''; drawBtn.style.background = ''; }
-      if (drawBox) drawBox.style.outline = '';
-    }
-
-    function esShowDrawPreview(url) {
-      document.getElementById('esDrawThumb').src = url;
-      document.getElementById('esDrawPreview').style.display = 'block';
-      document.getElementById('esDrawBtn').style.display = 'none';
-    }
-
-    function esRemoveDrawSheet() {
-      esDrawSheetUrl = null;
-      document.getElementById('esDrawThumb').src = '';
-      document.getElementById('esDrawPreview').style.display = 'none';
-      document.getElementById('esDrawBtn').style.display = 'block';
-      document.getElementById('esDrawFile').value = '';
-    }
-
-    function compressImage(file, maxW, quality) {
-      return new Promise(resolve => {
-        if (file.type === 'application/pdf') { resolve(file); return; }
-        const img = new Image();
-        const url = URL.createObjectURL(file);
-        img.onload = () => {
-          URL.revokeObjectURL(url);
-          const scale = Math.min(1, maxW / Math.max(img.width, img.height));
-          const canvas = document.createElement('canvas');
-          canvas.width = Math.round(img.width * scale);
-          canvas.height = Math.round(img.height * scale);
-          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob(blob => resolve(blob || file), 'image/jpeg', quality);
-        };
-        img.src = url;
-      });
-    }
-
-    /** Storage bucket `draw-sheets`, object path `{userId}/{leadId}.{jpg|pdf}` — same as original not-sold edit feature. */
-    async function uploadDrawSheetFile(file, userId, leadIdForPath) {
-      const compressed = await compressImage(file, 1200, 0.70);
-      const ext = file.type === 'application/pdf' ? 'pdf' : 'jpg';
-      const path = `${userId}/${leadIdForPath}.${ext}`;
-      const { error } = await sb.storage.from('draw-sheets').upload(path, compressed, { upsert: true, contentType: ext === 'pdf' ? 'application/pdf' : 'image/jpeg' });
-      if (error) return { error };
-      const { data: { publicUrl } } = sb.storage.from('draw-sheets').getPublicUrl(path);
-      return { publicUrl };
-    }
-
-    async function esHandleDrawUpload(input) {
-      const file = input.files[0];
-      if (!file) return;
-      document.getElementById('esDrawUploading').style.display = 'block';
-      document.getElementById('esDrawBtn').style.display = 'none';
-      try {
-        const { data: { user } } = await sb.auth.getUser();
-        if (!user) { toast('Sign in to upload', 'err'); document.getElementById('esDrawBtn').style.display = 'block'; return; }
-        const idPart = editLeadId || crypto.randomUUID();
-        const res = await uploadDrawSheetFile(file, user.id, idPart);
-        if (res.error) { toast('Upload failed: ' + res.error.message, 'err'); document.getElementById('esDrawBtn').style.display = 'block'; return; }
-        esDrawSheetUrl = res.publicUrl;
-        esShowDrawPreview(res.publicUrl);
-        toast('Draw sheet uploaded ✓', 'ok');
-      } catch (e) {
-        toast('Upload failed', 'err');
-        document.getElementById('esDrawBtn').style.display = 'block';
-      } finally {
-        document.getElementById('esDrawUploading').style.display = 'none';
-      }
-    }
-
-    function viewDrawSheet(url) {
-      const overlay = document.getElementById('drawSheetOverlay');
-      document.getElementById('drawSheetImg').src = url;
-      document.getElementById('drawSheetDl').href = url;
-      overlay.style.display = 'flex';
-    }
-
-    function closeDrawSheet() {
-      document.getElementById('drawSheetOverlay').style.display = 'none';
-    }
-
     function esTogglePaid() {
       esIsPaid = !esIsPaid;
       document.getElementById('esPaidChk').classList.toggle('on', esIsPaid);
@@ -5462,7 +5239,6 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         payload.sale_amount = contact.leftAt;
         payload.retail_price = nsRetail;
         payload.par_price = nsRetail ? Math.round(nsRetail * 0.65 * 100) / 100 : null;
-        payload.draw_sheet_url = esDrawSheetUrl || null;
         payload.commission_amount = null;
         payload.commission_paid = false;
 
@@ -6541,10 +6317,6 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     /** Required on every not-sold log: last price, customer name, phone, follow-up date. */
     function clearFieldErrors() {
       document.querySelectorAll('.fi-error').forEach(el => el.classList.remove('fi-error'));
-      const drawBtn = document.getElementById('ccNsDrawBtn');
-      const drawBox = document.getElementById('ccDrawSheetBox');
-      if (drawBtn) { drawBtn.style.borderColor = ''; drawBtn.style.background = ''; }
-      if (drawBox) drawBox.style.outline = '';
       const fuBox = document.getElementById('ccFollowUpBox');
       if (fuBox) fuBox.style.outline = '';
     }
@@ -6556,7 +6328,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       const fuPhone = (fuPhoneEl?.value || '').trim().replace(/\D/g, '');
       const fuDate = fuDateEl?.value || '';
 
-      // Skip contact/price/draw checks for non-interaction reasons (not home, no demo)
+      // Skip contact/price checks for non-interaction reasons (not home, no demo)
       const reasonObj = reasons.find(r => String(r.id) === String(selCcReason));
       const label = (reasonObj?.label || '').toLowerCase();
       const isNoContact = label.includes('not home') || label.includes('no demo') || label.includes('no one home');
@@ -6704,8 +6476,6 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (document.getElementById('qcSoldAt')) document.getElementById('qcSoldAt').value = '';
       if (document.getElementById('qcFinPlan')) document.getElementById('qcFinPlan').value = '';
       // Sale form is always the only outcome now — keep it visible (no toggle buttons to reset)
-      ccRemoveDrawSheet();
-      ccNsRemoveDrawSheet();
     }
 
     function buildCcReasonList() {
@@ -6731,14 +6501,9 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       const priceRow   = document.getElementById('ccNotPriceRow');
       const contactRow = document.getElementById('ccNotContactRow');
       const fuBox      = document.getElementById('ccFollowUpBox');
-      const drawBox    = document.getElementById('ccDrawSheetBox');
-      const drawReqLbl = document.getElementById('ccDrawSheetReqLabel');
       if (priceRow)   priceRow.style.display   = isNoContact ? 'none' : '';
       if (contactRow) contactRow.style.display = isNoContact ? 'none' : '';
       if (fuBox)      fuBox.style.display      = isNoContact ? 'none' : '';
-      if (drawBox)    drawBox.style.display     = isNoContact ? 'none' : '';
-      // Update draw sheet label to show required/optional
-      if (drawReqLbl) drawReqLbl.textContent = isNoContact ? '(optional)' : '(required)';
       // Clear those fields when hidden so stale data isn't submitted
       if (isNoContact) {
         document.getElementById('ccNotLeftAt').value  = '';
@@ -6852,20 +6617,6 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
             notes || '',
             1
           ), 700);
-        }
-
-        if (ccNsDrawPendingFile && data.id) {
-          const { data: auth } = await sb.auth.getUser();
-          const user = auth?.user;
-          if (user) {
-            const res = await uploadDrawSheetFile(ccNsDrawPendingFile, user.id, data.id);
-            if (res.error) {
-              toast('Lead saved; draw sheet upload failed — add it from History (edit).', 'err');
-            } else {
-              const { error: linkErr } = await sb.from('leads').update({ draw_sheet_url: res.publicUrl }).eq('id', data.id);
-              if (linkErr) console.error(linkErr);
-            }
-          }
         }
 
         showUndo(quotingAppt ? 'Appointment marked not sold' : 'Not sold lead logged + Follow-up scheduled');
