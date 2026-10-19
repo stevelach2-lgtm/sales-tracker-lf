@@ -2130,6 +2130,7 @@
               style="flex:1; border:1.5px solid var(--border); border-radius:8px; padding:6px 10px; font-family:'Inter',sans-serif; font-size:12px; outline:none">
           </div>
         </div>
+        <div id="dashApptCard" style="display:none;margin:4px 12px 12px"></div>
         <!-- Installations Action Center -->
         <div id="instActionCenter"
           style="display:none; background:linear-gradient(135deg, #F0FDF4, #DCFCE7); border:1.5px solid #86EFAC; border-radius:14px; padding:12px 16px; margin-bottom:14px; align-items:center; justify-content:space-between; cursor:pointer"
@@ -2491,6 +2492,32 @@
       </div>
   <!-- QUOTE TAB -->
   <div id="p-quote" class="page">
+    <div id="apptActiveBar" style="display:none;margin:12px 14px 0;background:#EEF2FF;border:1.5px solid #A5B4FC;border-radius:12px;padding:10px 12px"></div>
+    <div id="apptCard" style="margin:12px 14px 0;background:#fff;border:1.5px solid #C7D2FE;border-radius:14px;padding:12px 12px 8px;box-shadow:0 1px 4px rgba(99,102,241,.08)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
+        <div style="font-size:13px;font-weight:800;color:#312E81">📅 Upcoming Appointments</div>
+        <button type="button" onclick="toggleAddAppt()" style="background:#EEF2FF;border:1.5px solid #C7D2FE;color:#3730A3;border-radius:8px;padding:6px 10px;font-family:'Inter',sans-serif;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">+ Add appointment</button>
+      </div>
+      <div id="apptAddForm" style="display:none;background:#F9FAFB;border:1.5px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px">
+        <label class="fl">Customer name</label>
+        <input type="text" class="fi" id="apptAddName" placeholder="Customer name" autocomplete="name" style="margin-bottom:8px;font-size:13px;padding:10px 12px">
+        <label class="fl">Address</label>
+        <input type="text" class="fi" id="apptAddAddr" placeholder="Street, city, state" autocomplete="street-address" style="margin-bottom:8px;font-size:13px;padding:10px 12px">
+        <label class="fl">Date &amp; time (Eastern)</label>
+        <input type="datetime-local" class="fi" id="apptAddWhen" style="margin-bottom:8px;font-size:13px;padding:10px 12px">
+        <label class="fl">Phone <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+        <input type="tel" class="fi" id="apptAddPhone" placeholder="555-555-5555" autocomplete="tel" style="margin-bottom:8px;font-size:13px;padding:10px 12px">
+        <div style="display:flex;gap:8px">
+          <button type="button" onclick="saveNewAppointment()" style="flex:1;background:var(--green);color:#fff;border:none;border-radius:9px;padding:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Save appointment</button>
+          <button type="button" onclick="toggleAddAppt()" style="background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:10px 12px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">Cancel</button>
+        </div>
+      </div>
+      <div id="apptList"><div style="font-size:12px;color:var(--muted);padding:8px 0">Loading appointments…</div></div>
+      <details id="apptMissedWrap" style="display:none;margin-top:4px;border-top:1px solid #EEF2FF;padding-top:4px">
+        <summary id="apptMissedSummary" style="font-size:12px;font-weight:800;color:#92400E;cursor:pointer;padding:6px 0">Missed / not quoted</summary>
+        <div id="apptMissedList"></div>
+      </details>
+    </div>
     <div style="padding:14px 14px 0;display:flex;align-items:center;justify-content:space-between;gap:10px">
       <div style="font-size:17px;font-weight:800">💰 Customer Quote Calculator</div>
       <button onclick="openPriceListEditor()"
@@ -2636,6 +2663,7 @@
             </div>
             <div id="ccCalBannerAddr" style="font-size:10px;color:#4338CA;margin-top:1px"></div>
             <div id="ccCalBannerLeadId" style="display:none;margin-top:5px;font-size:11px;font-weight:700;color:#1E1B4B;background:#C7D2FE;border-radius:6px;padding:4px 8px;cursor:pointer;text-align:center"></div>
+            <button type="button" id="ccCalBannerClear" onclick="clearActiveAppointment()" style="display:none;margin-top:6px;background:transparent;border:none;padding:0;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;color:#4338CA;text-decoration:underline;cursor:pointer">Clear appointment</button>
           </div>
 
           <!-- SOLD panel -->
@@ -3382,7 +3410,12 @@
     let selReason = null;
     let selCcReason = null;
     let lastId = null;
+    let lastUndo = null;
     let undoTimer = null;
+    let activeAppointment = null;
+    let pendingAppointments = [];
+    let leadSaveInFlight = false;
+    let locSaveToken = 0;
     let chartInst = null;
 
     // ─────────────────────────────────────────
@@ -3808,6 +3841,8 @@
     }
 
     function calcM(leads) {
+      // Pending appointments are not visits that have been worked yet.
+      leads = (leads || []).filter(l => l.status !== 'pending');
       const sold = leads.filter(l => l.status === 'sold' && !l.is_cancelled && !l.is_btd);
       const rev = sold.reduce((s, l) => s + (parseFloat(l.sale_amount) || 0), 0);
       const n = leads.length;
@@ -3868,6 +3903,7 @@
       document.getElementById('heroDate').textContent =
         new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
       document.getElementById('mgrid').innerHTML = '<div class="loading" style="grid-column:1/-1"><div class="spinner"></div></div>';
+      loadAppointments();
       // Restore any unlogged calendar leads from previous sessions immediately
       const persisted = calLeadsLoad();
       if (persisted.length && !window.calendarLeads?.length) {
@@ -3885,8 +3921,8 @@
         { data: prv },
         { data: ytd }
       ] = await Promise.all([
-        sb.from('leads').select('*, not_sold_reasons(label)').not('sales_date', 'is', null).gte('sales_date', csDate).lte('sales_date', ceDate),
-        sb.from('leads').select('*, not_sold_reasons(label)').not('sales_date', 'is', null).gte('sales_date', psDate).lte('sales_date', peDate),
+        sb.from('leads').select('*, not_sold_reasons(label)').neq('status', 'pending').not('sales_date', 'is', null).gte('sales_date', csDate).lte('sales_date', ceDate),
+        sb.from('leads').select('*, not_sold_reasons(label)').neq('status', 'pending').not('sales_date', 'is', null).gte('sales_date', psDate).lte('sales_date', peDate),
         sb.from('leads').select('commission_amount,commission_paid,is_cancelled').eq('status', 'sold').eq('is_cancelled', false).not('sales_date', 'is', null).gte('sales_date', ytdStartDate)
       ]);
       const c = calcM(cur || []), p = calcM(prv || []);
@@ -3914,7 +3950,8 @@
       const { data: instsToday, error: instErr } = await sb.from('leads')
         .select('id')
         .eq('install_date', todayStr)
-        .neq('is_cancelled', true);
+        .neq('is_cancelled', true)
+        .neq('status', 'pending');
 
       if (instErr) {
         console.error('Install load error:', instErr);
@@ -4352,6 +4389,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
 
         // Query 1: Active follow-ups
         let qActive = sb.from('leads').select('id,followup_name,followup_phone,followup_date,followup_done,status,notes,is_cancelled,sales_date,not_sold_reasons(label)')
+          .neq('status', 'pending')
           .not('followup_date', 'is', null)
           .order('followup_date', { ascending: true });
 
@@ -4585,7 +4623,9 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
 
     function saveLocationForLead(leadId, address) {
       if (!leadId || !address || !address.trim()) return;
+      const token = locSaveToken;
       geocodeAddress(address).then(coords => {
+        if (token !== locSaveToken) return;
         if (coords) {
           sb.from('leads').update({ lat: coords.lat, lng: coords.lng }).eq('id', leadId)
             .then(r => { if (r?.error) console.warn('Location save failed:', r.error); })
@@ -4614,6 +4654,9 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     }
 
     async function submitLead(type) {
+      if (leadSaveInFlight) return false;
+      leadSaveInFlight = true;
+      try {
       if (type === 'sold') {
         const amt = parseFloat(document.getElementById('saleAmt').value);
         if (!amt || amt <= 0) { toast('Enter a valid sale amount', 'err'); return; }
@@ -4648,16 +4691,27 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           lead_code: document.getElementById('calLeadCode').value || null
         };
 
-        let { data, error } = await sb.from('leads').insert(payload).select().single();
+        const quotingAppt = activeAppointment;
+        const restore = quotingAppt ? pendingRestorePayload(quotingAppt) : null;
+        const writeSold = (row) => quotingAppt
+          ? sb.from('leads').update(row).eq('id', quotingAppt.id).eq('status', 'pending').select().single()
+          : sb.from('leads').insert(row).select().single();
+        let { data, error } = await writeSold(payload);
         if (error && (error.message || '').includes('product')) {
           const fallback = { ...payload };
           delete fallback.product;
-          ({ data, error } = await sb.from('leads').insert(fallback).select().single());
+          ({ data, error } = await writeSold(fallback));
         }
         if (error) {
           toast('Save failed: ' + (error.message || 'unknown error'), 'err');
           console.error('[sold save]', error);
           return false;
+        }
+        if (quotingAppt) {
+          lastUndo = { mode: 'revert', id: quotingAppt.id, restore };
+          activeAppointment = null;
+        } else {
+          lastUndo = { mode: 'delete', id: data.id };
         }
         lastId = data.id;
         saveLocationForLead(data.id, document.getElementById('calCustAddr').value || null);
@@ -4677,7 +4731,10 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           }
         }
 
-        showUndo('Sale of $' + amt.toLocaleString() + ' logged!');
+        showUndo(quotingAppt
+          ? 'Sale of $' + amt.toLocaleString() + ' saved on the appointment'
+          : 'Sale of $' + amt.toLocaleString() + ' logged!');
+        loadAppointments();
         resetLog();
         return true;
       } else {
@@ -4708,12 +4765,27 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           followup_done: false
         };
 
-        const { data, error } = await sb.from('leads').insert(payload).select().single();
+        const quotingAppt = activeAppointment;
+        const restore = quotingAppt ? pendingRestorePayload(quotingAppt) : null;
+        const writeNs = (row) => quotingAppt
+          ? sb.from('leads').update(row).eq('id', quotingAppt.id).eq('status', 'pending').select().single()
+          : sb.from('leads').insert(row).select().single();
+        const { data, error } = await writeNs(payload);
         if (error) { toast('Error saving lead', 'err'); return; }
+        if (quotingAppt) {
+          lastUndo = { mode: 'revert', id: quotingAppt.id, restore };
+          activeAppointment = null;
+        } else {
+          lastUndo = { mode: 'delete', id: data.id };
+        }
         lastId = data.id;
         saveGPSForLead(data.id);
-        showUndo('Not sold lead logged + Follow-up scheduled');
+        showUndo(quotingAppt ? 'Appointment marked not sold' : 'Not sold lead logged + Follow-up scheduled');
+        loadAppointments();
         resetLog();
+      }
+      } finally {
+        leadSaveInFlight = false;
       }
     }
 
@@ -4725,16 +4797,27 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       document.getElementById('undoMsg').textContent = msg;
       bar.classList.add('show');
       clearTimeout(undoTimer);
-      undoTimer = setTimeout(() => { bar.classList.remove('show'); lastId = null; }, 5000);
+      undoTimer = setTimeout(() => { bar.classList.remove('show'); lastId = null; lastUndo = null; }, 5000);
     }
 
     async function undoLead() {
-      if (!lastId) return;
-      await sb.from('leads').delete().eq('id', lastId);
+      const undo = lastUndo || (lastId ? { mode: 'delete', id: lastId } : null);
+      if (!undo || !undo.id) return;
+      locSaveToken++;
+      if (undo.mode === 'revert') {
+        const { error } = await sb.from('leads').update(undo.restore).eq('id', undo.id);
+        if (error) { toast('Undo failed', 'err'); console.error(error); return; }
+        toast('Back to pending ✓', 'ok');
+      } else {
+        await sb.from('leads').delete().eq('id', undo.id);
+        toast('Lead removed ✓', 'ok');
+      }
       lastId = null;
+      lastUndo = null;
       document.getElementById('undoBar').classList.remove('show');
       clearTimeout(undoTimer);
-      toast('Lead removed ✓', 'ok');
+      if (document.getElementById('p-dash')?.classList.contains('active')) loadDash();
+      else loadAppointments();
     }
 
     function drillIntoReason(reasonId) {
@@ -4821,7 +4904,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         return db - da;
       });
 
-      let query = sb.from('leads').select('*, not_sold_reasons(label)');
+      let query = sb.from('leads').select('*, not_sold_reasons(label)').neq('status', 'pending');
 
       if (filterReason) {
         query = query.eq('reason_id', filterReason);
@@ -4840,13 +4923,13 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
 
       const { data: d, error } = await query;
       if (error) { el.innerHTML = '<p style="color:var(--red);padding:12px">Error loading</p>'; return; }
-      window._currentHistLeads = sortByDate(d || []);
+      window._currentHistLeads = sortByDate((d || []).filter(l => l.status !== 'pending'));
       renderHist(window._currentHistLeads);
     }
 
     function exportKML() {
       const leads = window._currentHistLeads || [];
-      const withLoc = leads.filter(l => l.lat && l.lng);
+      const withLoc = leads.filter(l => l.lat && l.lng && l.status !== 'pending');
       if (withLoc.length === 0) {
         toast('No leads with location data to export in this range.', 'err');
         return;
@@ -4899,6 +4982,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     }
 
     function renderHist(leads) {
+      leads = (leads || []).filter(l => l.status !== 'pending');
       const el = document.getElementById('histList');
       if (!leads.length) { el.innerHTML = '<div class="empty"><div class="ei">📋</div><p>No leads in this range yet</p></div>'; return; }
       const todayStr = localDate(new Date());
@@ -4930,7 +5014,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const displayDate = l.sales_date
           ? new Date(l.sales_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
           : '—';
-        const main = sold ? '$' + (parseFloat(l.sale_amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 0 }) : (l.not_sold_reasons?.label || 'No reason');
+        const noteLine = escHtml(((l.notes || '').split('\n').map(s => s.trim()).filter(Boolean)[0]) || '');
+        const main = sold ? '$' + (parseFloat(l.sale_amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 0 }) : (l.not_sold_reasons?.label || noteLine || 'No reason');
         const tags = [];
         if (l.sale_type === 'combo') tags.push('<span style="font-size:9px;font-weight:700;background:#E0F4FF;color:#0077A8;border-radius:4px;padding:1px 5px">COMBO</span>');
         if (l.lead_type === 'rehash') tags.push('<span style="font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 5px">REHASH</span>');
@@ -5012,6 +5097,10 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       editLeadId = id;
       const { data: l, error } = await sb.from('leads').select('*, not_sold_reasons(label)').eq('id', id).single();
       if (error || !l) { toast('Could not load lead', 'err'); return; }
+      if (l.status === 'pending') {
+        startAppointment(l);
+        return;
+      }
       esProduct = l.product || 'leaffilter';
 
       esInitialStatus = l.status;
@@ -6566,6 +6655,11 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
 
     function ccResetLogPanel() {
       window.activeCalendarLead = null;
+      activeAppointment = null;
+      const apptBar = document.getElementById('apptActiveBar');
+      if (apptBar) { apptBar.style.display = 'none'; apptBar.innerHTML = ''; }
+      const apptClear = document.getElementById('ccCalBannerClear');
+      if (apptClear) apptClear.style.display = 'none';
       const banner = document.getElementById('ccCalBanner');
       if (banner) banner.style.display = 'none';
       const leadIdBadge = document.getElementById('ccCalBannerLeadId');
@@ -6679,6 +6773,9 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           toast('Save failed: ' + (e?.message || 'unknown error'), 'err');
         }
       } else {
+        if (leadSaveInFlight) return;
+        leadSaveInFlight = true;
+        try {
         if (!selCcReason) { toast('Please select a reason', 'err'); return; }
         const contact = validateNotSoldRequired({
           leftAtEl: document.getElementById('ccNotLeftAt'),
@@ -6714,22 +6811,33 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           customer_phone: document.getElementById('calCustPhone').value || null,
           lead_code: document.getElementById('calLeadCode').value || null
         };
-        let { data, error } = await sb.from('leads').insert(payload).select().single();
+        const quotingAppt = activeAppointment;
+        const restore = quotingAppt ? pendingRestorePayload(quotingAppt) : null;
+        const writeNs = (row) => quotingAppt
+          ? sb.from('leads').update(row).eq('id', quotingAppt.id).eq('status', 'pending').select().single()
+          : sb.from('leads').insert(row).select().single();
+        let { data, error } = await writeNs(payload);
         if (error && (error.message || '').includes('retail_price') || (error && (error.message || '').includes('par_price'))) {
           const fallback = { ...payload };
           delete fallback.retail_price;
           delete fallback.par_price;
-          ({ data, error } = await sb.from('leads').insert(fallback).select().single());
+          ({ data, error } = await writeNs(fallback));
         }
         if (error && (error.message || '').includes('product')) {
           const fallback = { ...payload };
           delete fallback.product;
-          ({ data, error } = await sb.from('leads').insert(fallback).select().single());
+          ({ data, error } = await writeNs(fallback));
         }
         if (error) {
           toast('Save failed: ' + (error.message || 'unknown error'), 'err');
           console.error('[not_sold save]', error);
           return;
+        }
+        if (quotingAppt) {
+          lastUndo = { mode: 'revert', id: quotingAppt.id, restore };
+          activeAppointment = null;
+        } else {
+          lastUndo = { mode: 'delete', id: data.id };
         }
         lastId = data.id;
         saveLocationForLead(data.id, document.getElementById('calCustAddr').value || null);
@@ -6760,11 +6868,15 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           }
         }
 
-        showUndo('Not sold lead logged + Follow-up scheduled');
+        showUndo(quotingAppt ? 'Appointment marked not sold' : 'Not sold lead logged + Follow-up scheduled');
+        loadAppointments();
         ccResetLogPanel();
         document.getElementById('ccNotPanel').style.display = 'none';
         document.getElementById('ccOutcomeNot').style.background = '#fff';
         document.getElementById('ccOutcomeNot').style.color = '#E53935';
+        } finally {
+          leadSaveInFlight = false;
+        }
       }
     }
 
@@ -6788,7 +6900,392 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     // nothing to "close", so this intentionally does nothing.
     function closeQuoteCalc(e) {}
 
+    // ─────────────────────────────────────────
+    // PRE-ENTERED APPOINTMENTS
+    // status='pending' rows are scheduled visits. They stay out of sales,
+    // commission, close rate, history, follow-ups, and the map until quoted.
+    // ─────────────────────────────────────────
+    const ET_TZ = 'America/New_York';
+
+    function escHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+
+    function tzOffsetMinutes(date, timeZone) {
+      const dtf = new Intl.DateTimeFormat('en-US', {
+        timeZone, hourCycle: 'h23',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+      const map = {};
+      dtf.formatToParts(date).forEach(p => { map[p.type] = p.value; });
+      const asUTC = Date.UTC(+map.year, +map.month - 1, +map.day, (+map.hour) % 24, +map.minute, +map.second);
+      return (asUTC - date.getTime()) / 60000;
+    }
+
+    function etLocalInputToIso(dateTimeLocal) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(dateTimeLocal || '');
+      if (!m) return null;
+      const Y = +m[1], Mo = +m[2], D = +m[3], h = +m[4], mi = +m[5];
+      let offset = tzOffsetMinutes(new Date(Date.UTC(Y, Mo - 1, D, h, mi)), ET_TZ);
+      const utc = Date.UTC(Y, Mo - 1, D, h, mi) - offset * 60000;
+      offset = tzOffsetMinutes(new Date(utc), ET_TZ);
+      return new Date(Date.UTC(Y, Mo - 1, D, h, mi) - offset * 60000).toISOString();
+    }
+
+    function todayEtKey() {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: ET_TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    }
+
+    function apptDateKey(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      return new Intl.DateTimeFormat('en-CA', { timeZone: ET_TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+    }
+
+    function formatApptTime(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      return new Intl.DateTimeFormat('en-US', { timeZone: ET_TZ, hour: 'numeric', minute: '2-digit' }).format(d);
+    }
+
+    function apptWhenLabel(iso) {
+      const dateKey = apptDateKey(iso);
+      const time = formatApptTime(iso);
+      if (!dateKey) return 'No time set';
+      const today = todayEtKey();
+      let day;
+      if (dateKey === today) day = 'Today';
+      else {
+        const [Y, M, D] = today.split('-').map(Number);
+        const tomorrowKey = new Date(Date.UTC(Y, M - 1, D + 1)).toISOString().slice(0, 10);
+        day = dateKey === tomorrowKey
+          ? 'Tomorrow'
+          : new Intl.DateTimeFormat('en-US', { timeZone: ET_TZ, weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(iso));
+      }
+      return time ? day + ' · ' + time + ' ET' : day;
+    }
+
+    function pendingRestorePayload(appt) {
+      return {
+        status: 'pending',
+        customer_name: appt.customer_name ?? null,
+        customer_address: appt.customer_address ?? null,
+        customer_phone: appt.customer_phone ?? null,
+        lead_id: appt.lead_id ?? null,
+        lead_code: appt.lead_code ?? null,
+        sf_opportunity_name: appt.sf_opportunity_name ?? null,
+        appointment_at: appt.appointment_at ?? null,
+        notes: appt.notes ?? null,
+        product: appt.product || 'leaffilter',
+        sale_type: appt.sale_type || 'single',
+        lead_type: appt.lead_type || 'company',
+        sale_amount: null,
+        reason_id: null,
+        job_number: null,
+        sales_date: null,
+        install_date: null,
+        commission_amount: null,
+        commission_paid: false,
+        is_cancelled: false,
+        is_btd: false,
+        followup_name: null,
+        followup_phone: null,
+        followup_date: null,
+        followup_done: false,
+        retail_percentage: null,
+        commission_percentage: null,
+        retail_price: null,
+        par_price: null,
+        draw_sheet_url: null,
+        lat: null,
+        lng: null,
+        pay_push_weeks: appt.pay_push_weeks || 0
+      };
+    }
+
+    function matchingNoShowReason() {
+      return (reasons || []).find(r => {
+        const label = (r.label || '').toLowerCase();
+        return label.includes('no show') || label.includes('no-show') || label.includes('cancel');
+      }) || null;
+    }
+
+    function appendNoShowNote(existing) {
+      const line = 'No show / cancelled';
+      const base = (existing || '').trim();
+      if (!base) return line;
+      if (base.toLowerCase().includes(line.toLowerCase())) return base;
+      return base + '\n' + line;
+    }
+
+    function renderActiveApptBar() {
+      const bar = document.getElementById('apptActiveBar');
+      if (!bar) return;
+      const appt = activeAppointment;
+      if (!appt) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+      bar.style.display = 'block';
+      bar.innerHTML = '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">'
+        + '<div style="min-width:0">'
+        + '<div style="font-size:10px;font-weight:800;color:#3730A3;letter-spacing:.4px">QUOTING THIS APPOINTMENT</div>'
+        + '<div style="font-size:14px;font-weight:800;color:#1E1B4B">' + escHtml(appt.customer_name || 'Appointment') + '</div>'
+        + '<div style="font-size:11px;color:#4338CA">' + escHtml(apptWhenLabel(appt.appointment_at)) + '</div>'
+        + '<div style="font-size:11px;color:#4338CA">' + escHtml(appt.customer_address || '') + '</div>'
+        + '</div>'
+        + '<button type="button" onclick="clearActiveAppointment()" style="background:#fff;border:1.5px solid #C7D2FE;color:#3730A3;border-radius:8px;padding:6px 8px;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0">Clear</button>'
+        + '</div>';
+    }
+
+    function apptRowHtml(a) {
+      const active = activeAppointment && activeAppointment.id === a.id;
+      const notes = (a.notes || '').trim();
+      return '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 4px;border-top:1px solid #EEF2FF;'
+        + (active ? 'background:#EEF2FF;border-radius:8px;' : '') + '">'
+        + '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:11px;font-weight:800;color:#4338CA">' + escHtml(apptWhenLabel(a.appointment_at)) + '</div>'
+        + '<div style="font-size:14px;font-weight:800;color:#1E1B4B;line-height:1.3">' + escHtml(a.customer_name || 'No name') + '</div>'
+        + '<div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(a.customer_address || '') + '</div>'
+        + (a.customer_phone ? '<div style="font-size:11px;color:var(--muted)">' + escHtml(a.customer_phone) + '</div>' : '')
+        + (notes ? '<div style="font-size:10px;color:#92400E;margin-top:2px;line-height:1.35">' + escHtml(notes) + '</div>' : '')
+        + '</div>'
+        + '<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">'
+        + '<button type="button" onclick="startAppointment(\'' + a.id + '\')" style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:8px 10px;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer">Start Quote</button>'
+        + '<button type="button" onclick="markAppointmentNoShow(\'' + a.id + '\')" style="background:#fff;color:#B91C1C;border:1.5px solid #FECACA;border-radius:8px;padding:7px 10px;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:700;cursor:pointer">No show</button>'
+        + '</div></div>';
+    }
+
+    function renderAppointments() {
+      const today = todayEtKey();
+      const upcoming = pendingAppointments
+        .filter(a => apptDateKey(a.appointment_at) >= today)
+        .sort((a, b) => new Date(a.appointment_at) - new Date(b.appointment_at));
+      const missed = pendingAppointments
+        .filter(a => apptDateKey(a.appointment_at) < today)
+        .sort((a, b) => new Date(b.appointment_at || 0) - new Date(a.appointment_at || 0));
+
+      const list = document.getElementById('apptList');
+      if (list) {
+        list.innerHTML = upcoming.length
+          ? upcoming.map(apptRowHtml).join('')
+          : '<div style="font-size:12px;color:var(--muted);padding:8px 2px 10px">No upcoming appointments</div>';
+      }
+      const missedWrap = document.getElementById('apptMissedWrap');
+      const missedList = document.getElementById('apptMissedList');
+      const missedSummary = document.getElementById('apptMissedSummary');
+      if (missedWrap && missedList) {
+        if (!missed.length) {
+          missedWrap.style.display = 'none';
+          missedList.innerHTML = '';
+        } else {
+          missedWrap.style.display = 'block';
+          if (missedSummary) missedSummary.textContent = 'Missed / not quoted (' + missed.length + ')';
+          missedList.innerHTML = missed.map(apptRowHtml).join('');
+        }
+      }
+
+      const dash = document.getElementById('dashApptCard');
+      if (dash) {
+        if (!upcoming.length && !missed.length) {
+          dash.style.display = 'none';
+          dash.innerHTML = '';
+        } else {
+          dash.style.display = 'block';
+          const rows = upcoming.map(a =>
+            '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid #E0E7FF">'
+            + '<div style="flex:1;min-width:0">'
+            + '<div style="font-size:11px;font-weight:800;color:#4338CA">' + escHtml(apptWhenLabel(a.appointment_at)) + '</div>'
+            + '<div style="font-size:13px;font-weight:800;color:#1E1B4B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(a.customer_name || 'No name') + '</div>'
+            + '<div style="font-size:10px;color:#6366F1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(a.customer_address || '') + '</div>'
+            + '</div>'
+            + '<button type="button" onclick="startAppointment(\'' + a.id + '\')" style="background:#fff;color:#166534;border:1.5px solid #86EFAC;border-radius:8px;padding:6px 8px;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0">Quote</button>'
+            + '</div>'
+          ).join('');
+          const missedLine = missed.length
+            ? '<button type="button" onclick="goTo(\'quote\')" style="margin-top:6px;background:transparent;border:none;padding:0;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:700;color:#92400E;cursor:pointer">' + missed.length + ' missed / not quoted</button>'
+            : '';
+          dash.innerHTML = '<div style="background:#EEF2FF;border:1.5px solid #C7D2FE;border-radius:14px;padding:10px 12px">'
+            + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">'
+            + '<span style="font-size:12px;font-weight:800;color:#312E81">📅 Upcoming</span>'
+            + '<button type="button" onclick="goTo(\'quote\')" style="background:transparent;border:none;color:#3730A3;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer">See all</button>'
+            + '</div>'
+            + (upcoming.length ? rows : '<div style="font-size:12px;color:#4338CA;padding:6px 0">Nothing scheduled ahead</div>')
+            + missedLine
+            + '</div>';
+        }
+      }
+      renderActiveApptBar();
+    }
+
+    async function loadAppointments() {
+      if (!sb) return;
+      const { data, error } = await sb.from('leads')
+        .select('id,customer_name,customer_address,customer_phone,appointment_at,sf_opportunity_name,notes,status,product,sale_type,lead_type,lead_id,lead_code,pay_push_weeks')
+        .eq('status', 'pending')
+        .order('appointment_at', { ascending: true });
+      if (error) {
+        console.warn('loadAppointments', error);
+        const list = document.getElementById('apptList');
+        if (list && !pendingAppointments.length) {
+          list.innerHTML = '<div style="font-size:12px;color:#991B1B;padding:8px 0">Could not load appointments</div>';
+        }
+        return;
+      }
+      pendingAppointments = data || [];
+      if (activeAppointment) {
+        const fresh = pendingAppointments.find(a => a.id === activeAppointment.id);
+        if (fresh) activeAppointment = fresh;
+      }
+      renderAppointments();
+    }
+
+    function applyActiveAppointment(appt) {
+      if (!appt) return;
+      activeAppointment = appt;
+      const banner = document.getElementById('ccCalBanner');
+      if (banner) {
+        banner.style.display = 'block';
+        const nameEl = document.getElementById('ccCalBannerName');
+        const addrEl = document.getElementById('ccCalBannerAddr');
+        const metaEl = document.getElementById('ccCalBannerMeta');
+        if (nameEl) nameEl.textContent = appt.customer_name || 'Appointment';
+        if (addrEl) addrEl.textContent = appt.customer_address || '';
+        if (metaEl) metaEl.textContent = apptWhenLabel(appt.appointment_at);
+      }
+      const leadIdBadge = document.getElementById('ccCalBannerLeadId');
+      if (leadIdBadge) {
+        if (appt.lead_id) {
+          leadIdBadge.textContent = '📋 Lead ID: ' + appt.lead_id + ' (tap to copy)';
+          leadIdBadge.style.display = 'block';
+          leadIdBadge.style.cursor = 'pointer';
+          leadIdBadge.onclick = () => { navigator.clipboard.writeText(appt.lead_id).then(() => toast('Lead ID copied ✓', 'ok')); };
+        } else {
+          leadIdBadge.style.display = 'none';
+          leadIdBadge.onclick = null;
+        }
+      }
+      const clearBtn = document.getElementById('ccCalBannerClear');
+      if (clearBtn) clearBtn.style.display = 'inline-block';
+      const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+      setVal('calLeadId', appt.lead_id || '');
+      setVal('calCustName', appt.customer_name || '');
+      setVal('calCustAddr', appt.customer_address || '');
+      setVal('calCustPhone', appt.customer_phone || '');
+      setVal('calLeadCode', appt.lead_code || '');
+      const name = appt.customer_name || '';
+      const phone = appt.customer_phone || '';
+      setVal('soldCustName', name);
+      setVal('soldCustPhone', phone);
+      document.querySelectorAll('[id="ccNotFuName"]').forEach(el => { el.value = name; });
+      document.querySelectorAll('[id="ccNotFuPhone"]').forEach(el => { el.value = phone; });
+      const leadDate = apptDateKey(appt.appointment_at) || todayEtKey();
+      setVal('salesDate', leadDate);
+      setVal('ccNotSoldDate', leadDate);
+      if (!pendingAppointments.some(a => a.id === appt.id)) pendingAppointments.push(appt);
+      renderAppointments();
+    }
+
+    function startAppointment(idOrAppt) {
+      const appt = (idOrAppt && typeof idOrAppt === 'object')
+        ? idOrAppt
+        : pendingAppointments.find(a => a.id === idOrAppt);
+      if (!appt || !appt.id) { toast('Appointment not found', 'err'); return; }
+      if (!pendingAppointments.some(a => a.id === appt.id)) pendingAppointments.push(appt);
+      activeAppointment = appt;
+      goTo('quote');
+    }
+
+    function clearActiveAppointment() {
+      activeAppointment = null;
+      ccResetLogPanel();
+      renderAppointments();
+      toast('Cleared — logging now adds a new lead', 'ok');
+    }
+
+    function toggleAddAppt() {
+      const form = document.getElementById('apptAddForm');
+      if (!form) return;
+      const open = form.style.display === 'none';
+      form.style.display = open ? 'block' : 'none';
+      if (open) {
+        const when = document.getElementById('apptAddWhen');
+        if (when && !when.value) {
+          const now = new Date();
+          now.setMinutes(0, 0, 0);
+          now.setHours(now.getHours() + 1);
+          const pad = n => String(n).padStart(2, '0');
+          when.value = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + 'T' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+        }
+        document.getElementById('apptAddName')?.focus();
+      }
+    }
+
+    async function saveNewAppointment() {
+      const name = (document.getElementById('apptAddName')?.value || '').trim();
+      const addr = (document.getElementById('apptAddAddr')?.value || '').trim();
+      const when = document.getElementById('apptAddWhen')?.value || '';
+      const phone = (document.getElementById('apptAddPhone')?.value || '').trim();
+      if (!name || !addr || !when) { toast('Name, address, and time are required', 'err'); return; }
+      const appointment_at = etLocalInputToIso(when);
+      if (!appointment_at) { toast('Enter a valid date and time', 'err'); return; }
+      const { error } = await sb.from('leads').insert({
+        status: 'pending',
+        customer_name: name,
+        customer_address: addr,
+        customer_phone: phone || null,
+        appointment_at,
+        sales_date: null,
+        notes: null
+      }).select().single();
+      if (error) { toast('Could not add appointment', 'err'); console.error(error); return; }
+      document.getElementById('apptAddName').value = '';
+      document.getElementById('apptAddAddr').value = '';
+      document.getElementById('apptAddWhen').value = '';
+      document.getElementById('apptAddPhone').value = '';
+      document.getElementById('apptAddForm').style.display = 'none';
+      toast('Appointment added', 'ok');
+      await loadAppointments();
+    }
+
+    async function markAppointmentNoShow(id) {
+      const appt = pendingAppointments.find(a => a.id === id);
+      if (!appt) { toast('Appointment not found', 'err'); return; }
+      const name = appt.customer_name || 'this appointment';
+      if (!confirm('Mark ' + name + ' as no show / cancelled?\n\nIt stays in History as not sold. You can undo for a few seconds.')) return;
+      const reason = matchingNoShowReason();
+      const payload = {
+        status: 'not_sold',
+        sales_date: apptDateKey(appt.appointment_at) || todayEtKey(),
+        notes: appendNoShowNote(appt.notes),
+        reason_id: reason ? reason.id : null,
+        sale_amount: null,
+        commission_amount: null,
+        commission_paid: false,
+        job_number: null,
+        install_date: null,
+        followup_name: null,
+        followup_phone: null,
+        followup_date: null,
+        followup_done: false
+      };
+      const { data, error } = await sb.from('leads').update(payload).eq('id', id).eq('status', 'pending').select('id');
+      if (error || !data || !data.length) { toast('Could not update appointment', 'err'); console.error(error); return; }
+      lastUndo = { mode: 'revert', id, restore: pendingRestorePayload(appt) };
+      lastId = id;
+      if (activeAppointment && activeAppointment.id === id) {
+        activeAppointment = null;
+        ccResetLogPanel();
+      }
+      showUndo(name + ' marked no show / cancelled');
+      if (document.getElementById('p-dash')?.classList.contains('active')) loadDash();
+      else loadAppointments();
+    }
+
     function initQuoteTab() {
+      // ccResetLogPanel() blanks the quote, including any appointment that was
+      // attached. Hold onto it and put it back after the reset.
+      const keepAppt = activeAppointment;
       qcAdminIncluded = localStorage.getItem('cc_admin_default') !== 'false';
       qcAdminInOpening = localStorage.getItem('cc_admin_in_opening') === 'true';
       _qcProduct = 'leaffilter';
@@ -6798,6 +7295,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       renderQCItems();
       updateQcOverageChk();
       calcQuote();
+      if (keepAppt) applyActiveAppointment(keepAppt);
+      loadAppointments();
     }
 
     function setQcProduct(p) {
@@ -7350,20 +7849,27 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const ids = merged.map(l => l.leadId);
         const { data: existing } = await sb.from('leads')
           .select('id, lead_id, status, customer_address')
-          .in('lead_id', ids);
+          .in('lead_id', ids)
+          .neq('status', 'pending');
         const todayStr = new Date().toLocaleDateString('en-CA');
         const { data: todayLeads } = await sb.from('leads')
           .select('id, lead_id, status, customer_address')
-          .eq('sales_date', todayStr);
-        const loggedMap = new Map((existing || []).map(r => [r.lead_id, r]));
+          .eq('sales_date', todayStr)
+          .neq('status', 'pending');
+        const loggedMap = new Map();
+        (existing || []).forEach(r => {
+          if (!r || r.status === 'pending' || !r.lead_id) return;
+          loggedMap.set(r.lead_id, r);
+        });
         const addrMap = new Map();
         (todayLeads || []).forEach(r => {
+          if (!r || r.status === 'pending') return;
           if (r.customer_address) addrMap.set(r.customer_address.trim().toUpperCase(), r);
         });
 
         window.calendarLeads = merged.map(l => {
           const rec = loggedMap.get(l.leadId) || addrMap.get((l.address || '').trim().toUpperCase());
-          return rec ? { ...l, logged: true, dbId: rec.id, dbStatus: rec.status } : { ...l, logged: false };
+          return rec && rec.status !== 'pending' ? { ...l, logged: true, dbId: rec.id, dbStatus: rec.status } : { ...l, logged: false };
         });
         calLeadsSave(window.calendarLeads);
         renderTodaysLeads();
@@ -7429,6 +7935,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     }
 
     function openLeadFromCalendar(leadId) {
+      activeAppointment = null;
       const lead = (window.calendarLeads || []).find(l => l.leadId === leadId);
       if (!lead) { openQuoteCalc(); return; }
       window.activeCalendarLead = lead;
@@ -7496,7 +8003,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (q.length < 3) { rr.style.display = 'none'; rr.innerHTML = ''; return; }
       _rehashSearchTimer = setTimeout(async () => {
         const phone = q.replace(/\D/g, '');
-        let query = sb.from('leads').select('lead_id,customer_name,customer_address,customer_phone,lead_code').not('customer_name', 'is', null).limit(5);
+        let query = sb.from('leads').select('lead_id,customer_name,customer_address,customer_phone,lead_code').neq('status', 'pending').not('customer_name', 'is', null).limit(5);
         if (phone.length >= 7) {
           query = query.ilike('customer_phone', '%' + phone.slice(-7) + '%');
         } else {
