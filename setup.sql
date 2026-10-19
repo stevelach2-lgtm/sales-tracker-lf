@@ -45,7 +45,7 @@ create table if not exists public.leads (
   id                uuid        primary key default gen_random_uuid(),
   user_id           uuid        not null default auth.uid() references auth.users(id),
   created_at        timestamptz default now(),
-  status            text        not null check (status in ('sold', 'not_sold')),
+  status            text        not null check (status in ('sold', 'not_sold', 'pending')),
   sale_amount       numeric(10,2),
   reason_id         uuid        references public.not_sold_reasons(id) on delete set null,
   notes             text,
@@ -119,20 +119,35 @@ do $$ begin
   if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='pay_push_weeks') then
     alter table public.leads add column pay_push_weeks integer not null default 0;
   end if;
+  if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='appointment_at') then
+    alter table public.leads add column appointment_at timestamptz;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='sf_opportunity_name') then
+    alter table public.leads add column sf_opportunity_name text;
+  end if;
 end $$;
+
+-- Pending appointments (pre-entered visits). Safe to re-run; already applied on production.
+alter table public.leads drop constraint if exists leads_status_check;
+alter table public.leads add constraint leads_status_check check (status in ('sold', 'not_sold', 'pending'));
+alter table public.leads add column if not exists appointment_at timestamptz, add column if not exists sf_opportunity_name text;
 
 
 -- 4. BACKFILL: set sales_date = created_at date for ALL leads missing a sales_date
 -- (run this once after adding the column so old data is not orphaned)
 -- NOTE: After this runs, edit old leads in the History tab to set their correct dates.
+-- Pending appointments have no sales date on purpose. Do not backfill them,
+-- or they start counting as dashboard appointments before they are quoted.
 update public.leads
 set    sales_date = created_at::date
-where  sales_date is null;
+where  sales_date is null
+  and  status <> 'pending';
 
 -- 5. INDEXES for fast queries
 create index if not exists leads_created_at_idx  on public.leads (created_at desc);
 create index if not exists leads_status_idx       on public.leads (status);
 create index if not exists leads_sales_date_idx   on public.leads (sales_date desc);  -- key index for dashboard
+create index if not exists leads_pending_appt_idx on public.leads (user_id, appointment_at) where status = 'pending';
 
 -- 5b. ROW LEVEL SECURITY — isolate each user's data
 alter table public.leads enable row level security;
