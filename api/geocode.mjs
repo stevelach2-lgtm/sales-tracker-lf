@@ -166,60 +166,53 @@ async function geocodeAddress(address, options) {
   return emptyResult();
 }
 
-function requestAddress(req) {
-  const query = req && req.query ? req.query.address : '';
-  const fromQuery = Array.isArray(query) ? query[0] : query;
-  if (fromQuery) return String(fromQuery).trim();
-  const url = req && req.url ? String(req.url) : '';
-  const mark = url.indexOf('?');
-  if (mark === -1) return '';
-  try {
-    return new URLSearchParams(url.slice(mark + 1)).get('address') || '';
-  } catch (error) {
-    return '';
-  }
-}
-
-function requestReferer(req) {
-  const headers = (req && req.headers) || {};
-  const host = headers['x-forwarded-host'] || headers.host;
+function requestReferer(request) {
+  const headers = request && request.headers;
+  const host = headers && (headers.get('x-forwarded-host') || headers.get('host'));
   if (!host) return DEFAULT_REFERER;
-  const proto = headers['x-forwarded-proto'] || 'https';
-  const hostname = String(host).split(',')[0].trim();
-  return proto + '://' + hostname + '/';
+  const proto = headers.get('x-forwarded-proto') || 'https';
+  return proto + '://' + String(host).split(',')[0].trim() + '/';
 }
 
-function sendJson(res, status, body, cache) {
-  const headers = { 'Content-Type': 'application/json; charset=utf-8' };
-  if (cache) headers['Cache-Control'] = cache;
-  if (typeof res.status === 'function' && typeof res.json === 'function') {
-    Object.keys(headers).forEach(key => res.setHeader(key, headers[key]));
-    return res.status(status).json(body);
-  }
-  res.statusCode = status;
-  Object.keys(headers).forEach(key => res.setHeader(key, headers[key]));
-  res.end(JSON.stringify(body));
+function jsonResponse(status, body, cache, extra) {
+  const headers = Object.assign({
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': cache || 'no-store'
+  }, extra || {});
+  return Response.json(body, { status: status, headers: headers });
 }
 
-async function handler(req, res) {
-  const method = (req && req.method) || 'GET';
-  if (method !== 'GET') {
-    if (typeof res.setHeader === 'function') res.setHeader('Allow', 'GET');
-    return sendJson(res, 405, emptyResult(), 'no-store');
+async function handleGet(request) {
+  let address = '';
+  try {
+    address = new URL(request.url).searchParams.get('address') || '';
+  } catch (error) {
+    address = '';
   }
-  const address = requestAddress(req).trim();
+  address = String(address).trim();
   if (!address || address.length > MAX_ADDRESS_LENGTH) {
-    return sendJson(res, 400, emptyResult(), 'no-store');
+    return jsonResponse(400, emptyResult(), 'no-store');
   }
   try {
-    const result = await geocodeAddress(address, { referer: requestReferer(req) });
+    const result = await geocodeAddress(address, { referer: requestReferer(request) });
     const cache = result.matched ? 'public, max-age=86400' : 'no-store';
-    return sendJson(res, 200, result, cache);
+    return jsonResponse(200, result, cache);
   } catch (error) {
-    return sendJson(res, 200, emptyResult(), 'no-store');
+    return jsonResponse(200, emptyResult(), 'no-store');
   }
 }
 
-module.exports = handler;
-module.exports.geocodeAddress = geocodeAddress;
-module.exports.addressVariants = addressVariants;
+export async function GET(request) {
+  return handleGet(request);
+}
+
+export default {
+  async fetch(request) {
+    if (!request || request.method !== 'GET') {
+      return jsonResponse(405, emptyResult(), 'no-store', { Allow: 'GET' });
+    }
+    return handleGet(request);
+  }
+};
+
+export { geocodeAddress, addressVariants };
