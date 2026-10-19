@@ -124,16 +124,17 @@
 
     .ni {
       flex: 1;
+      min-width: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 9px 0 7px;
+      padding: 8px 0 6px;
       cursor: pointer;
       border: none;
       background: none;
       color: var(--muted);
-      gap: 3px;
+      gap: 2px;
       font-family: 'Inter', sans-serif;
       transition: .15s
     }
@@ -143,8 +144,8 @@
     }
 
     .ni svg {
-      width: 21px;
-      height: 21px;
+      width: 18px;
+      height: 18px;
       transition: .15s
     }
 
@@ -153,9 +154,11 @@
     }
 
     .ni span {
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 600;
-      letter-spacing: .2px
+      letter-spacing: 0;
+      line-height: 1.1;
+      white-space: nowrap
     }
 
     /* ── PAGES ── */
@@ -1433,6 +1436,22 @@
       text-overflow: ellipsis
     }
 
+    a.maps-link {
+      color: inherit;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      text-decoration-color: rgba(0, 133, 62, .5);
+      cursor: pointer
+    }
+
+    a.maps-link svg {
+      display: inline-block;
+      width: 11px;
+      height: 11px;
+      vertical-align: -1px;
+      margin-right: 3px
+    }
+
     .hcard-time {
       font-size: 11px;
       color: var(--muted);
@@ -2273,6 +2292,65 @@
         </div>
       </div>
 
+      <!-- MILEAGE -->
+      <div id="p-miles" class="page">
+        <div style="padding:14px 14px 0">
+          <div style="font-size:17px;font-weight:800">Mileage</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.4;margin-top:2px">IRS driving log. A day is saved when you close a lead — you don't have to open this tab.</div>
+        </div>
+        <div id="milesSummary" style="padding:10px 14px 0"></div>
+        <div style="padding:10px 14px 0;display:flex;gap:8px;align-items:center">
+          <input type="date" id="milesDate" class="fi" aria-label="Mileage day" onchange="loadMileageDay(this.value)"
+            style="flex:1;margin:0;padding:10px 12px;font-size:14px">
+          <button type="button" onclick="mileageRecalculateClick()"
+            style="flex-shrink:0;background:var(--green);color:#fff;border:none;border-radius:10px;padding:10px 12px;font-family:'Inter',sans-serif;font-size:12px;font-weight:800;cursor:pointer">Recalculate</button>
+        </div>
+        <div id="milesStatus" style="padding:8px 14px 0;font-size:12px;color:var(--muted);line-height:1.4"></div>
+        <div id="milesBody" style="padding:8px 14px 0"></div>
+        <div style="padding:12px 14px 100px">
+          <div style="background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px">
+            <div style="font-size:13px;font-weight:800;margin-bottom:4px">Add a manual trip</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4;margin-bottom:8px">Office meeting, or any drive that isn't a closed lead. It's added to this day and kept when the route updates.</div>
+            <label class="fl">From</label>
+            <input type="text" class="fi" id="milesTripFrom" placeholder="Home address" style="margin-bottom:8px;font-size:13px;padding:10px 12px">
+            <label class="fl">To</label>
+            <input type="text" class="fi" id="milesTripTo" placeholder="Address" style="margin-bottom:8px;font-size:13px;padding:10px 12px">
+            <label class="fl">Place name</label>
+            <input type="text" class="fi" id="milesTripName" placeholder="Office" style="margin-bottom:8px;font-size:13px;padding:10px 12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div>
+                <label class="fl">Miles <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+                <input type="number" class="fi" id="milesTripMiles" inputmode="decimal" min="0" step="0.1" placeholder="Auto" style="margin-bottom:8px;font-size:13px;padding:10px 12px">
+              </div>
+              <div>
+                <label class="fl">Purpose</label>
+                <input type="text" class="fi" id="milesTripPurpose" placeholder="Office meeting" style="margin-bottom:8px;font-size:13px;padding:10px 12px">
+              </div>
+            </div>
+            <button type="button" onclick="mileageAddManualTrip()"
+              style="width:100%;padding:11px;background:#fff;color:var(--green);border:2px solid var(--green);border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Add trip</button>
+          </div>
+          <div style="background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px">
+            <label class="fl">Business purpose for this day</label>
+            <input type="text" class="fi" id="milesPurpose" value="LeafFilter sales appointments" onchange="mileageSavePurposeNote()"
+              style="margin-bottom:8px;font-size:13px;padding:10px 12px">
+            <label class="fl">Note <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+            <textarea class="fi" id="milesNote" onchange="mileageSavePurposeNote()" placeholder="Anything your tax preparer should see" style="margin-bottom:8px;font-size:13px;min-height:64px"></textarea>
+            <button type="button" onclick="mileageDeleteDay()"
+              style="width:100%;padding:10px;background:transparent;color:var(--red);border:1.5px solid #FECACA;border-radius:10px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Delete this day</button>
+          </div>
+          <div style="background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:12px">
+            <div style="font-size:13px;font-weight:800;margin-bottom:6px">Export for your tax preparer</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="number" id="milesExportYear" class="fi" min="2000" max="2100" aria-label="Export year" value="2026"
+                style="width:110px;margin:0;padding:10px 12px;font-size:14px">
+              <button type="button" onclick="mileageExportClick()"
+                style="flex:1;background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;border-radius:10px;padding:10px 12px;font-family:'Inter',sans-serif;font-size:13px;font-weight:800;cursor:pointer">Download CSV</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- SETTINGS -->
       <div id="p-set" class="page">
         <!-- My Profile -->
@@ -2305,6 +2383,33 @@
               style="width:100%;padding:12px;background:#fff;color:var(--green);border:2px solid var(--green);border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:8px">
               💳 View Business Card
             </button>
+          </div>
+        </div>
+        <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
+
+        <div class="settings-wrap" style="padding-top:0">
+          <div class="s-title" onclick="toggleSetSec('mileageSettingsSection', 'mileageSettingsIcon')"
+            style="cursor:pointer; display:flex; align-items:center; justify-content:space-between">
+            <span>🚗 Mileage</span>
+            <span id="mileageSettingsIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
+          </div>
+          <div id="mileageSettingsSection" style="display:none">
+            <div class="s-sub" style="margin-bottom:12px">Used for the daily driving log. The route starts and ends at home.</div>
+            <label class="fl">Home address</label>
+            <input type="text" class="fi" id="mileageHome" autocomplete="street-address"
+              value="221 Sunny Jim Dr, Medford, NJ 08055"
+              placeholder="221 Sunny Jim Dr, Medford, NJ 08055" style="margin-bottom:10px">
+            <label class="fl">IRS business standard mileage rate ($ per mile)</label>
+            <input type="number" class="fi" id="mileageRate" inputmode="decimal" min="0" step="0.001" value="0.76"
+              style="margin-bottom:6px">
+            <div style="font-size:11px;color:var(--muted);line-height:1.45;margin-bottom:12px">
+              Prefilled with the current IRS business rate: <strong>$0.76 per mile</strong> for July 1–December 31, 2026
+              (irs.gov standard mileage rates, IR-2026-29). January 1–June 30, 2026 was $0.725 (IR-2025-128).
+              Type dollars (0.76) or cents (76). The month and year estimates multiply every saved mile by this rate.
+            </div>
+            <button type="button" onclick="saveMileageSettings()"
+              style="width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer">Save
+              mileage settings</button>
           </div>
         </div>
         <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
@@ -2827,6 +2932,16 @@
         </svg>
         <span>History</span>
       </button>
+      <button class="ni" id="n-miles" onclick="goTo('miles')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M3 13l1.8-5.2A2 2 0 016.7 6h10.6a2 2 0 011.9 1.8L21 13" />
+          <path d="M3 13h18" />
+          <circle cx="7.5" cy="17" r="1.6" />
+          <circle cx="16.5" cy="17" r="1.6" />
+        </svg>
+        <span>Miles</span>
+      </button>
       <button class="ni" id="n-comm" onclick="goTo('comm')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
           stroke-linejoin="round">
@@ -2856,6 +2971,19 @@
     </nav>
   </div><!-- /app -->
 
+  <div id="driveQuestionOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:700;align-items:center;justify-content:center;padding:20px">
+    <div style="background:#fff;border-radius:18px;padding:20px 16px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="font-size:17px;font-weight:800;margin-bottom:4px">Did you drive there?</div>
+      <div id="driveQuestionName" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px"></div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.4;margin-bottom:14px">Both are saved as not sold. You can undo for a few seconds.</div>
+      <button type="button" id="driveQuestionYes" onclick="confirmDriveQuestion(true)"
+        style="width:100%;padding:13px;margin-bottom:8px;background:var(--green);color:#fff;border:none;border-radius:12px;font-family:'Inter',sans-serif;font-size:15px;font-weight:800;cursor:pointer">Yes, no show</button>
+      <button type="button" id="driveQuestionNo" onclick="confirmDriveQuestion(false)"
+        style="width:100%;padding:13px;margin-bottom:8px;background:#fff;color:#B91C1C;border:2px solid #FECACA;border-radius:12px;font-family:'Inter',sans-serif;font-size:15px;font-weight:800;cursor:pointer">No, cancelled before I got there</button>
+      <button type="button" id="driveQuestionBack" onclick="cancelDriveQuestion()"
+        style="width:100%;padding:10px;background:transparent;color:var(--muted);border:none;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">Back</button>
+    </div>
+  </div>
   <div class="toast" id="toast"></div>
   <div class="undo-bar" id="undoBar"><span id="undoMsg">Lead logged</span><button class="undo-btn"
       onclick="undoLead()">UNDO</button></div>
@@ -3177,6 +3305,7 @@
           <button class="es-seg-opt sold" id="esSold" onclick="esSetStatus('sold')">✅ Sold</button>
           <button class="es-seg-opt ns" id="esNot" onclick="esSetStatus('not_sold')">❌ Not Sold</button>
         </div>
+        <div id="esAddressRow" style="display:none;margin:0 0 12px;font-size:13px;line-height:1.4"></div>
 
         <!-- SOLD fields -->
         <div id="esFieldsSold">
@@ -3559,6 +3688,7 @@
         setDates();
         await loadReasons();
         await loadSettingsFromSupabase();
+        await loadMileageSettings();
         // Load current user's profile for personalized SMS templates
         await loadRepProfile();
         gcalCheckTokenFromRedirect();
@@ -3694,6 +3824,7 @@
       if (id === 'set') loadSettings();
 
       if (id === 'comm') loadComm();
+      if (id === 'miles') loadMileagePage();
       if (id === 'quote') initQuoteTab();
     }
 
@@ -4343,7 +4474,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const sixtyStr = sixtyDaysAgo.toISOString().split('T')[0];
 
         // Query 1: Active follow-ups
-        let qActive = sb.from('leads').select('id,followup_name,followup_phone,followup_date,followup_done,status,notes,is_cancelled,sales_date,not_sold_reasons(label)')
+        let qActive = sb.from('leads').select('id,followup_name,followup_phone,followup_date,followup_done,status,notes,is_cancelled,sales_date,customer_address,not_sold_reasons(label)')
           .neq('status', 'pending')
           .not('followup_date', 'is', null)
           .order('followup_date', { ascending: true });
@@ -4351,7 +4482,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         if (!showDone) qActive = qActive.neq('followup_done', true);
 
         // Query 2: Cold Leads (60+ days old)
-        let qCold = sb.from('leads').select('id,followup_name,followup_phone,followup_date,followup_done,status,notes,is_cancelled,sales_date,not_sold_reasons(label)')
+        let qCold = sb.from('leads').select('id,followup_name,followup_phone,followup_date,followup_done,status,notes,is_cancelled,sales_date,customer_address,not_sold_reasons(label)')
           .eq('status', 'not_sold')
           .lte('sales_date', sixtyStr)
           .order('sales_date', { ascending: false })
@@ -4447,6 +4578,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
               <div style="font-size:11px; font-weight:700; color:var(--muted); display:flex; align-items:center">📅 ${dateLabel} ${stepBadge}</div>
             </div>
             <div class="fup-reason" style="margin-bottom:8px">Not Sold: ${rStr} ${origDateHtml}</div>
+            ${l.customer_address ? `<div style="font-size:11px;color:var(--muted);margin:-2px 0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mapsDirLink(l.customer_address)}</div>` : ''}
             <div class="fup-actions" onclick="event.stopPropagation()">
               ${phone ? `<a href="tel:+1${phone}" class="fup-btn" style="background:#F0FDF4; color:#166534; border:1px solid #BBF7D0; text-decoration:none; display:flex; align-items:center; justify-content:center">📞 Call</a>` : ''}
               <button class="fup-btn sms" onclick="openFu('${l.id}','${reasonEsc}','${name}','${phone}','${notesEsc}',${l.step_num || 1})">📱 SMS</button>
@@ -4648,6 +4780,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
 
         const quotingAppt = activeAppointment;
         const restore = quotingAppt ? pendingRestorePayload(quotingAppt) : null;
+        const mileageDate = mileageDayFromClose(quotingAppt, payload);
         const writeSold = (row) => quotingAppt
           ? sb.from('leads').update(row).eq('id', quotingAppt.id).eq('status', 'pending').select().single()
           : sb.from('leads').insert(row).select().single();
@@ -4663,10 +4796,10 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           return false;
         }
         if (quotingAppt) {
-          lastUndo = { mode: 'revert', id: quotingAppt.id, restore };
+          lastUndo = { mode: 'revert', id: quotingAppt.id, restore, mileageDate };
           activeAppointment = null;
         } else {
-          lastUndo = { mode: 'delete', id: data.id };
+          lastUndo = { mode: 'delete', id: data.id, mileageDate };
         }
         lastId = data.id;
         saveLocationForLead(data.id, document.getElementById('calCustAddr').value || null);
@@ -4674,6 +4807,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         showUndo(quotingAppt
           ? 'Sale of $' + amt.toLocaleString() + ' saved on the appointment'
           : 'Sale of $' + amt.toLocaleString() + ' logged!');
+        scheduleMileageRecalc(mileageDate);
         loadAppointments();
         resetLog();
         return true;
@@ -4707,20 +4841,22 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
 
         const quotingAppt = activeAppointment;
         const restore = quotingAppt ? pendingRestorePayload(quotingAppt) : null;
+        const mileageDate = mileageDayFromClose(quotingAppt, payload);
         const writeNs = (row) => quotingAppt
           ? sb.from('leads').update(row).eq('id', quotingAppt.id).eq('status', 'pending').select().single()
           : sb.from('leads').insert(row).select().single();
         const { data, error } = await writeNs(payload);
         if (error) { toast('Error saving lead', 'err'); return; }
         if (quotingAppt) {
-          lastUndo = { mode: 'revert', id: quotingAppt.id, restore };
+          lastUndo = { mode: 'revert', id: quotingAppt.id, restore, mileageDate };
           activeAppointment = null;
         } else {
-          lastUndo = { mode: 'delete', id: data.id };
+          lastUndo = { mode: 'delete', id: data.id, mileageDate };
         }
         lastId = data.id;
         saveGPSForLead(data.id);
         showUndo(quotingAppt ? 'Appointment marked not sold' : 'Not sold lead logged + Follow-up scheduled');
+        scheduleMileageRecalc(mileageDate);
         loadAppointments();
         resetLog();
       }
@@ -4744,8 +4880,14 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       const undo = lastUndo || (lastId ? { mode: 'delete', id: lastId } : null);
       if (!undo || !undo.id) return;
       locSaveToken++;
+      const mileageDate = undo.mileageDate || (undo.restore && (apptDateKey(undo.restore.appointment_at) || undo.restore.sales_date)) || null;
       if (undo.mode === 'revert') {
-        const { error } = await sb.from('leads').update(undo.restore).eq('id', undo.id);
+        let { error } = await sb.from('leads').update(undo.restore).eq('id', undo.id);
+        if (error && undo.restore && Object.prototype.hasOwnProperty.call(undo.restore, 'drove_there') && /drove_there/i.test(error.message || '')) {
+          const fallback = Object.assign({}, undo.restore);
+          delete fallback.drove_there;
+          ({ error } = await sb.from('leads').update(fallback).eq('id', undo.id));
+        }
         if (error) { toast('Undo failed', 'err'); console.error(error); return; }
         toast('Back to pending ✓', 'ok');
       } else {
@@ -4756,6 +4898,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       lastUndo = null;
       document.getElementById('undoBar').classList.remove('show');
       clearTimeout(undoTimer);
+      if (mileageDate) scheduleMileageRecalc(mileageDate);
       if (document.getElementById('p-dash')?.classList.contains('active')) loadDash();
       else loadAppointments();
     }
@@ -4990,6 +5133,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         <div class="hcard-main ${sold ? 'g' : ''}">${main}</div>
         ${tags.length ? '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">' + tags.join('') + '</div>' : ''}
         ${sold && l.retail_percentage ? `<div style="font-size:11px;color:var(--text);margin-top:4px">Retail: <strong>${parseFloat(l.retail_percentage).toFixed(1)}%</strong> &nbsp; Comm: <strong>${parseFloat(l.commission_percentage || 0).toFixed(1)}%</strong></div>` : ''}
+        ${l.customer_address ? `<div class="hcard-note">${mapsDirLink(l.customer_address)}</div>` : ''}
         ${l.followup_date ? `<div style="font-size:9px;font-weight:700;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 6px;display:inline-block;margin-top:3px">📞 Follow-up: ${new Date(l.followup_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>` : ''}
         ${sub.length ? `<div class="hcard-note">${sub.join(' · ')}</div>` : (l.notes ? `<div class="hcard-note">${l.notes}</div>` : '')}
         <div class="hcard-detail">
@@ -5045,6 +5189,16 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       esInitialStatus = l.status;
       esStatus = l.status;
       esCustomerAddress = l.customer_address || null;
+      const esAddrRow = document.getElementById('esAddressRow');
+      if (esAddrRow) {
+        if (esCustomerAddress) {
+          esAddrRow.style.display = 'block';
+          esAddrRow.innerHTML = mapsDirLink(esCustomerAddress);
+        } else {
+          esAddrRow.style.display = 'none';
+          esAddrRow.innerHTML = '';
+        }
+      }
       esOriginalNsDate = l.sales_date || null;
       esSetStatus(l.status);
 
@@ -5353,6 +5507,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       loadBaselines();
       loadQuoteSettings();
       gcalLoadSettingsUI();
+      loadMileageSettingsUI();
       const savedAiKey = _aiKeyGet();
       const aiKeyStatus = document.getElementById('aiKeyStatus');
       if (aiKeyStatus) aiKeyStatus.textContent = savedAiKey ? '✓ Key saved: ' + savedAiKey.slice(0, 14) + '...' + savedAiKey.slice(-4) : 'No key saved';
@@ -6578,6 +6733,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         };
         const quotingAppt = activeAppointment;
         const restore = quotingAppt ? pendingRestorePayload(quotingAppt) : null;
+        const mileageDate = mileageDayFromClose(quotingAppt, payload);
         const writeNs = (row) => quotingAppt
           ? sb.from('leads').update(row).eq('id', quotingAppt.id).eq('status', 'pending').select().single()
           : sb.from('leads').insert(row).select().single();
@@ -6599,13 +6755,14 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           return;
         }
         if (quotingAppt) {
-          lastUndo = { mode: 'revert', id: quotingAppt.id, restore };
+          lastUndo = { mode: 'revert', id: quotingAppt.id, restore, mileageDate };
           activeAppointment = null;
         } else {
-          lastUndo = { mode: 'delete', id: data.id };
+          lastUndo = { mode: 'delete', id: data.id, mileageDate };
         }
         lastId = data.id;
         saveLocationForLead(data.id, document.getElementById('calCustAddr').value || null);
+        scheduleMileageRecalc(mileageDate);
 
         const _reasonLabel = reasons.find(r => r.id === selCcReason)?.label || '';
         if (_reasonLabel.toLowerCase().includes('spouse') && data?.id) {
@@ -6660,6 +6817,21 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
 
     function escHtml(s) {
       return String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+
+    // Apple Maps directions. On an iPhone this opens the Maps app; elsewhere it opens a web map.
+    function mapsDirLink(address) {
+      const addr = String(address || '').trim();
+      if (!addr) return '';
+      const href = 'https://maps.apple.com/?daddr=' + encodeURIComponent(addr);
+      const pin = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.2"/></svg>';
+      return '<a class="maps-link" href="' + href + '" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">' + pin + escHtml(addr) + '</a>';
+    }
+
+    function setMapsAddressEl(el, address) {
+      if (!el) return;
+      const addr = String(address || '').trim();
+      el.innerHTML = addr ? mapsDirLink(addr) : '';
     }
 
     function tzOffsetMinutes(date, timeZone) {
@@ -6764,12 +6936,12 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       }) || null;
     }
 
-    function appendNoShowNote(existing) {
-      const line = 'No show / cancelled';
+    function appendNoShowNote(existing, line) {
+      const text = line || 'No show';
       const base = (existing || '').trim();
-      if (!base) return line;
-      if (base.toLowerCase().includes(line.toLowerCase())) return base;
-      return base + '\n' + line;
+      if (!base) return text;
+      if (base.toLowerCase().includes(text.toLowerCase())) return base;
+      return base + '\n' + text;
     }
 
     function renderActiveApptBar() {
@@ -6783,7 +6955,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         + '<div style="font-size:10px;font-weight:800;color:#3730A3;letter-spacing:.4px">QUOTING THIS APPOINTMENT</div>'
         + '<div style="font-size:14px;font-weight:800;color:#1E1B4B">' + escHtml(appt.customer_name || 'Appointment') + '</div>'
         + '<div style="font-size:11px;color:#4338CA">' + escHtml(apptWhenLabel(appt.appointment_at)) + '</div>'
-        + '<div style="font-size:11px;color:#4338CA">' + escHtml(appt.customer_address || '') + '</div>'
+        + '<div style="font-size:11px;color:#4338CA">' + (appt.customer_address ? mapsDirLink(appt.customer_address) : '') + '</div>'
         + '</div>'
         + '<button type="button" onclick="clearActiveAppointment()" style="background:#fff;border:1.5px solid #C7D2FE;color:#3730A3;border-radius:8px;padding:6px 8px;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0">Clear</button>'
         + '</div>';
@@ -6797,7 +6969,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         + '<div style="flex:1;min-width:0">'
         + '<div style="font-size:11px;font-weight:800;color:#4338CA">' + escHtml(apptWhenLabel(a.appointment_at)) + '</div>'
         + '<div style="font-size:14px;font-weight:800;color:#1E1B4B;line-height:1.3">' + escHtml(a.customer_name || 'No name') + '</div>'
-        + '<div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(a.customer_address || '') + '</div>'
+        + '<div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (a.customer_address ? mapsDirLink(a.customer_address) : '') + '</div>'
         + (a.customer_phone ? '<div style="font-size:11px;color:var(--muted)">' + escHtml(a.customer_phone) + '</div>' : '')
         + (notes ? '<div style="font-size:10px;color:#92400E;margin-top:2px;line-height:1.35">' + escHtml(notes) + '</div>' : '')
         + '</div>'
@@ -6848,7 +7020,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
             + '<div style="flex:1;min-width:0">'
             + '<div style="font-size:11px;font-weight:800;color:#4338CA">' + escHtml(apptWhenLabel(a.appointment_at)) + '</div>'
             + '<div style="font-size:13px;font-weight:800;color:#1E1B4B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(a.customer_name || 'No name') + '</div>'
-            + '<div style="font-size:10px;color:#6366F1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(a.customer_address || '') + '</div>'
+            + '<div style="font-size:10px;color:#6366F1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (a.customer_address ? mapsDirLink(a.customer_address) : '') + '</div>'
             + '</div>'
             + '<button type="button" onclick="startAppointment(\'' + a.id + '\')" style="background:#fff;color:#166534;border:1.5px solid #86EFAC;border-radius:8px;padding:6px 8px;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0">Quote</button>'
             + '</div>'
@@ -6901,7 +7073,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const addrEl = document.getElementById('ccCalBannerAddr');
         const metaEl = document.getElementById('ccCalBannerMeta');
         if (nameEl) nameEl.textContent = appt.customer_name || 'Appointment';
-        if (addrEl) addrEl.textContent = appt.customer_address || '';
+        if (addrEl) setMapsAddressEl(addrEl, appt.customer_address);
         if (metaEl) metaEl.textContent = apptWhenLabel(appt.appointment_at);
       }
       const leadIdBadge = document.getElementById('ccCalBannerLeadId');
@@ -6999,38 +7171,10 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       await loadAppointments();
     }
 
-    async function markAppointmentNoShow(id) {
+    function markAppointmentNoShow(id) {
       const appt = pendingAppointments.find(a => a.id === id);
       if (!appt) { toast('Appointment not found', 'err'); return; }
-      const name = appt.customer_name || 'this appointment';
-      if (!confirm('Mark ' + name + ' as no show / cancelled?\n\nIt stays in History as not sold. You can undo for a few seconds.')) return;
-      const reason = matchingNoShowReason();
-      const payload = {
-        status: 'not_sold',
-        sales_date: apptDateKey(appt.appointment_at) || todayEtKey(),
-        notes: appendNoShowNote(appt.notes),
-        reason_id: reason ? reason.id : null,
-        sale_amount: null,
-        commission_amount: null,
-        commission_paid: false,
-        job_number: null,
-        install_date: null,
-        followup_name: null,
-        followup_phone: null,
-        followup_date: null,
-        followup_done: false
-      };
-      const { data, error } = await sb.from('leads').update(payload).eq('id', id).eq('status', 'pending').select('id');
-      if (error || !data || !data.length) { toast('Could not update appointment', 'err'); console.error(error); return; }
-      lastUndo = { mode: 'revert', id, restore: pendingRestorePayload(appt) };
-      lastId = id;
-      if (activeAppointment && activeAppointment.id === id) {
-        activeAppointment = null;
-        ccResetLogPanel();
-      }
-      showUndo(name + ' marked no show / cancelled');
-      if (document.getElementById('p-dash')?.classList.contains('active')) loadDash();
-      else loadAppointments();
+      openDriveQuestion(id);
     }
 
     function initQuoteTab() {
@@ -7698,7 +7842,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (banner) {
         banner.style.display = 'block';
         document.getElementById('ccCalBannerName').textContent = lead.name;
-        document.getElementById('ccCalBannerAddr').textContent = lead.address;
+        setMapsAddressEl(document.getElementById('ccCalBannerAddr'), lead.address);
         const t = lead.startTime ? new Date(lead.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
         document.getElementById('ccCalBannerMeta').textContent = [t, lead.leadCode ? 'Code: ' + lead.leadCode : ''].filter(Boolean).join(' · ');
         const leadIdBadge = document.getElementById('ccCalBannerLeadId');
@@ -7769,7 +7913,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         rr.innerHTML = data.map(r =>
           `<div onclick="rehashFillCustomer('${r.lead_id || ''}','${(r.customer_name||'').replace(/'/g,"\\'")}','${(r.customer_address||'').replace(/'/g,"\\'")}','${(r.customer_phone||'').replace(/'/g,"\\'")}','${(r.lead_code||'')}' )" style="padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;active:background:#F9FAFB">
             <div style="font-size:13px;font-weight:700;color:var(--text)">${r.customer_name}</div>
-            <div style="font-size:11px;color:var(--muted)">${r.customer_address || ''}${r.lead_id ? ' · ID: ' + r.lead_id : ''}</div>
+            <div style="font-size:11px;color:var(--muted)">${mapsDirLink(r.customer_address)}${r.customer_address && r.lead_id ? ' · ' : ''}${r.lead_id ? 'ID: ' + r.lead_id : ''}</div>
           </div>`
         ).join('');
         rr.style.display = 'block';
@@ -7793,7 +7937,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (banner) {
         banner.style.display = 'block';
         document.getElementById('ccCalBannerName').textContent = name + ' (Rehash)';
-        document.getElementById('ccCalBannerAddr').textContent = address;
+        setMapsAddressEl(document.getElementById('ccCalBannerAddr'), address);
         document.getElementById('ccCalBannerMeta').textContent = [leadCode ? 'Code: ' + leadCode : ''].filter(Boolean).join(' · ');
         const leadIdBadge = document.getElementById('ccCalBannerLeadId');
         if (leadIdBadge) {
@@ -7823,6 +7967,1218 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       el.className = 'toast ' + type + ' show';
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+    }
+
+    // ─────────────────────────────────────────
+    // MILEAGE LOG
+    // Geocoding: Nominatim (the Census geocoder does not send CORS headers, so the
+    // browser blocks it). Driving distance: OSRM. Results are cached by address.
+    // Closing a lead recalculates that day in the background and does not wait.
+    // Miles Steve types stay until he taps Recalculate.
+    // ─────────────────────────────────────────
+    const MILEAGE_HOME_DEFAULT = '221 Sunny Jim Dr, Medford, NJ 08055';
+    const MILEAGE_RATE_DEFAULT = 0.76;
+    const MILEAGE_PURPOSE_DEFAULT = 'LeafFilter sales appointments';
+    const MILEAGE_GEO_KEY = 'mileage_geocode_cache_v1';
+
+    let mileageSettings = { home_address: MILEAGE_HOME_DEFAULT, mileage_rate: MILEAGE_RATE_DEFAULT };
+    let mileageState = { dateKey: '', log: null, leads: [], busy: false, error: '', drift: false, summary: null };
+    let mileageQueue = Promise.resolve();
+    let mileageGeoMem = null;
+    let mileageGeoNextAt = 0;
+    let pendingNoShowId = null;
+    let driveQuestionBusy = false;
+
+    function mileageRound1(n) {
+      const x = Number(n);
+      if (!isFinite(x)) return null;
+      return Math.round((x + Number.EPSILON) * 10) / 10;
+    }
+
+    function mileageNormalizeRate(raw) {
+      let rate = Number(raw);
+      if (!isFinite(rate) || rate <= 0) return null;
+      if (rate > 5) rate = Math.round((rate / 100) * 10000) / 10000;
+      else rate = Math.round(rate * 10000) / 10000;
+      return rate > 0 ? rate : null;
+    }
+
+    function mileageRate() {
+      const r = Number(mileageSettings.mileage_rate);
+      return r > 0 ? r : MILEAGE_RATE_DEFAULT;
+    }
+
+    function mileageHomeAddress() {
+      return String(mileageSettings.home_address || MILEAGE_HOME_DEFAULT).trim() || MILEAGE_HOME_DEFAULT;
+    }
+
+    function mileageMoney(n) {
+      return (Number(n) || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    }
+
+    function mileageMilesText(n) {
+      if (n == null || n === '') return '—';
+      return Number(n).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mi';
+    }
+
+    function mileageNextDateKey(dateKey) {
+      const parts = String(dateKey).split('-').map(Number);
+      const dt = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2] + 1));
+      const pad = n => String(n).padStart(2, '0');
+      return dt.getUTCFullYear() + '-' + pad(dt.getUTCMonth() + 1) + '-' + pad(dt.getUTCDate());
+    }
+
+    function mileageMonthLabel(dateKey) {
+      const parts = String(dateKey).split('-').map(Number);
+      return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 12)).toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' });
+    }
+
+    function mileageDayFromClose(quotingAppt, payload) {
+      const fromAppt = quotingAppt && quotingAppt.appointment_at ? apptDateKey(quotingAppt.appointment_at) : '';
+      if (fromAppt) return fromAppt;
+      const sales = payload && payload.sales_date ? String(payload.sales_date).slice(0, 10) : '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(sales)) return sales;
+      return todayEtKey();
+    }
+
+    function leadMileageDay(lead) {
+      if (!lead) return '';
+      const fromAppt = lead.appointment_at ? apptDateKey(lead.appointment_at) : '';
+      if (fromAppt) return fromAppt;
+      const sales = lead.sales_date ? String(lead.sales_date).slice(0, 10) : '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(sales)) return sales;
+      return lead.created_at ? (apptDateKey(lead.created_at) || '') : '';
+    }
+
+    function mileageNewId() {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return 'm-' + Date.now().toString(36) + '-' + Math.random().toString(16).slice(2);
+    }
+
+    function mileageNormAddr(addr) {
+      return String(addr || '').trim().toLowerCase().replace(/\s+/g, ' ').replace(/\s*,\s*/g, ', ');
+    }
+
+    function mileageEndpoint(name, address) {
+      const n = String(name || '').trim();
+      const a = String(address || '').trim();
+      if (n && a && n.toLowerCase() !== 'home' && n.toLowerCase() !== a.toLowerCase()) return n + ' — ' + a;
+      return a || n;
+    }
+
+    function mileageLeadName(lead) {
+      return String(lead.customer_name || lead.followup_name || 'Stop').trim() || 'Stop';
+    }
+
+    function mileageLeadTag(lead) {
+      const notes = String(lead.notes || '').toLowerCase();
+      if (lead.drove_there === false) return 'Cancelled before arrival';
+      if (lead.drove_there == null && notes.includes('cancelled before arrival')) return 'Cancelled before arrival';
+      if (lead.drove_there === true) return 'No show';
+      if (notes.includes('no show')) return 'No show';
+      if (lead.status === 'sold') return 'Sold';
+      return 'Not sold';
+    }
+
+    function mileageDefaultInclude(lead) {
+      return mileageLeadTag(lead) !== 'Cancelled before arrival';
+    }
+
+    function mileageStopIncluded(lead, excluded, included) {
+      if (included.has(lead.id)) return true;
+      if (excluded.has(lead.id)) return false;
+      return mileageDefaultInclude(lead);
+    }
+
+    function mileageSumKnown(list) {
+      let any = false;
+      let sum = 0;
+      (list || []).forEach(item => {
+        if (item == null || item.miles == null || item.miles === '' || !isFinite(Number(item.miles))) return;
+        any = true;
+        sum += Number(item.miles);
+      });
+      return any ? sum : null;
+    }
+
+    function mileageSumAll(legs, trips) {
+      const a = mileageSumKnown(legs);
+      const b = mileageSumKnown(trips);
+      if (a == null && b == null) return null;
+      return mileageRound1((a || 0) + (b || 0));
+    }
+
+    function mileageRowIncomplete(row) {
+      const bad = item => item && item.lookup_failed && (item.miles == null || item.miles === '');
+      return ((row && row.legs) || []).some(bad) || ((row && row.manual_trips) || []).some(bad);
+    }
+
+    function asIdList(value) {
+      if (!Array.isArray(value)) return [];
+      return value.filter(id => typeof id === 'string' && id);
+    }
+
+    async function mileageSession() {
+      if (!sb) return null;
+      try {
+        const { data } = await sb.auth.getSession();
+        return data && data.session ? data.session : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function mileageViewing(dateKey) {
+      const page = document.getElementById('p-miles');
+      const input = document.getElementById('milesDate');
+      return !!(page && page.classList.contains('active') && input && input.value === dateKey);
+    }
+
+    function enqueueMileage(task) {
+      const run = mileageQueue.then(() => task(), () => task());
+      mileageQueue = run.then(() => {}, () => {});
+      run.catch(() => {});
+      return run;
+    }
+
+    function scheduleMileageRecalc(dateKey) {
+      if (!dateKey || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return;
+      if (mileageViewing(dateKey)) {
+        mileageState.busy = true;
+        mileageState.error = '';
+        renderMileage();
+      }
+      enqueueMileage(() => refreshMileageDay(dateKey, { force: false }));
+    }
+
+    function mileageGeoCache() {
+      if (!mileageGeoMem) {
+        try { mileageGeoMem = JSON.parse(localStorage.getItem(MILEAGE_GEO_KEY) || '{}'); }
+        catch (e) { mileageGeoMem = {}; }
+      }
+      if (!mileageGeoMem || typeof mileageGeoMem !== 'object') mileageGeoMem = {};
+      return mileageGeoMem;
+    }
+
+    function mileageRememberGeo(key, coords) {
+      const cache = mileageGeoCache();
+      cache[key] = coords;
+      const keys = Object.keys(cache);
+      if (keys.length > 400) delete cache[keys[0]];
+      try { localStorage.setItem(MILEAGE_GEO_KEY, JSON.stringify(cache)); } catch (e) {}
+    }
+
+    async function mileageGeoWait() {
+      const now = Date.now();
+      const wait = Math.max(0, mileageGeoNextAt - now);
+      mileageGeoNextAt = Math.max(mileageGeoNextAt, now) + 1100;
+      if (wait) await new Promise(r => setTimeout(r, wait));
+    }
+
+    async function mileageFetchJson(url, ms) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), ms);
+      try {
+        const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: ctrl.signal });
+        if (!res.ok) return null;
+        return await res.json();
+      } catch (e) {
+        return null;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function mileageGeocode(address) {
+      const trimmed = String(address || '').trim();
+      const key = mileageNormAddr(trimmed);
+      if (!key) return null;
+      const cache = mileageGeoCache();
+      const hit = cache[key];
+      if (hit && typeof hit.lat === 'number' && typeof hit.lng === 'number') return hit;
+      await mileageGeoWait();
+      let json = await mileageFetchJson('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=' + encodeURIComponent(trimmed), 8000);
+      if (!Array.isArray(json) || !json[0]) {
+        await mileageGeoWait();
+        json = await mileageFetchJson('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(trimmed), 8000);
+      }
+      if (!Array.isArray(json) || !json[0]) return null;
+      const coords = { lat: parseFloat(json[0].lat), lng: parseFloat(json[0].lon) };
+      if (!isFinite(coords.lat) || !isFinite(coords.lng)) return null;
+      mileageRememberGeo(key, coords);
+      return coords;
+    }
+
+    async function mileageOsrmMiles(coords) {
+      if (!coords || coords.length < 2 || coords.some(c => !c)) return null;
+      const path = coords.map(c => c.lng + ',' + c.lat).join(';');
+      const json = await mileageFetchJson('https://router.project-osrm.org/route/v1/driving/' + path + '?overview=false', 12000);
+      if (!json || json.code !== 'Ok' || !json.routes || !json.routes[0] || !json.routes[0].legs) return null;
+      const legs = json.routes[0].legs;
+      if (legs.length !== coords.length - 1) return null;
+      return legs.map(leg => mileageRound1((Number(leg.distance) || 0) / 1609.344));
+    }
+
+    async function mileageBuildLegs(home, stops, previousLegs, force) {
+      if (!stops.length) return [];
+      const points = [{ id: 'home', name: 'Home', address: home }]
+        .concat(stops.map(s => ({ id: s.lead_id || s.id, name: s.name || 'Stop', address: s.address || '' })))
+        .concat([{ id: 'home', name: 'Home', address: home }]);
+      const prevByKey = {};
+      (previousLegs || []).forEach(leg => { if (leg && leg.key) prevByKey[leg.key] = leg; });
+      const legs = [];
+      for (let i = 0; i < points.length - 1; i++) {
+        const from = points[i];
+        const to = points[i + 1];
+        const key = from.id + '->' + to.id;
+        const prev = prevByKey[key];
+        const shell = {
+          key: key,
+          from_name: from.name,
+          from_address: from.address,
+          to_name: to.name,
+          to_address: to.address,
+          to_stop_id: to.id,
+          miles: null,
+          miles_manual: false,
+          lookup_failed: false,
+          needsLookup: true
+        };
+        if (!force && prev && prev.miles_manual && prev.miles != null && prev.miles !== '') {
+          shell.miles = mileageRound1(prev.miles);
+          shell.miles_manual = true;
+          shell.needsLookup = false;
+        }
+        legs.push(shell);
+      }
+      const addrCoords = {};
+      for (let i = 0; i < legs.length; i++) {
+        if (!legs[i].needsLookup) continue;
+        const pair = [legs[i].from_address, legs[i].to_address];
+        for (let p = 0; p < pair.length; p++) {
+          const k = mileageNormAddr(pair[p]);
+          if (!k || Object.prototype.hasOwnProperty.call(addrCoords, k)) continue;
+          addrCoords[k] = await mileageGeocode(pair[p]);
+        }
+      }
+      const coordsFor = addr => addrCoords[mileageNormAddr(addr)] || null;
+      const allNeed = legs.every(leg => leg.needsLookup);
+      if (allNeed) {
+        const routeCoords = points.map(pt => coordsFor(pt.address));
+        if (routeCoords.every(Boolean)) {
+          const miles = await mileageOsrmMiles(routeCoords);
+          if (miles) {
+            miles.forEach((m, i) => {
+              legs[i].miles = m;
+              legs[i].lookup_failed = false;
+              legs[i].miles_manual = false;
+              legs[i].needsLookup = false;
+            });
+          }
+        }
+      }
+      for (let i = 0; i < legs.length; i++) {
+        const leg = legs[i];
+        if (!leg.needsLookup) { delete leg.needsLookup; continue; }
+        const prev = prevByKey[leg.key];
+        const miles = await mileageOsrmMiles([coordsFor(leg.from_address), coordsFor(leg.to_address)]);
+        if (miles) {
+          leg.miles = miles[0];
+          leg.lookup_failed = false;
+          leg.miles_manual = false;
+        } else if (prev && prev.miles != null && prev.miles !== '') {
+          leg.miles = mileageRound1(prev.miles);
+          leg.miles_manual = true;
+          leg.lookup_failed = true;
+        } else {
+          leg.miles = null;
+          leg.lookup_failed = true;
+        }
+        delete leg.needsLookup;
+      }
+      return legs;
+    }
+
+    async function mileageTripMiles(from, to) {
+      const a = await mileageGeocode(from);
+      const b = await mileageGeocode(to);
+      if (!a || !b) return null;
+      const miles = await mileageOsrmMiles([a, b]);
+      return miles ? miles[0] : null;
+    }
+
+    async function mileageFetchLeads(dateKey) {
+      const start = etLocalInputToIso(dateKey + 'T00:00');
+      const end = etLocalInputToIso(mileageNextDateKey(dateKey) + 'T00:00');
+      if (!start || !end || !sb) return { leads: [], error: new Error('bad date') };
+      const withFlag = 'id,status,customer_name,customer_address,followup_name,appointment_at,created_at,sales_date,drove_there,notes';
+      const noFlag = 'id,status,customer_name,customer_address,followup_name,appointment_at,created_at,sales_date,notes';
+      async function run(cols) {
+        const sales = await sb.from('leads').select(cols).in('status', ['sold', 'not_sold']).eq('sales_date', dateKey);
+        if (sales.error) return sales;
+        const appt = await sb.from('leads').select(cols).in('status', ['sold', 'not_sold']).gte('appointment_at', start).lt('appointment_at', end);
+        if (appt.error) return appt;
+        const created = await sb.from('leads').select(cols).in('status', ['sold', 'not_sold']).gte('created_at', start).lt('created_at', end);
+        if (created.error) return created;
+        return { data: [].concat(sales.data || [], appt.data || [], created.data || []), error: null };
+      }
+      let result = await run(withFlag);
+      if (result.error && /drove_there/i.test(result.error.message || '')) result = await run(noFlag);
+      if (result.error) return { leads: [], error: result.error };
+      const map = new Map();
+      (result.data || []).forEach(row => {
+        if (leadMileageDay(row) === dateKey) map.set(row.id, row);
+      });
+      const leads = Array.from(map.values()).sort((a, b) => {
+        const ta = new Date(a.appointment_at || a.created_at || 0).getTime();
+        const tb = new Date(b.appointment_at || b.created_at || 0).getTime();
+        if (ta !== tb) return ta - tb;
+        return String(a.id).localeCompare(String(b.id));
+      });
+      return { leads: leads, error: null };
+    }
+
+    async function mileageFetchLog(dateKey) {
+      const { data, error } = await sb.from('mileage_log').select('*').eq('log_date', dateKey).maybeSingle();
+      if (error) throw error;
+      return data;
+    }
+
+    async function mileageUpsert(row) {
+      const payload = Object.assign({}, row);
+      delete payload.id;
+      delete payload.created_at;
+      const { data, error } = await sb.from('mileage_log').upsert(payload, { onConflict: 'user_id,log_date' }).select().single();
+      if (error) throw error;
+      return data;
+    }
+
+    async function refreshMileageDay(dateKey, opts) {
+      const force = !!(opts && opts.force);
+      const toggleId = opts && opts.toggleId;
+      try {
+        if (mileageViewing(dateKey)) {
+          mileageState.busy = true;
+          mileageState.error = '';
+          renderMileage();
+        }
+        const session = await mileageSession();
+        if (!session) return;
+        const home = mileageHomeAddress();
+        const fetched = await mileageFetchLeads(dateKey);
+        if (fetched.error) throw fetched.error;
+        const leads = fetched.leads;
+        const existing = await mileageFetchLog(dateKey);
+        const excluded = new Set(asIdList(existing && existing.excluded_stop_ids));
+        const included = new Set(asIdList(existing && existing.included_stop_ids));
+        if (toggleId) {
+          const lead = leads.find(l => l.id === toggleId);
+          if (lead) {
+            if (mileageStopIncluded(lead, excluded, included)) {
+              excluded.add(toggleId);
+              included.delete(toggleId);
+            } else {
+              included.add(toggleId);
+              excluded.delete(toggleId);
+            }
+          }
+        }
+        const known = new Set(leads.map(l => l.id));
+        excluded.forEach(id => { if (!known.has(id)) excluded.delete(id); });
+        included.forEach(id => { if (!known.has(id)) included.delete(id); });
+        const stops = leads.map(lead => ({
+          lead_id: lead.id,
+          name: mileageLeadName(lead),
+          address: String(lead.customer_address || '').trim(),
+          included: mileageStopIncluded(lead, excluded, included),
+          sort_at: lead.appointment_at || lead.created_at || null,
+          tag: mileageLeadTag(lead),
+          status: lead.status
+        }));
+        let trips = Array.isArray(existing && existing.manual_trips) ? existing.manual_trips.map(t => Object.assign({}, t)) : [];
+        if (force) {
+          const recomputed = [];
+          for (let i = 0; i < trips.length; i++) {
+            const copy = Object.assign({}, trips[i]);
+            if (copy.from_address && copy.to_address) {
+              const m = await mileageTripMiles(copy.from_address, copy.to_address);
+              if (m != null) {
+                copy.miles = m;
+                copy.miles_manual = false;
+                copy.lookup_failed = false;
+              } else if (copy.miles != null && copy.miles !== '') {
+                copy.lookup_failed = true;
+                copy.miles_manual = true;
+              } else {
+                copy.miles = null;
+                copy.lookup_failed = true;
+              }
+            }
+            recomputed.push(copy);
+          }
+          trips = recomputed;
+        }
+        const routeStops = stops.filter(s => s.included);
+        const legs = await mileageBuildLegs(home, routeStops, (existing && existing.legs) || [], force);
+        const total = mileageSumAll(legs, trips);
+        if (!existing && !stops.length && !trips.length && !force) {
+          if (mileageViewing(dateKey)) {
+            mileageState.busy = false;
+            renderMileage();
+          }
+          return;
+        }
+        const saved = await mileageUpsert({
+          user_id: session.user.id,
+          log_date: dateKey,
+          business_purpose: (existing && existing.business_purpose) || MILEAGE_PURPOSE_DEFAULT,
+          note: existing ? existing.note : null,
+          home_address: home,
+          stops: stops,
+          legs: legs,
+          manual_trips: trips,
+          excluded_stop_ids: Array.from(excluded),
+          included_stop_ids: Array.from(included),
+          total_miles: total,
+          miles_customized: legs.some(l => l.miles_manual) || trips.some(t => t.miles_manual),
+          updated_at: new Date().toISOString()
+        });
+        if (mileageViewing(dateKey)) {
+          mileageState.log = saved;
+          mileageState.leads = leads;
+          mileageState.busy = false;
+          mileageState.error = '';
+          mileageState.drift = false;
+          mileageFillMeta(saved);
+          renderMileage();
+        }
+        const page = document.getElementById('p-miles');
+        if (page && page.classList.contains('active')) loadMileageSummary();
+      } catch (err) {
+        if (mileageViewing(dateKey)) {
+          mileageState.busy = false;
+          mileageState.error = 'Mileage could not be updated. The sale is already saved. Tap Recalculate to try again.';
+          renderMileage();
+        }
+      }
+    }
+
+    function mileageDayDrifted(log, leads) {
+      if (!log || !Array.isArray(log.stops)) return false;
+      const logIds = new Set(log.stops.map(s => s.lead_id).filter(Boolean));
+      const leadIds = new Set((leads || []).map(l => l.id));
+      if (logIds.size !== leadIds.size) return true;
+      for (const id of leadIds) if (!logIds.has(id)) return true;
+      return false;
+    }
+
+    function mileageFillMeta(log) {
+      const purpose = document.getElementById('milesPurpose');
+      const note = document.getElementById('milesNote');
+      const from = document.getElementById('milesTripFrom');
+      if (purpose && document.activeElement !== purpose) purpose.value = (log && log.business_purpose) || MILEAGE_PURPOSE_DEFAULT;
+      if (note && document.activeElement !== note) note.value = (log && log.note) || '';
+      if (from && document.activeElement !== from && !String(from.value || '').trim()) from.value = mileageHomeAddress();
+    }
+
+    function loadMileagePage() {
+      const input = document.getElementById('milesDate');
+      const yearInput = document.getElementById('milesExportYear');
+      const today = todayEtKey();
+      if (input && !input.value) input.value = today;
+      if (yearInput && !yearInput.value) yearInput.value = today.slice(0, 4);
+      const from = document.getElementById('milesTripFrom');
+      if (from && !String(from.value || '').trim()) from.value = mileageHomeAddress();
+      renderMileageSummary();
+      loadMileageSummary();
+      loadMileageDay(input ? input.value : today);
+    }
+
+    async function loadMileageSummary() {
+      renderMileageSummary();
+      try {
+        const session = await mileageSession();
+        if (!session) {
+          mileageState.summary = null;
+          renderMileageSummary();
+          return;
+        }
+        const today = todayEtKey();
+        const year = today.slice(0, 4);
+        const month = today.slice(0, 7);
+        const { data, error } = await sb.from('mileage_log')
+          .select('log_date,total_miles,legs,manual_trips')
+          .gte('log_date', year + '-01-01')
+          .lte('log_date', today);
+        if (error) {
+          mileageState.summary = { error: true, year: year };
+          renderMileageSummary();
+          return;
+        }
+        let monthMiles = 0;
+        let ytdMiles = 0;
+        let incomplete = false;
+        (data || []).forEach(row => {
+          const miles = row.total_miles == null ? 0 : Number(row.total_miles);
+          if (String(row.log_date).slice(0, 7) === month) monthMiles += miles;
+          ytdMiles += miles;
+          if (mileageRowIncomplete(row)) incomplete = true;
+        });
+        const rate = mileageRate();
+        mileageState.summary = {
+          monthMiles: mileageRound1(monthMiles),
+          ytdMiles: mileageRound1(ytdMiles),
+          monthDeduction: monthMiles * rate,
+          ytdDeduction: ytdMiles * rate,
+          monthLabel: mileageMonthLabel(today),
+          year: year,
+          incomplete: incomplete,
+          error: false
+        };
+        renderMileageSummary();
+      } catch (e) {
+        mileageState.summary = { error: true };
+        renderMileageSummary();
+      }
+    }
+
+    async function loadMileageDay(dateKey) {
+      if (!dateKey) return;
+      const input = document.getElementById('milesDate');
+      if (input && input.value !== dateKey) input.value = dateKey;
+      mileageState.dateKey = dateKey;
+      mileageState.busy = true;
+      mileageState.error = '';
+      mileageState.drift = false;
+      renderMileage();
+      try {
+        const session = await mileageSession();
+        if (!session) {
+          mileageState.busy = false;
+          mileageState.log = null;
+          mileageState.leads = [];
+          mileageState.error = '';
+          renderMileage();
+          const status = document.getElementById('milesStatus');
+          if (status) status.textContent = 'Sign in to see saved days. Closing a lead saves the log on its own.';
+          return;
+        }
+        const logResult = await mileageFetchLog(dateKey).then(log => ({ log: log, error: null })).catch(error => ({ log: null, error: error }));
+        const leadResult = await mileageFetchLeads(dateKey);
+        mileageState.log = logResult.log;
+        mileageState.leads = leadResult.leads || [];
+        mileageState.busy = false;
+        if (logResult.error) mileageState.error = 'Could not load this day. Run the mileage migration in Supabase if you have not yet.';
+        else if (leadResult.error && !mileageState.log) mileageState.error = 'Could not load leads for this day.';
+        else mileageState.error = '';
+        mileageState.drift = !mileageState.error && mileageDayDrifted(mileageState.log, mileageState.leads);
+        mileageFillMeta(mileageState.log);
+        renderMileage();
+        if (!mileageState.log && mileageState.leads.length && !logResult.error && !leadResult.error) {
+          mileageState.busy = true;
+          renderMileage();
+          enqueueMileage(() => refreshMileageDay(dateKey, { force: false }));
+        }
+      } catch (e) {
+        mileageState.busy = false;
+        mileageState.error = 'Could not load this day.';
+        renderMileage();
+      }
+    }
+
+    function renderMileageSummary() {
+      const el = document.getElementById('milesSummary');
+      if (!el) return;
+      const s = mileageState.summary;
+      const rate = mileageRate();
+      const monthName = s && s.monthLabel ? s.monthLabel : mileageMonthLabel(todayEtKey());
+      const year = s && s.year ? s.year : todayEtKey().slice(0, 4);
+      const monthMiles = s && !s.error && s.monthMiles != null ? mileageMilesText(s.monthMiles) : '—';
+      const ytdMiles = s && !s.error && s.ytdMiles != null ? mileageMilesText(s.ytdMiles) : '—';
+      const monthDed = s && !s.error ? mileageMoney(s.monthDeduction) : '—';
+      const ytdDed = s && !s.error ? mileageMoney(s.ytdDeduction) : '—';
+      const note = s && s.error
+        ? 'Totals appear after the mileage log table is set up.'
+        : (s && s.incomplete ? 'A day still has a leg without miles, so that leg is not in the total. ' : '')
+          + 'Estimate uses ' + mileageMoney(rate) + ' per mile.';
+      el.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+        + '<div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:12px;padding:10px 12px">'
+        + '<div style="font-size:10px;font-weight:800;color:#166534;letter-spacing:.4px">' + escHtml(monthName.toUpperCase()) + '</div>'
+        + '<div style="font-size:18px;font-weight:900;color:#14532D">' + escHtml(monthMiles) + '</div>'
+        + '<div style="font-size:12px;font-weight:700;color:#166534">' + escHtml(monthDed) + '</div></div>'
+        + '<div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:10px 12px">'
+        + '<div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.4px">' + escHtml(year) + ' YTD</div>'
+        + '<div style="font-size:18px;font-weight:900">' + escHtml(ytdMiles) + '</div>'
+        + '<div style="font-size:12px;font-weight:700;color:var(--muted)">' + escHtml(ytdDed) + '</div></div></div>'
+        + '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4">' + escHtml(note) + '</div>';
+    }
+
+    function mileageLegHtml(leg, index) {
+      if (!leg) return '<div style="font-size:11px;color:var(--muted);margin:8px 0 8px 8px">Driving miles not saved yet</div>';
+      const failed = !!leg.lookup_failed && (leg.miles == null || leg.miles === '');
+      const kept = !!leg.lookup_failed && leg.miles != null && leg.miles !== '';
+      let html = '<div style="margin:8px 0;padding:8px;border-radius:10px;background:' + (failed ? '#FEF2F2' : '#F9FAFB') + ';border:1px solid ' + (failed ? '#FECACA' : 'var(--border)') + '">';
+      html += '<div style="font-size:11px;color:var(--muted)">' + escHtml(leg.from_name || '') + ' → ' + escHtml(leg.to_name || '') + '</div>';
+      if (failed) html += '<div style="font-size:11px;font-weight:800;color:#B91C1C;margin-top:4px">Lookup failed — type the miles</div>';
+      if (kept) html += '<div style="font-size:11px;font-weight:800;color:#92400E;margin-top:4px">Lookup failed — kept the miles you typed</div>';
+      html += '<div style="display:flex;align-items:center;gap:6px;margin-top:4px"><input type="number" min="0" step="0.1" inputmode="decimal" value="' + (leg.miles == null ? '' : leg.miles) + '" onchange="mileageSetLegMiles(' + index + ', this.value)" style="width:110px;padding:8px 10px;border:1.5px solid ' + (failed ? '#FECACA' : 'var(--border)') + ';border-radius:8px;font-family:Inter,sans-serif;font-size:14px;font-weight:800"><span style="font-size:12px;font-weight:700;color:var(--muted)">miles</span></div>';
+      if (leg.miles_manual && !failed) html += '<div style="font-size:10px;color:var(--muted);margin-top:3px">Typed miles stay until you tap Recalculate</div>';
+      html += '</div>';
+      return html;
+    }
+
+    function mileageBodyHtml() {
+      const log = mileageState.log;
+      const leads = mileageState.leads || [];
+      const stops = log && Array.isArray(log.stops)
+        ? log.stops
+        : leads.map(lead => ({
+          lead_id: lead.id,
+          name: mileageLeadName(lead),
+          address: String(lead.customer_address || '').trim(),
+          included: mileageDefaultInclude(lead),
+          tag: mileageLeadTag(lead)
+        }));
+      const legs = (log && log.legs) || [];
+      const trips = (log && log.manual_trips) || [];
+      const home = (log && log.home_address) || mileageHomeAddress();
+      if (!stops.length && !trips.length) {
+        return '<div style="font-size:13px;color:var(--muted);padding:4px 0 12px;line-height:1.45">No closed leads this day. The log is saved when you log a sale, a not sold, or a no show. You can still add a manual trip below.</div>';
+      }
+      let html = '<div style="background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px">';
+      html += '<div style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.4px">ROUTE</div>';
+      html += '<div style="font-size:13px;font-weight:800;margin-top:4px">Home</div>';
+      html += '<div style="font-size:12px;color:var(--muted)">' + mapsDirLink(home) + '</div>';
+      const included = stops.filter(s => s.included);
+      if (!included.length) html += '<div style="font-size:12px;color:var(--muted);margin-top:8px">No stops in the route. Add one below, or add a manual trip.</div>';
+      included.forEach((stop, i) => {
+        html += mileageLegHtml(legs[i], i);
+        html += '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">';
+        html += '<div style="min-width:0"><div style="font-size:14px;font-weight:800">' + escHtml(stop.name || 'Stop') + '</div>';
+        html += '<div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (stop.address ? mapsDirLink(stop.address) : 'No address on the lead') + '</div>';
+        html += '<div style="font-size:10px;font-weight:800;color:#166534;margin-top:2px">' + escHtml(stop.tag || '') + '</div></div>';
+        html += '<button type="button" onclick="mileageToggleStop(\'' + stop.lead_id + '\')" style="flex-shrink:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:6px 8px;font-family:Inter,sans-serif;font-size:11px;font-weight:700;cursor:pointer">Leave out</button>';
+        html += '</div>';
+      });
+      if (included.length) {
+        html += mileageLegHtml(legs[included.length], included.length);
+        html += '<div style="font-size:14px;font-weight:800">Home</div>';
+        html += '<div style="font-size:12px;color:var(--muted)">' + mapsDirLink(home) + '</div>';
+      }
+      html += '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:14px;font-weight:800">Total ' + mileageMilesText(log ? log.total_miles : null) + '</div>';
+      html += '</div>';
+      const excluded = stops.filter(s => !s.included);
+      if (excluded.length) {
+        html += '<div style="background:#F9FAFB;border:1.5px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px">';
+        html += '<div style="font-size:12px;font-weight:800;margin-bottom:4px">Not in this route</div>';
+        excluded.forEach(stop => {
+          html += '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--border)">';
+          html += '<div style="min-width:0"><div style="font-size:13px;font-weight:800">' + escHtml(stop.name || 'Stop') + '</div>';
+          html += '<div style="font-size:12px;color:var(--muted)">' + (stop.address ? mapsDirLink(stop.address) : 'No address') + '</div>';
+          html += '<div style="font-size:10px;font-weight:700;color:#92400E">' + escHtml(stop.tag || 'Left out') + '</div></div>';
+          html += '<button type="button" onclick="mileageToggleStop(\'' + stop.lead_id + '\')" style="flex-shrink:0;background:#fff;color:#166534;border:1.5px solid #86EFAC;border-radius:8px;padding:6px 8px;font-family:Inter,sans-serif;font-size:11px;font-weight:800;cursor:pointer">Add to route</button>';
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+      if (trips.length) {
+        html += '<div style="background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px">';
+        html += '<div style="font-size:12px;font-weight:800;margin-bottom:4px">Manual trips</div>';
+        trips.forEach(trip => {
+          const failed = !!trip.lookup_failed && (trip.miles == null || trip.miles === '');
+          html += '<div style="padding:8px 0;border-top:1px solid var(--border)">';
+          html += '<div style="display:flex;justify-content:space-between;gap:8px"><div style="font-size:13px;font-weight:800">' + escHtml(trip.to_name || 'Trip') + '</div>';
+          html += '<button type="button" onclick="mileageDeleteTrip(\'' + trip.id + '\')" style="background:transparent;border:none;color:#E53935;font-family:Inter,sans-serif;font-size:11px;font-weight:700;cursor:pointer">Remove</button></div>';
+          html += '<div style="font-size:12px;color:var(--muted)">' + (trip.from_address ? mapsDirLink(trip.from_address) : '') + ' → ' + (trip.to_address ? mapsDirLink(trip.to_address) : '') + '</div>';
+          html += '<div style="font-size:11px;color:var(--muted)">' + escHtml(trip.purpose || '') + '</div>';
+          if (failed) html += '<div style="font-size:11px;font-weight:800;color:#B91C1C;margin-top:4px">Lookup failed — type the miles</div>';
+          html += '<input type="number" min="0" step="0.1" inputmode="decimal" value="' + (trip.miles == null ? '' : trip.miles) + '" onchange="mileageSetTripMiles(\'' + trip.id + '\', this.value)" style="width:120px;margin-top:6px;padding:8px 10px;border:1.5px solid ' + (failed ? '#FECACA' : 'var(--border)') + ';border-radius:8px;font-family:Inter,sans-serif;font-size:14px;font-weight:800">';
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+      return html;
+    }
+
+    function renderMileage() {
+      renderMileageSummary();
+      const status = document.getElementById('milesStatus');
+      const body = document.getElementById('milesBody');
+      if (status) {
+        if (mileageState.busy) status.textContent = 'Calculating driving miles…';
+        else if (mileageState.error) status.textContent = mileageState.error;
+        else if (mileageState.drift) status.textContent = 'A lead changed after this day was saved. Tap Recalculate to rebuild the route. Miles you typed stay until you do that.';
+        else if (mileageState.log && mileageRowIncomplete(mileageState.log)) status.textContent = 'Some legs need miles. Type them in and they will stick.';
+        else if (mileageState.log) status.textContent = 'Saved for this day.';
+        else status.textContent = 'No saved log for this day yet.';
+      }
+      if (body) body.innerHTML = mileageBodyHtml();
+    }
+
+    function mileageApplyEditedMiles(list, indexOrId, value, byId) {
+      const next = (list || []).map(item => Object.assign({}, item));
+      const item = byId ? next.find(t => t.id === indexOrId) : next[indexOrId];
+      if (!item) return null;
+      const trimmed = String(value == null ? '' : value).trim();
+      if (!trimmed) {
+        item.miles = null;
+        item.miles_manual = false;
+        item.lookup_failed = true;
+      } else {
+        const n = mileageRound1(trimmed);
+        if (n == null || n < 0) return false;
+        item.miles = n;
+        item.miles_manual = true;
+        item.lookup_failed = false;
+      }
+      return next;
+    }
+
+    function mileageSetLegMiles(index, value) {
+      const dateKey = mileageState.dateKey;
+      enqueueMileage(async () => {
+        const session = await mileageSession();
+        if (!session) return;
+        const log = await mileageFetchLog(dateKey);
+        if (!log) return;
+        const legs = mileageApplyEditedMiles(log.legs, index, value, false);
+        if (legs === false) { toast('Enter miles as a number', 'err'); return; }
+        if (!legs) return;
+        const saved = await mileageUpsert({
+          user_id: session.user.id,
+          log_date: dateKey,
+          business_purpose: log.business_purpose || MILEAGE_PURPOSE_DEFAULT,
+          note: log.note,
+          home_address: log.home_address,
+          stops: log.stops || [],
+          legs: legs,
+          manual_trips: log.manual_trips || [],
+          excluded_stop_ids: log.excluded_stop_ids || [],
+          included_stop_ids: log.included_stop_ids || [],
+          total_miles: mileageSumAll(legs, log.manual_trips || []),
+          miles_customized: true,
+          updated_at: new Date().toISOString()
+        });
+        if (mileageViewing(dateKey)) {
+          mileageState.log = saved;
+          mileageState.busy = false;
+          mileageFillMeta(saved);
+          renderMileage();
+        }
+        loadMileageSummary();
+      });
+    }
+
+    function mileageSetTripMiles(id, value) {
+      const dateKey = mileageState.dateKey;
+      enqueueMileage(async () => {
+        const session = await mileageSession();
+        if (!session) return;
+        const log = await mileageFetchLog(dateKey);
+        if (!log) return;
+        const trips = mileageApplyEditedMiles(log.manual_trips, id, value, true);
+        if (trips === false) { toast('Enter miles as a number', 'err'); return; }
+        if (!trips) return;
+        const saved = await mileageUpsert({
+          user_id: session.user.id,
+          log_date: dateKey,
+          business_purpose: log.business_purpose || MILEAGE_PURPOSE_DEFAULT,
+          note: log.note,
+          home_address: log.home_address,
+          stops: log.stops || [],
+          legs: log.legs || [],
+          manual_trips: trips,
+          excluded_stop_ids: log.excluded_stop_ids || [],
+          included_stop_ids: log.included_stop_ids || [],
+          total_miles: mileageSumAll(log.legs || [], trips),
+          miles_customized: true,
+          updated_at: new Date().toISOString()
+        });
+        if (mileageViewing(dateKey)) {
+          mileageState.log = saved;
+          mileageState.busy = false;
+          mileageFillMeta(saved);
+          renderMileage();
+        }
+        loadMileageSummary();
+      });
+    }
+
+    function mileageDeleteTrip(id) {
+      const dateKey = mileageState.dateKey;
+      enqueueMileage(async () => {
+        const session = await mileageSession();
+        if (!session) return;
+        const log = await mileageFetchLog(dateKey);
+        if (!log) return;
+        const trips = (log.manual_trips || []).filter(t => t.id !== id);
+        const saved = await mileageUpsert({
+          user_id: session.user.id,
+          log_date: dateKey,
+          business_purpose: log.business_purpose || MILEAGE_PURPOSE_DEFAULT,
+          note: log.note,
+          home_address: log.home_address,
+          stops: log.stops || [],
+          legs: log.legs || [],
+          manual_trips: trips,
+          excluded_stop_ids: log.excluded_stop_ids || [],
+          included_stop_ids: log.included_stop_ids || [],
+          total_miles: mileageSumAll(log.legs || [], trips),
+          miles_customized: (log.legs || []).some(l => l.miles_manual) || trips.some(t => t.miles_manual),
+          updated_at: new Date().toISOString()
+        });
+        if (mileageViewing(dateKey)) {
+          mileageState.log = saved;
+          mileageState.busy = false;
+          renderMileage();
+        }
+        loadMileageSummary();
+      });
+    }
+
+    function mileageToggleStop(id) {
+      const dateKey = mileageState.dateKey;
+      if (!dateKey || !id) return;
+      mileageState.busy = true;
+      renderMileage();
+      enqueueMileage(() => refreshMileageDay(dateKey, { force: false, toggleId: id }));
+    }
+
+    function mileageRecalculateClick() {
+      const dateKey = (document.getElementById('milesDate') || {}).value;
+      if (!dateKey) return;
+      if (mileageState.log && mileageState.log.miles_customized && !confirm('Replace the miles you typed with a fresh driving calculation?')) return;
+      mileageState.busy = true;
+      mileageState.error = '';
+      renderMileage();
+      enqueueMileage(() => refreshMileageDay(dateKey, { force: true }));
+    }
+
+    function mileageAddManualTrip() {
+      const dateKey = (document.getElementById('milesDate') || {}).value;
+      const fromEl = document.getElementById('milesTripFrom');
+      const toEl = document.getElementById('milesTripTo');
+      const nameEl = document.getElementById('milesTripName');
+      const milesEl = document.getElementById('milesTripMiles');
+      const purposeEl = document.getElementById('milesTripPurpose');
+      const from = String((fromEl && fromEl.value) || '').trim() || mileageHomeAddress();
+      const to = String((toEl && toEl.value) || '').trim();
+      const name = String((nameEl && nameEl.value) || '').trim() || 'Manual stop';
+      const purpose = String((purposeEl && purposeEl.value) || '').trim() || MILEAGE_PURPOSE_DEFAULT;
+      const typed = String((milesEl && milesEl.value) || '').trim();
+      if (!dateKey) return;
+      if (!to) { toast('Enter the destination address', 'err'); return; }
+      enqueueMileage(async () => {
+        const session = await mileageSession();
+        if (!session) { toast('Sign in first', 'err'); return; }
+        let log = null;
+        try { log = await mileageFetchLog(dateKey); } catch (e) { toast('Could not save the trip', 'err'); return; }
+        if (!log) {
+          await refreshMileageDay(dateKey, { force: false });
+          try { log = await mileageFetchLog(dateKey); } catch (e) { log = null; }
+        }
+        if (!log) {
+          log = {
+            business_purpose: MILEAGE_PURPOSE_DEFAULT,
+            note: null,
+            home_address: mileageHomeAddress(),
+            stops: [],
+            legs: [],
+            manual_trips: [],
+            excluded_stop_ids: [],
+            included_stop_ids: []
+          };
+        }
+        let miles = null;
+        let milesManual = false;
+        let lookupFailed = false;
+        if (typed) {
+          miles = mileageRound1(typed);
+          if (miles == null || miles < 0) { toast('Enter miles as a number', 'err'); return; }
+          milesManual = true;
+        } else {
+          miles = await mileageTripMiles(from, to);
+          if (miles == null) lookupFailed = true;
+        }
+        const trips = (log.manual_trips || []).slice();
+        trips.push({
+          id: mileageNewId(),
+          purpose: purpose,
+          from_name: mileageNormAddr(from) === mileageNormAddr(mileageHomeAddress()) ? 'Home' : 'Start',
+          from_address: from,
+          to_name: name,
+          to_address: to,
+          miles: miles,
+          miles_manual: milesManual,
+          lookup_failed: lookupFailed
+        });
+        const saved = await mileageUpsert({
+          user_id: session.user.id,
+          log_date: dateKey,
+          business_purpose: log.business_purpose || MILEAGE_PURPOSE_DEFAULT,
+          note: log.note || null,
+          home_address: log.home_address || mileageHomeAddress(),
+          stops: log.stops || [],
+          legs: log.legs || [],
+          manual_trips: trips,
+          excluded_stop_ids: log.excluded_stop_ids || [],
+          included_stop_ids: log.included_stop_ids || [],
+          total_miles: mileageSumAll(log.legs || [], trips),
+          miles_customized: (log.legs || []).some(l => l.miles_manual) || trips.some(t => t.miles_manual),
+          updated_at: new Date().toISOString()
+        });
+        if (toEl) toEl.value = '';
+        if (nameEl) nameEl.value = '';
+        if (milesEl) milesEl.value = '';
+        if (purposeEl) purposeEl.value = '';
+        if (mileageViewing(dateKey)) {
+          mileageState.log = saved;
+          mileageState.busy = false;
+          mileageState.dateKey = dateKey;
+          mileageFillMeta(saved);
+          renderMileage();
+        }
+        loadMileageSummary();
+        toast(lookupFailed ? 'Trip saved. Type the miles — the lookup failed.' : 'Trip added', lookupFailed ? 'err' : 'ok');
+      });
+    }
+
+    function mileageSavePurposeNote() {
+      const dateKey = (document.getElementById('milesDate') || {}).value;
+      const purpose = String((document.getElementById('milesPurpose') || {}).value || '').trim() || MILEAGE_PURPOSE_DEFAULT;
+      const note = String((document.getElementById('milesNote') || {}).value || '').trim();
+      if (!dateKey) return;
+      enqueueMileage(async () => {
+        const session = await mileageSession();
+        if (!session) return;
+        let log = null;
+        try { log = await mileageFetchLog(dateKey); } catch (e) { return; }
+        if (!log) return;
+        const saved = await mileageUpsert({
+          user_id: session.user.id,
+          log_date: dateKey,
+          business_purpose: purpose,
+          note: note || null,
+          home_address: log.home_address,
+          stops: log.stops || [],
+          legs: log.legs || [],
+          manual_trips: log.manual_trips || [],
+          excluded_stop_ids: log.excluded_stop_ids || [],
+          included_stop_ids: log.included_stop_ids || [],
+          total_miles: log.total_miles,
+          miles_customized: !!log.miles_customized,
+          updated_at: new Date().toISOString()
+        });
+        if (mileageViewing(dateKey)) mileageState.log = saved;
+      });
+    }
+
+    function mileageDeleteDay() {
+      const dateKey = mileageState.dateKey || (document.getElementById('milesDate') || {}).value;
+      if (!dateKey) return;
+      if (!confirm('Delete the mileage log for this day?')) return;
+      enqueueMileage(async () => {
+        const session = await mileageSession();
+        if (!session) return;
+        const { error } = await sb.from('mileage_log').delete().eq('log_date', dateKey);
+        if (error) { toast('Could not delete', 'err'); return; }
+        mileageState.log = null;
+        mileageState.drift = false;
+        mileageState.busy = false;
+        mileageFillMeta(null);
+        renderMileage();
+        loadMileageSummary();
+        toast('Day deleted', 'ok');
+      });
+    }
+
+    function csvCell(value) {
+      const s = value == null ? '' : String(value);
+      if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    }
+
+    async function mileageExportClick() {
+      const year = String((document.getElementById('milesExportYear') || {}).value || '').trim();
+      if (!/^\d{4}$/.test(year)) { toast('Enter a year', 'err'); return; }
+      const session = await mileageSession();
+      if (!session) { toast('Sign in first', 'err'); return; }
+      const { data, error } = await sb.from('mileage_log').select('*').gte('log_date', year + '-01-01').lte('log_date', year + '-12-31').order('log_date', { ascending: true });
+      if (error) { toast('Could not export', 'err'); return; }
+      const lines = [['date', 'purpose', 'from', 'to', 'miles', 'total']];
+      (data || []).forEach(row => {
+        const total = row.total_miles == null ? '' : row.total_miles;
+        const purpose = row.business_purpose || MILEAGE_PURPOSE_DEFAULT;
+        (row.legs || []).forEach(leg => {
+          lines.push([row.log_date, purpose, mileageEndpoint(leg.from_name, leg.from_address), mileageEndpoint(leg.to_name, leg.to_address), leg.miles == null ? '' : leg.miles, total]);
+        });
+        (row.manual_trips || []).forEach(trip => {
+          lines.push([row.log_date, trip.purpose || purpose, mileageEndpoint(trip.from_name, trip.from_address), mileageEndpoint(trip.to_name, trip.to_address), trip.miles == null ? '' : trip.miles, total]);
+        });
+      });
+      const csv = '\uFEFF' + lines.map(r => r.map(csvCell).join(',')).join('\r\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'mileage-' + year + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+    }
+
+    function loadMileageSettingsUI() {
+      const home = document.getElementById('mileageHome');
+      const rate = document.getElementById('mileageRate');
+      if (home && document.activeElement !== home) home.value = mileageHomeAddress();
+      if (rate && document.activeElement !== rate) rate.value = String(mileageRate());
+    }
+
+    async function loadMileageSettings() {
+      try {
+        const cachedHome = localStorage.getItem('mileage_home');
+        const cachedRate = mileageNormalizeRate(localStorage.getItem('mileage_rate'));
+        if (cachedHome) mileageSettings.home_address = cachedHome;
+        if (cachedRate) mileageSettings.mileage_rate = cachedRate;
+        loadMileageSettingsUI();
+        const session = await mileageSession();
+        if (!session) return;
+        const { data, error } = await sb.from('mileage_settings').select('home_address,mileage_rate').eq('user_id', session.user.id).maybeSingle();
+        if (error || !data) return;
+        if (data.home_address) mileageSettings.home_address = data.home_address;
+        const savedRate = mileageNormalizeRate(data.mileage_rate);
+        if (savedRate) mileageSettings.mileage_rate = savedRate;
+        localStorage.setItem('mileage_home', mileageSettings.home_address);
+        localStorage.setItem('mileage_rate', String(mileageSettings.mileage_rate));
+        loadMileageSettingsUI();
+        const from = document.getElementById('milesTripFrom');
+        if (from && !String(from.value || '').trim()) from.value = mileageHomeAddress();
+      } catch (e) {}
+    }
+
+    async function saveMileageSettings() {
+      const homeInput = document.getElementById('mileageHome');
+      const rateInput = document.getElementById('mileageRate');
+      const home = String((homeInput && homeInput.value) || '').trim() || MILEAGE_HOME_DEFAULT;
+      const rate = mileageNormalizeRate(rateInput && rateInput.value);
+      if (!rate) { toast('Enter a mileage rate above 0', 'err'); return; }
+      mileageSettings.home_address = home;
+      mileageSettings.mileage_rate = rate;
+      try {
+        localStorage.setItem('mileage_home', home);
+        localStorage.setItem('mileage_rate', String(rate));
+      } catch (e) {}
+      loadMileageSettingsUI();
+      const from = document.getElementById('milesTripFrom');
+      if (from && !String(from.value || '').trim()) from.value = home;
+      try {
+        const session = await mileageSession();
+        if (!session) { toast('Saved on this phone', 'ok'); return; }
+        const { error } = await sb.from('mileage_settings').upsert({
+          user_id: session.user.id,
+          home_address: home,
+          mileage_rate: rate,
+          updated_at: new Date().toISOString()
+        });
+        if (error) { toast('Saved on this phone. It did not reach the database.', 'err'); return; }
+        toast('Mileage settings saved', 'ok');
+        const page = document.getElementById('p-miles');
+        if (page && page.classList.contains('active')) loadMileageSummary();
+      } catch (e) {
+        toast('Saved on this phone', 'ok');
+      }
+    }
+
+    function setDriveButtons(disabled) {
+      ['driveQuestionYes', 'driveQuestionNo', 'driveQuestionBack'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.disabled = disabled;
+      });
+    }
+
+    function openDriveQuestion(id) {
+      const appt = pendingAppointments.find(a => a.id === id);
+      if (!appt) { toast('Appointment not found', 'err'); return; }
+      pendingNoShowId = id;
+      driveQuestionBusy = false;
+      const nameEl = document.getElementById('driveQuestionName');
+      if (nameEl) nameEl.textContent = appt.customer_name || 'This appointment';
+      setDriveButtons(false);
+      const overlay = document.getElementById('driveQuestionOverlay');
+      if (overlay) overlay.style.display = 'flex';
+    }
+
+    function cancelDriveQuestion() {
+      pendingNoShowId = null;
+      driveQuestionBusy = false;
+      setDriveButtons(false);
+      const overlay = document.getElementById('driveQuestionOverlay');
+      if (overlay) overlay.style.display = 'none';
+    }
+
+    async function confirmDriveQuestion(droveThere) {
+      if (driveQuestionBusy) return;
+      const id = pendingNoShowId;
+      const appt = pendingAppointments.find(a => a.id === id);
+      if (!appt) { cancelDriveQuestion(); toast('Appointment not found', 'err'); return; }
+      driveQuestionBusy = true;
+      setDriveButtons(true);
+      const noteLine = droveThere ? 'No show' : 'Cancelled before arrival';
+      const reason = matchingNoShowReason();
+      const payload = {
+        status: 'not_sold',
+        sales_date: apptDateKey(appt.appointment_at) || todayEtKey(),
+        notes: appendNoShowNote(appt.notes, noteLine),
+        reason_id: reason ? reason.id : null,
+        sale_amount: null,
+        commission_amount: null,
+        commission_paid: false,
+        job_number: null,
+        install_date: null,
+        followup_name: null,
+        followup_phone: null,
+        followup_date: null,
+        followup_done: false,
+        drove_there: !!droveThere
+      };
+      try {
+        let result = await sb.from('leads').update(payload).eq('id', id).eq('status', 'pending').select('id');
+        if (result.error && /drove_there/i.test(result.error.message || '')) {
+          const fallback = Object.assign({}, payload);
+          delete fallback.drove_there;
+          result = await sb.from('leads').update(fallback).eq('id', id).eq('status', 'pending').select('id');
+        }
+        if (result.error || !result.data || !result.data.length) {
+          toast('Could not update appointment', 'err');
+          console.error(result.error);
+          driveQuestionBusy = false;
+          setDriveButtons(false);
+          return;
+        }
+        const mileageDate = mileageDayFromClose(appt, payload);
+        lastUndo = {
+          mode: 'revert',
+          id: id,
+          restore: Object.assign({}, pendingRestorePayload(appt), { drove_there: null }),
+          mileageDate: mileageDate
+        };
+        lastId = id;
+        if (activeAppointment && activeAppointment.id === id) {
+          activeAppointment = null;
+          ccResetLogPanel();
+        }
+        const name = appt.customer_name || 'Appointment';
+        cancelDriveQuestion();
+        showUndo(name + (droveThere ? ' marked no show' : ' cancelled before arrival'));
+        scheduleMileageRecalc(mileageDate);
+        if (document.getElementById('p-dash')?.classList.contains('active')) loadDash();
+        else loadAppointments();
+      } catch (e) {
+        toast('Could not update appointment', 'err');
+        console.error(e);
+        driveQuestionBusy = false;
+        setDriveButtons(false);
+      }
     }
 
     // ─────────────────────────────────────────
