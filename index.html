@@ -2150,6 +2150,7 @@
           </div>
         </div>
         <div id="dashApptCard" style="display:none;margin:4px 12px 12px"></div>
+        <div id="dashTextToday" style="margin:4px 10px 12px"></div>
         <!-- Installations Action Center -->
         <div id="instActionCenter"
           style="display:none; background:linear-gradient(135deg, #F0FDF4, #DCFCE7); border:1.5px solid #86EFAC; border-radius:14px; padding:12px 16px; margin-bottom:14px; align-items:center; justify-content:space-between; cursor:pointer"
@@ -2202,6 +2203,7 @@
       <div id="p-hist" class="page">
         <div class="hist-tabs">
           <button class="htab active" onclick="switchHistTab('leads',this); filterHist('all')">📋 Sales History</button>
+          <button class="htab" id="htab-fu" onclick="switchHistTab('followups',this)">📲 Follow-ups</button>
         </div>
         <!-- All Leads sub-section -->
         <div id="histLeadsSection">
@@ -2238,8 +2240,7 @@
         <div id="histFuSection" style="display:none">
           <div style="padding:10px 12px 6px;display:flex;justify-content:space-between;align-items:center">
             <span
-              style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Reach-Out
-              Reminders</span>
+              style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Follow-ups</span>
             <label
               style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer">
               <input type="checkbox" id="fuShowDone" onchange="loadFollowUps()" style="accent-color:var(--green)"> Show
@@ -2412,27 +2413,6 @@
               mileage settings</button>
           </div>
         </div>
-        <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
-
-        <div class="settings-wrap" style="padding-top:0">
-          <div class="s-title" onclick="toggleSetSec('aiSection', 'aiIcon')"
-            style="cursor:pointer; display:flex; align-items:center; justify-content:space-between">
-            <span>🤖 AI Follow-Up Messages</span>
-            <span id="aiIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
-          </div>
-          <div id="aiSection" style="display:none">
-            <div class="s-sub" style="margin-bottom:12px">Tap the button below and paste your Anthropic API key into the dialog that appears.</div>
-            <div id="aiKeyStatus" style="font-size:12px;color:var(--muted);margin-bottom:10px;font-family:monospace"></div>
-            <button onclick="saveAiKey()"
-              style="width:100%;padding:12px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer">
-              🔑 Enter API Key
-            </button>
-            <button onclick="clearAiKey()"
-              style="width:100%;padding:10px;background:transparent;color:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px">
-              Clear Key
-            </button>
-          </div>
-        </div>
         <!-- Goal Settings -->
         <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
         <div class="settings-wrap" style="padding-top:0">
@@ -2550,7 +2530,7 @@
             <span id="smsIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
           </div>
           <div id="smsConfigSection" style="display:none">
-            <div class="s-sub" style="margin-bottom:10px">Manage your follow-up message templates.</div>
+            <div class="s-sub" style="margin-bottom:10px">Edit every follow-up text. Saved to your account. Use [Name] and [RepName].</div>
             <div style="margin-bottom:12px">
               <button onclick="openFuTemplateEditor()"
                 style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
@@ -2866,43 +2846,21 @@
               <div style="font-size:11px;font-weight:800;color:#991B1B;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
                 📞 Customer &amp; Follow-Up
               </div>
-              <div class="fg2" style="margin-bottom:8px">
+              <div id="ccNotContactRow" class="fg2" style="margin-bottom:8px">
                 <div>
                   <label class="fl" style="font-size:10px">Customer Name</label>
-                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px">
+                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px" oninput="this.classList.remove('fi-error')">
                 </div>
                 <div>
-                  <label class="fl" style="font-size:10px">Phone Number</label>
-                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555-555-5555" maxlength="14" style="padding:8px 10px;font-size:12px">
+                  <label class="fl" style="font-size:10px">Phone Number <span id="ccNotPhoneReq" style="color:#E53935">*</span></label>
+                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555-555-5555" maxlength="14" style="padding:8px 10px;font-size:12px" oninput="this.classList.remove('fi-error')">
                 </div>
               </div>
-              <div class="fg" style="margin-bottom:0">
-                <label class="fl" style="font-size:10px">Follow-Up Date <span style="color:#E53935">*</span></label>
-                <input type="date" class="fi" id="ccNotFuDate" required style="padding:8px 10px;font-size:12px">
-              </div>
+              <div style="font-size:10px;color:#991B1B;line-height:1.4">Texts go out on their own schedule from the visit date. Phone is required except No one home and No demo.</div>
             </div>
             <div class="fg" style="margin-bottom:12px">
               <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
               <textarea class="fi" id="ccNotNotes" placeholder="e.g. Call back in spring, left card..."></textarea>
-            </div>
-            <div id="ccFollowUpBox" style="background:#F9FAFB;border:1.5px dashed var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
-              <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
-                📞 Quick Follow-Up <span style="font-weight:400;text-transform:none">(optional)</span>
-              </div>
-              <div id="ccNotContactRow" class="fg2" style="margin-bottom:8px">
-                <div>
-                  <label class="fl" style="font-size:10px">Customer First Name</label>
-                  <input type="text" class="fi" id="ccNotFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px" oninput="this.classList.remove('fi-error')">
-                </div>
-                <div>
-                  <label class="fl" style="font-size:10px">Phone Number</label>
-                  <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555..." style="padding:8px 10px;font-size:12px" oninput="this.classList.remove('fi-error')">
-                </div>
-              </div>
-              <div class="fg" style="margin-bottom:0">
-                <label class="fl" style="font-size:10px">Follow-Up Date</label>
-                <input type="date" class="fi" id="ccNotFuDate" style="padding:8px 10px;font-size:12px" oninput="this.classList.remove('fi-error')">
-              </div>
             </div>
             <button class="sbtn ns" onclick="submitLeadFromCalc('not_sold')">❌ Log Not Sold</button>
           </div>
@@ -2975,7 +2933,9 @@
     <div style="background:#fff;border-radius:18px;padding:20px 16px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
       <div style="font-size:17px;font-weight:800;margin-bottom:4px">Did you drive there?</div>
       <div id="driveQuestionName" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px"></div>
-      <div style="font-size:12px;color:var(--muted);line-height:1.4;margin-bottom:14px">Both are saved as not sold. You can undo for a few seconds.</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.4;margin-bottom:10px">Both are saved as not sold and get a reschedule text. You can undo for a few seconds.</div>
+      <label class="fl" style="font-size:10px">Phone for the reschedule text</label>
+      <input type="tel" class="fi" id="driveQuestionPhone" placeholder="555-555-5555" maxlength="14" style="margin-bottom:12px;font-size:14px;padding:10px 12px">
       <button type="button" id="driveQuestionYes" onclick="confirmDriveQuestion(true)"
         style="width:100%;padding:13px;margin-bottom:8px;background:var(--green);color:#fff;border:none;border-radius:12px;font-family:'Inter',sans-serif;font-size:15px;font-weight:800;cursor:pointer">Yes, no show</button>
       <button type="button" id="driveQuestionNo" onclick="confirmDriveQuestion(false)"
@@ -3031,7 +2991,7 @@
         <button class="es-close" onclick="closeFu()">✕</button>
       </div>
 
-      <div style="padding:16px 20px 150px; overflow-y:auto; max-height:calc(94vh - 210px)">
+      <div style="padding:16px 20px 16px; overflow-y:auto; max-height:calc(94vh - 280px)">
         <!-- Quick Context Box -->
         <div id="fuContextSection"
           style="background:#F0F9FF; border:1px solid #BAE6FD; border-radius:12px; padding:12px; margin-bottom:16px; display:none">
@@ -3056,31 +3016,32 @@
         </div>
         <div class="fg">
           <label class="fl">Follow-Up Message</label>
+          <div id="fuStepLabel" style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px"></div>
           <textarea class="fi" id="fuMsg"
-            style="height:120px; padding:12px; font-size:13px; line-height:1.5" placeholder="Follow-up message will appear here…"></textarea>
-          <button onclick="aiGenFuMsg(true)" id="aiFuBtn"
-            style="width:100%;padding:10px;background:#F3F4F6;border:1.5px solid #D1D5DB;color:#6B7280;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-top:6px">
-            🔄 Re-spin
-          </button>
+            style="height:140px; padding:12px; font-size:13px; line-height:1.5" placeholder="Follow-up message will appear here…"></textarea>
         </div>
       </div>
 
       <div
-        style="position:absolute; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--border); padding:16px 20px 24px; display:flex; flex-direction:column; gap:10px">
-        
-        <button onclick="fuMarkRehash()"
-          style="padding:14px; border:1.5px solid #86EFAC; border-radius:12px; background:linear-gradient(135deg, var(--green-light), #BBF7D0); color:var(--green-dark); font-size:14px; font-weight:800; cursor:pointer; width:100%">
-          🔄 Mark as Rehash
-        </button>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%">
-          <button onclick="sendFuSMS()"
-            style="padding:14px; border:none; border-radius:12px; background:var(--blue); color:#fff; font-size:14px; font-weight:800; cursor:pointer">📱
-            Send SMS</button>
-          <button onclick="saveFu()"
-            style="padding:14px; border:none; border-radius:12px; background:var(--green); color:#fff; font-size:14px; font-weight:800; cursor:pointer">💾
-            Save Plan</button>
+        style="position:absolute; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--border); padding:12px 16px 20px; display:flex; flex-direction:column; gap:8px">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%">
+          <button onclick="sendFuSMS()" id="fuSendBtn"
+            style="padding:13px; border:none; border-radius:12px; background:var(--blue); color:#fff; font-size:14px; font-weight:800; cursor:pointer">📱 Text</button>
+          <button onclick="copyFuMsg()"
+            style="padding:13px; border:1.5px solid var(--border); border-radius:12px; background:#fff; color:var(--text); font-size:14px; font-weight:800; cursor:pointer">Copy</button>
         </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%">
+          <button onclick="stopFu('not_interested')"
+            style="padding:10px; border:1.5px solid #FECACA; border-radius:10px; background:#fff; color:#B91C1C; font-size:12px; font-weight:800; cursor:pointer">Not interested</button>
+          <button onclick="stopFu('opt_out')"
+            style="padding:10px; border:1.5px solid #FECACA; border-radius:10px; background:#fff; color:#B91C1C; font-size:12px; font-weight:800; cursor:pointer">Opt-out (STOP)</button>
+          <button onclick="stopFu('wrong_number')"
+            style="padding:10px; border:1.5px solid #E5E7EB; border-radius:10px; background:#fff; color:#374151; font-size:12px; font-weight:800; cursor:pointer">Wrong number</button>
+          <button onclick="stopFu('rehash_booked')"
+            style="padding:10px; border:1.5px solid #86EFAC; border-radius:10px; background:#F0FDF4; color:#166534; font-size:12px; font-weight:800; cursor:pointer">Rehash booked</button>
+        </div>
+        <button onclick="saveFu()"
+          style="padding:10px; border:none; border-radius:10px; background:var(--green); color:#fff; font-size:13px; font-weight:800; cursor:pointer">Save number</button>
       </div>
     </div>
   </div>
@@ -3432,14 +3393,14 @@
               <input type="text" class="fi" id="esNsFuName" placeholder="Michael" style="padding:8px 10px;font-size:12px">
             </div>
             <div>
-              <label class="fl" style="font-size:10px">Phone Number</label>
+              <label class="fl" style="font-size:10px">Phone Number <span id="esNsPhoneReq" style="color:#E53935">*</span></label>
               <input type="tel" class="fi" id="esNsFuPhone" placeholder="555-555-5555" maxlength="14" style="padding:8px 10px;font-size:12px">
             </div>
           </div>
           <div class="fg2" style="margin-bottom:8px">
             <div>
-              <label class="fl" style="font-size:10px">Follow-Up Date <span style="color:#E53935">*</span></label>
-              <input type="date" class="fi" id="esNsFuDate" required style="padding:8px 10px;font-size:12px">
+              <label class="fl" style="font-size:10px">Next text date</label>
+              <input type="date" class="fi" id="esNsFuDate" style="padding:8px 10px;font-size:12px">
             </div>
             <label class="paid-row" style="margin-top:22px;padding:8px 10px;border-radius:9px;cursor:pointer">
               <input type="checkbox" id="esNsFuDone" style="width:18px;height:18px;cursor:pointer;accent-color:var(--green)">
@@ -3462,27 +3423,6 @@
       </div>
     </div>
   </div>
-  </div>
-
-  <!-- AI Key Entry Modal -->
-  <div class="edit-overlay" id="aiKeyOverlay" onclick="if(event.target===this)closeAiKeyModal()">
-    <div class="edit-sheet" style="max-height:50vh">
-      <div class="es-hdr">
-        <span class="es-title">🔑 Anthropic API Key</span>
-        <button class="es-close" onclick="closeAiKeyModal()">✕</button>
-      </div>
-      <div style="padding:16px 20px">
-        <div class="s-sub" style="margin-bottom:12px">Paste your key from console.anthropic.com. It starts with sk-ant-</div>
-        <textarea id="aiKeyInput" class="fi"
-          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-          style="height:70px;font-family:monospace;font-size:11px;padding:10px"
-          placeholder="sk-ant-api03-..."></textarea>
-        <button onclick="confirmAiKey()"
-          style="width:100%;margin-top:12px;padding:13px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer">
-          Save Key
-        </button>
-      </div>
-    </div>
   </div>
 
   <script>
@@ -3691,6 +3631,8 @@
         await loadMileageSettings();
         // Load current user's profile for personalized SMS templates
         await loadRepProfile();
+        _userId = session.user.id;
+        await loadFuTemplates();
         gcalCheckTokenFromRedirect();
         loadDash();
         fetchTodaysCalendarLeads();
@@ -4051,6 +3993,7 @@
       } else {
         instBar.style.display = 'none';
       }
+      loadTextToday();
     }
 
     // (Not-sold reason breakdown removed — app only tracks sales now.)
@@ -4196,16 +4139,413 @@
 
     // ─────────────────────────────────────────
     // FOLLOW-UP SYSTEM
+    // Texts are sms: links. Steve hits Send on his own phone.
     // ─────────────────────────────────────────
-    let _fuLead = null;
+    /* FU_PURE_START */
+    const FU_OPT_OUT = "If you'd rather I not follow up, just let me know.";
 
-    function openFu(leadId, reasonLabel, name, phone, notes, stepNum) {
-      document.getElementById('fuLeadId').value = leadId;
+    function fuAddDays(dateStr, days) {
+      const parts = String(dateStr || '').split('-').map(Number);
+      const y = parts[0], m = parts[1], d = parts[2];
+      if (!y || !m || !d) return '';
+      const dt = new Date(Date.UTC(y, m - 1, d));
+      dt.setUTCDate(dt.getUTCDate() + days);
+      return dt.toISOString().slice(0, 10);
+    }
+
+    function fuGroupKey(label, notes) {
+      const r = String(label || '').toLowerCase().trim();
+      const n = String(notes || '').toLowerCase();
+      if (r.includes('no demo')) return null;
+      if (r.includes('spouse') || r.includes('wouldn') || r.includes('think about') || r.includes('commit')) return 'decision';
+      if (r.includes('no show') || r.includes('no-show') || r.includes('no one home') || r.includes('not home')) return 'noshow';
+      if (!r && (n.includes('cancelled before arrival') || n.includes('no show'))) return 'noshow';
+      if (r.includes('too much') || r.includes('shop around')) return 'price';
+      if (r.includes('other')) return 'other';
+      return null;
+    }
+
+    function fuPhoneOptional(label) {
+      const r = String(label || '').toLowerCase();
+      if (r.includes('spouse')) return false;
+      return r.includes('no one home') || r.includes('no demo') || r.includes('not home');
+    }
+
+    function fuSeasonalDate(product, notBefore) {
+      const startYear = parseInt(String(notBefore).slice(0, 4), 10) || new Date().getFullYear();
+      const lighting = product === 'roofline';
+      for (let year = startYear; year <= startYear + 3; year++) {
+        if (lighting) {
+          const target = year + '-10-03';
+          if (target >= notBefore) return target;
+        } else {
+          const open = year + '-09-15';
+          const close = year + '-10-31';
+          if (close < notBefore) continue;
+          if (open >= notBefore) return open;
+          const plus = fuAddDays(notBefore, 7);
+          if (plus <= close) return plus;
+        }
+      }
+      return fuAddDays(notBefore, 120);
+    }
+
+    function fuSchedule(group, closeDate, product) {
+      if (!group || !closeDate) return [];
+      if (group === 'noshow') {
+        return [
+          { key: 'day1', num: 1, total: 2, date: fuAddDays(closeDate, 1) },
+          { key: 'day7', num: 2, total: 2, date: fuAddDays(closeDate, 7) }
+        ];
+      }
+      const day30 = fuAddDays(closeDate, 30);
+      return [
+        { key: 'day2', num: 1, total: 4, date: fuAddDays(closeDate, 2) },
+        { key: 'day7', num: 2, total: 4, date: fuAddDays(closeDate, 7) },
+        { key: 'day30', num: 3, total: 4, date: day30 },
+        { key: 'seasonal', num: 4, total: 4, date: fuSeasonalDate(product, fuAddDays(day30, 1)) }
+      ];
+    }
+
+    const FU_STEP_NAMES = { day1: 'Day 1', day2: 'Day 2', day7: 'Day 7', day30: 'Day 30', seasonal: 'Seasonal' };
+
+    function fuStepLabel(step) {
+      if (!step) return '';
+      return 'Step ' + step.num + ' of ' + step.total + ' · ' + (FU_STEP_NAMES[step.key] || step.key);
+    }
+
+    function fuPlan(lead, touches, today) {
+      if (!lead || lead.status !== 'not_sold' || lead.is_cancelled) return null;
+      const reason = lead.reasonLabel || '';
+      const group = fuGroupKey(reason, lead.notes);
+      if (!group) return null;
+      const stopped = lead.followup_status === 'stopped' || lead.followup_status === 'completed';
+      const doneFlag = !!lead.followup_done && lead.followup_status !== 'active';
+      if (stopped || doneFlag) {
+        return { bucket: 'done', group: group, stoppedReason: lead.followup_stopped_reason || 'completed' };
+      }
+      const sent = Array.isArray(touches) ? touches : [];
+      if (sent.length >= 5) return { bucket: 'done', group: group, stoppedReason: 'completed' };
+      if (!lead.sales_date) return null;
+      const steps = fuSchedule(group, lead.sales_date, lead.product || 'leaffilter');
+      const sentKeys = {};
+      sent.forEach(t => { if (t && t.step_key) sentKeys[t.step_key] = true; });
+      const sentToday = sent.some(t => t && t.sent_on === today);
+      let active = null;
+      for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        if (sentKeys[step.key]) continue;
+        if (step.date <= today) active = step;
+        else {
+          if (!active) active = step;
+          break;
+        }
+      }
+      if (!active) return { bucket: 'done', group: group, stoppedReason: 'completed' };
+      if (sentToday && active.date <= today) {
+        return { bucket: 'upcoming', group: group, step: active, date: fuAddDays(today, 1), hold: true };
+      }
+      let bucket = 'upcoming';
+      if (active.date < today) bucket = 'overdue';
+      else if (active.date === today) bucket = 'today';
+      return { bucket: bucket, group: group, step: active, date: active.date, hold: false };
+    }
+
+    function smsAllowedAtHour(h) {
+      return h >= 8 && h < 21;
+    }
+
+    function fillFuMsg(tpl, fullName, repName) {
+      const first = String(fullName || '').trim().split(/\s+/)[0] || 'there';
+      const rep = repName && repName !== 'Your Rep' ? repName : 'Steve';
+      return String(tpl || '').replace(/\[Name\]/g, first).replace(/\[RepName\]/g, rep);
+    }
+
+    function fuProductKey(product) {
+      return product === 'roofline' ? 'roofline' : 'leaffilter';
+    }
+
+    function defaultFuTemplates() {
+      const opt = FU_OPT_OUT;
+      const sign = '– [RepName]';
+      const t = (body) => body + '\n' + sign;
+      return {
+        price: {
+          leaffilter: {
+            day2: t("Hi [Name], it's [RepName] from LeafFilter. Thanks for letting me show you the gutter guards. I know the price was more than you wanted to spend. I'm happy to answer questions or walk through the quote again if that helps. " + opt),
+            day7: t("Hi [Name], [RepName] again. Just checking whether you had any questions about the LeafFilter quote. If the price still doesn't work, that's okay — I won't keep bugging you."),
+            day30: t("Hi [Name], it's [RepName]. It's been about a month since I quoted the LeafFilter. If gutter cleaning is still on your mind, I can come back out. If not, no worries at all."),
+            seasonal: t("Hi [Name], it's [RepName] from LeafFilter. Leaves are starting to fall, so I wanted to check in once in case the gutters are on your list this season. Happy to take another look if you want. If not, I'll leave you be.")
+          },
+          roofline: {
+            day2: t("Hi [Name], it's [RepName]. Thanks for looking at the permanent roofline lighting with me. I know the price was the hard part. I'm glad to answer questions or go over the quote again if that helps. " + opt),
+            day7: t("Hi [Name], [RepName] again. Any questions on the lighting quote? If the price still isn't a fit, that's fine — just tell me and I'll stop."),
+            day30: t("Hi [Name], it's [RepName]. About a month ago I quoted permanent LED lighting for your roofline. If you still want to talk it through, I'm around. If not, no problem."),
+            seasonal: t("Hi [Name], it's [RepName]. Early October is when a lot of folks think about Halloween and holiday lights. If you still want the permanent roofline lighting, I can come back out. If not, I'll leave it here.")
+          }
+        },
+        decision: {
+          leaffilter: {
+            day2: t("Hi [Name], it's [RepName] from LeafFilter. I know you wanted time to think it over, or to talk it through with your spouse. I'm happy to come back when you're both home, or just answer questions by text. " + opt),
+            day7: t("Hi [Name], [RepName] checking in. Did you and your spouse get a chance to talk about the LeafFilter? I can swing back by if that would help you decide. No rush."),
+            day30: t("Hi [Name], it's [RepName]. It's been about a month since we looked at LeafFilter for your gutters. If you're still thinking about it, I'm here. If you've decided to pass, just say so."),
+            seasonal: t("Hi [Name], it's [RepName] from LeafFilter. Leaf season is here, so I wanted to check once more in case you and your spouse are ready to look at the gutters again. If the timing is still off, no worries.")
+          },
+          roofline: {
+            day2: t("Hi [Name], it's [RepName]. I know you wanted time to think about the permanent roofline lighting, or to go over it with your spouse. I can come back when you're both there, or answer questions here. " + opt),
+            day7: t("Hi [Name], [RepName] again. Any update after you had a chance to think about the lighting, or talk it over at home? Happy to stop back by."),
+            day30: t("Hi [Name], it's [RepName]. About a month since I showed you the roofline lighting. If you still want to look at it, just text me. If you've decided no, that's completely fine."),
+            seasonal: t("Hi [Name], it's [RepName]. With Halloween and the holidays coming up, I wanted to check once on the permanent lighting. If you want me to come back out, say the word. If not, I won't keep following up.")
+          }
+        },
+        other: {
+          leaffilter: {
+            day2: t("Hi [Name], it's [RepName] from LeafFilter. I know you had other projects going on when I stopped by. Whenever the gutters move up the list, I'm happy to come back. " + opt),
+            day7: t("Hi [Name], [RepName] again. Just a quick check-in on the LeafFilter quote in case the other projects have settled down. No rush at all."),
+            day30: t("Hi [Name], it's [RepName]. It's been about a month. If the other work is done and you want to look at the gutters again, I can come by. If not, no problem."),
+            seasonal: t("Hi [Name], it's [RepName] from LeafFilter. Leaves are coming down, so I thought I'd check once in case now is a better time for the gutter guards. If you're still tied up with other projects, I'll leave you be.")
+          },
+          roofline: {
+            day2: t("Hi [Name], it's [RepName]. I know other projects were in the way when we looked at the permanent roofline lighting. When you're ready, I can come back. " + opt),
+            day7: t("Hi [Name], [RepName] checking in. Have the other projects calmed down enough to take another look at the lighting? No pressure if not."),
+            day30: t("Hi [Name], it's [RepName]. About a month since we talked about the roofline lighting. If the timing is better now, I'm glad to stop by. If not, that's okay."),
+            seasonal: t("Hi [Name], it's [RepName]. Early October is a natural time for roofline lighting, with Halloween and the holidays ahead. If you want me to come back out, just reply. If other projects still come first, no worries.")
+          }
+        },
+        noshow: {
+          leaffilter: {
+            day1: t("Hi [Name], it's [RepName] from LeafFilter. Sorry I missed you — want to reschedule? I can come back and show you the gutter guards when it's a better time. " + opt),
+            day7: t("Hi [Name], [RepName] again. I missed you last week for the LeafFilter appointment. If you still want to reschedule, text me a day that works. If not, I'll close it out.")
+          },
+          roofline: {
+            day1: t("Hi [Name], it's [RepName]. Sorry I missed you — want to reschedule? I was there to show the permanent roofline lighting. " + opt),
+            day7: t("Hi [Name], [RepName] again. Still happy to reschedule the lighting visit if you want. If now isn't a good time, just let me know and I won't keep texting.")
+          }
+        }
+      };
+    }
+    /* FU_PURE_END */
+
+    const FU_STOP_LABELS = {
+      not_interested: 'Not interested',
+      opt_out: 'Opted out',
+      wrong_number: 'Wrong number',
+      rehash_booked: 'Rehash booked',
+      sold: 'Sold',
+      completed: 'Finished'
+    };
+
+    const FU_EDITOR_GROUPS = [
+      { key: 'price', title: 'Price — Too much / Shop around', steps: ['day2', 'day7', 'day30', 'seasonal'] },
+      { key: 'decision', title: "Decision — Spouse not home / Wouldn't commit / Think about", steps: ['day2', 'day7', 'day30', 'seasonal'] },
+      { key: 'other', title: 'Other — Other Projects / Other', steps: ['day2', 'day7', 'day30', 'seasonal'] },
+      { key: 'noshow', title: 'No show / No one home', steps: ['day1', 'day7'] }
+    ];
+
+    // Previous step-1 texts. Used only to notice a customized cc_fu_msgs value. Not shown.
+    const OLD_FU_STEP1 = {
+      too_much: "Hi [Name]! This is [RepName] from LeafFilter. I know price was a concern when we last spoke — I actually just spoke with my Install Manager and we have a large commercial job going on in the area, and I think I could save you a bunch of money. Is that something you might be interested in? 😊",
+      think_about: "Hi [Name]! This is [RepName] from LeafFilter. I know you wanted some time to think things over after our last visit. Just checking in to see if you had any questions I could help answer. No pressure at all! 😊",
+      shop_around: "Hi [Name]! This is [RepName] from LeafFilter. I know you were shopping around when we last spoke — just wanted to check in. LeafFilter is the only product with a lifetime no-clog guarantee. Happy to chat and compare if it would help! 😊",
+      spouse: "Hi [Name]! This is [RepName] from LeafFilter. I know your spouse wasn't home to see our demo. I'd love to come back out when you're both available to show you how our system works! 😊",
+      no_demo: "Hi [Name]! This is [RepName] from LeafFilter. I know the timing might not have been right to see our system when I stopped by. Just wanted to check in — happy to share a quick overview and answer any questions if anything has changed! 😊",
+      no_one_home: "Hi [Name]! This is [RepName] from LeafFilter — I stopped by recently about gutter protection and missed you. I'd love to connect when it's a good time! Would you be open to a quick chat? 😊",
+      default: "Hi [Name]! This is [RepName] from LeafFilter. I wanted to follow up on our previous conversation about gutter protection. Just wanted to check in and see if you wanted to move forward 😊"
+    };
+
+    let FU_TEMPLATES = defaultFuTemplates();
+    let _fuLead = null;
+    let _fuCache = [];
+    let _fuSending = false;
+    let _userId = null;
+
+    function mergeFuTemplates(base, saved) {
+      const out = JSON.parse(JSON.stringify(base));
+      if (!saved || typeof saved !== 'object') return out;
+      Object.keys(out).forEach(group => {
+        const sg = saved[group];
+        if (!sg || typeof sg !== 'object') return;
+        Object.keys(out[group]).forEach(prod => {
+          const sp = sg[prod];
+          if (!sp || typeof sp !== 'object') return;
+          Object.keys(out[group][prod]).forEach(step => {
+            if (typeof sp[step] === 'string' && sp[step].trim()) out[group][prod][step] = sp[step];
+          });
+        });
+      });
+      return out;
+    }
+
+    function ccFuMsgCustom(raw, key) {
+      if (!raw || typeof raw[key] !== 'string') return '';
+      const val = raw[key];
+      if (!val.trim() || val === OLD_FU_STEP1[key]) return '';
+      return val;
+    }
+
+    function migrateCcFuMsgs(base) {
+      let raw = null;
+      try { raw = JSON.parse(localStorage.getItem('cc_fu_msgs') || 'null'); } catch (e) { raw = null; }
+      if (!raw || typeof raw !== 'object' || raw.price) return null;
+      const out = JSON.parse(JSON.stringify(base));
+      const price = ccFuMsgCustom(raw, 'too_much') || ccFuMsgCustom(raw, 'shop_around');
+      const decision = ccFuMsgCustom(raw, 'think_about') || ccFuMsgCustom(raw, 'spouse');
+      const other = ccFuMsgCustom(raw, 'default');
+      const noshow = ccFuMsgCustom(raw, 'no_one_home');
+      let changed = false;
+      if (price) { out.price.leaffilter.day2 = price; changed = true; }
+      if (decision) { out.decision.leaffilter.day2 = decision; changed = true; }
+      if (other) { out.other.leaffilter.day2 = other; changed = true; }
+      if (noshow) { out.noshow.leaffilter.day1 = noshow; changed = true; }
+      return changed ? out : null;
+    }
+
+    function fuTemplateText(group, product, stepKey) {
+      const prod = fuProductKey(product);
+      const g = FU_TEMPLATES && FU_TEMPLATES[group];
+      const block = g && (g[prod] || g.leaffilter);
+      const fallback = defaultFuTemplates();
+      const fb = fallback[group] && (fallback[group][prod] || fallback[group].leaffilter);
+      return (block && block[stepKey]) || (fb && fb[stepKey]) || '';
+    }
+
+    function leadPhoneRaw(l) {
+      return String((l && (l.customer_phone || l.followup_phone)) || '').trim();
+    }
+    function leadPhoneDigits(l) {
+      return leadPhoneRaw(l).replace(/\D/g, '');
+    }
+    function leadPersonName(l) {
+      return String((l && (l.customer_name || l.followup_name)) || '').trim();
+    }
+    function digits10(phone) {
+      const d = String(phone || '').replace(/\D/g, '');
+      if (d.length === 11 && d.startsWith('1')) return d.slice(1);
+      return d.length >= 10 ? d.slice(-10) : '';
+    }
+
+    function etHourNow() {
+      const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', hourCycle: 'h23' }).formatToParts(new Date());
+      const h = parts.find(p => p.type === 'hour');
+      let n = parseInt(h && h.value, 10);
+      if (n === 24) n = 0;
+      return isNaN(n) ? 12 : n;
+    }
+    function smsWindowOpen() { return smsAllowedAtHour(etHourNow()); }
+
+    function sentOnEt(iso) {
+      if (!iso) return '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+    }
+
+    function fuDateLabel(d) {
+      if (!d) return '';
+      return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+
+    function fuTextBtnLabel() {
+      return smsWindowOpen() ? 'Text' : 'Text after 8 AM';
+    }
+
+    function fuView(lead, touches, today) {
+      const reason = (lead.not_sold_reasons && lead.not_sold_reasons.label) || lead.reasonLabel || '';
+      const plan = fuPlan({
+        status: lead.status,
+        sales_date: lead.sales_date,
+        product: lead.product,
+        notes: lead.notes,
+        reasonLabel: reason,
+        followup_done: lead.followup_done,
+        followup_status: lead.followup_status,
+        followup_stopped_reason: lead.followup_stopped_reason,
+        is_cancelled: lead.is_cancelled
+      }, (touches || []).map(t => ({ step_key: t.step_key, sent_on: t.sent_on || sentOnEt(t.sent_at) })), today);
+      if (!plan) return null;
+      const stepLabel = plan.step ? fuStepLabel(plan.step) : (FU_STOP_LABELS[plan.stoppedReason] || 'Done');
+      return {
+        id: lead.id,
+        name: leadPersonName(lead) || 'Customer',
+        phone: leadPhoneDigits(lead),
+        reason: reason || 'No reason',
+        address: lead.customer_address || '',
+        notes: lead.notes || '',
+        product: lead.product || 'leaffilter',
+        salesDate: lead.sales_date || '',
+        plan: plan,
+        stepLabel: stepLabel
+      };
+    }
+
+    function messageForRow(row, nameOverride) {
+      const step = row && row.plan && row.plan.step;
+      if (!step) return '';
+      const tpl = fuTemplateText(row.plan.group, row.product, step.key);
+      return fillFuMsg(tpl, nameOverride || row.name, _repName);
+    }
+
+    async function saveFuTemplatesRemote(templates) {
+      if (!sb || !_userId) return false;
+      const { error } = await sb.from('followup_templates').upsert({
+        user_id: _userId,
+        templates: templates,
+        updated_at: new Date().toISOString()
+      });
+      return !error;
+    }
+
+    async function loadFuTemplates() {
+      const defaults = defaultFuTemplates();
+      FU_TEMPLATES = defaults;
+      try {
+        const cached = JSON.parse(localStorage.getItem('cc_fu_templates') || 'null');
+        if (cached && cached.price) FU_TEMPLATES = mergeFuTemplates(defaults, cached);
+      } catch (e) {}
+      let remote = null;
+      try {
+        if (sb && _userId) {
+          const { data, error } = await sb.from('followup_templates').select('templates').eq('user_id', _userId).maybeSingle();
+          if (!error && data && data.templates && data.templates.price) remote = data.templates;
+        }
+      } catch (e) {}
+      if (remote) {
+        FU_TEMPLATES = mergeFuTemplates(defaults, remote);
+        try { localStorage.setItem('cc_fu_templates', JSON.stringify(FU_TEMPLATES)); } catch (e) {}
+        return;
+      }
+      if (!localStorage.getItem('cc_fu_msgs_migrated')) {
+        const migrated = migrateCcFuMsgs(defaults);
+        if (migrated) {
+          let cached = null;
+          try { cached = JSON.parse(localStorage.getItem('cc_fu_templates') || 'null'); } catch (e) { cached = null; }
+          FU_TEMPLATES = mergeFuTemplates(migrated, cached);
+        }
+      }
+      const saved = await saveFuTemplatesRemote(FU_TEMPLATES);
+      if (saved) {
+        try { localStorage.setItem('cc_fu_msgs_migrated', '1'); } catch (e) {}
+      }
+      try { localStorage.setItem('cc_fu_templates', JSON.stringify(FU_TEMPLATES)); } catch (e) {}
+    }
+
+    function updateFuSendButton() {
+      const btn = document.getElementById('fuSendBtn');
+      if (!btn) return;
+      btn.textContent = smsWindowOpen() ? '📱 Text' : 'Text after 8 AM';
+    }
+
+    function openFuFromBtn(btn) {
+      if (!btn) return;
+      openFu(btn.dataset.id, btn.dataset.reason || '', btn.dataset.name || '', btn.dataset.phone || '', btn.dataset.notes || '');
+    }
+
+    async function openFu(leadId, reasonLabel, name, phone, notes) {
+      document.getElementById('fuLeadId').value = leadId || '';
       document.getElementById('fuName').value = name || '';
       document.getElementById('fuPhone').value = phone || '';
-      document.getElementById('fuDate').value = new Date().toISOString().split('T')[0];
-
-      // Quick Context Display
+      document.getElementById('fuDate').value = todayEtKey();
       const ctx = document.getElementById('fuContextSection');
       if (reasonLabel || notes) {
         ctx.style.display = 'block';
@@ -4214,195 +4554,63 @@
       } else {
         ctx.style.display = 'none';
       }
-
-      _fuLead = { id: leadId, reason: reasonLabel, notes: notes || '', step: stepNum || 1 };
+      _fuLead = { id: leadId, reason: reasonLabel || '', notes: notes || '', product: 'leaffilter', view: null };
       document.getElementById('fuMsg').value = '';
       document.getElementById('fuOverlay').classList.add('open');
-      aiGenFuMsg();
+      updateFuSendButton();
+      refreshFuMsg();
+      if (!leadId || !sb) return;
+      const { data } = await sb.from('leads').select('*, not_sold_reasons(label)').eq('id', leadId).maybeSingle();
+      if (!data || document.getElementById('fuLeadId').value !== leadId) return;
+      const person = leadPersonName(data) || name || '';
+      const ph = leadPhoneRaw(data) || phone || '';
+      document.getElementById('fuName').value = person;
+      document.getElementById('fuPhone').value = ph;
+      const reason = (data.not_sold_reasons && data.not_sold_reasons.label) || reasonLabel || '';
+      ctx.style.display = 'block';
+      document.getElementById('fuContextReason').textContent = reason || 'No reason recorded';
+      document.getElementById('fuContextNotes').textContent = data.notes || notes || '';
+      let touches = [];
+      const tRes = await sb.from('followup_touches').select('step_key,sent_at').eq('lead_id', leadId);
+      if (!tRes.error) touches = tRes.data || [];
+      const view = fuView(data, touches, todayEtKey());
+      _fuLead = { id: leadId, reason: reason, notes: data.notes || '', product: data.product || 'leaffilter', view: view, raw: data };
+      const due = view && view.plan && view.plan.date;
+      document.getElementById('fuDate').value = due || data.sales_date || todayEtKey();
+      refreshFuMsg();
+      updateFuSendButton();
     }
-
-
 
     function closeFu() { document.getElementById('fuOverlay').classList.remove('open'); }
 
-    function saveAiKey() { document.getElementById('aiKeyOverlay').classList.add('open'); }
-    function closeAiKeyModal() { document.getElementById('aiKeyOverlay').classList.remove('open'); }
-    function _aiKeyGet() {
-      const ls = localStorage.getItem('cc_anthropic_key') || '';
-      if (ls) return ls;
-      const m = document.cookie.match(/(?:^|;\s*)cc_anthropic_key=([^;]+)/);
-      return m ? decodeURIComponent(m[1]) : '';
-    }
-    function _aiKeySet(key) {
-      localStorage.setItem('cc_anthropic_key', key);
-      const exp = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
-      document.cookie = 'cc_anthropic_key=' + encodeURIComponent(key) + '; expires=' + exp + '; path=/; SameSite=Strict';
-    }
-    function _aiKeyRemove() {
-      localStorage.removeItem('cc_anthropic_key');
-      document.cookie = 'cc_anthropic_key=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Strict';
-    }
-    function confirmAiKey() {
-      const key = (document.getElementById('aiKeyInput').value || '').replace(/\s/g, '');
-      if (!key) { toast('Paste your API key first', 'err'); return; }
-      if (!key.startsWith('sk-ant-')) { toast('Must start with sk-ant-', 'err'); return; }
-      _aiKeySet(key);
-      const status = document.getElementById('aiKeyStatus');
-      if (status) status.textContent = '✓ Key saved: ' + key.slice(0, 14) + '...' + key.slice(-4);
-      document.getElementById('aiKeyInput').value = '';
-      closeAiKeyModal();
-      toast('API key saved! ✨', 'ok');
-    }
-
-    function clearAiKey() {
-      _aiKeyRemove();
-      const status = document.getElementById('aiKeyStatus');
-      if (status) status.textContent = 'No key saved';
-      toast('API key cleared', 'ok');
-    }
-
-    async function aiGenFuMsg(respin = false) {
-      const apiKey = _aiKeyGet().replace(/\s/g, '');
-      if (!apiKey) {
-        refreshFuMsg();
-        return;
-      }
-      const btn = document.getElementById('aiFuBtn');
-      const msgEl = document.getElementById('fuMsg');
-      btn.textContent = '⏳ Generating…';
-      btn.disabled = true;
-      msgEl.value = '';
-
-      const fullName = document.getElementById('fuName').value.trim();
-      const name = fullName.split(/\s+/)[0] || 'there';
-      const repName = _repName || 'Your Rep';
-      const reason = _fuLead?.reason || 'Not specified';
-      const notes = _fuLead?.notes || '';
-      const step = _fuLead?.step || 1;
-      const stepLabels = { 1: 'first contact (same day or next day)', 2: '3-day follow-up', 3: '7-day final follow-up', 4: 'cold lead revival (60+ days)' };
-      const respinNote = respin ? ' Use a completely different tone, opening, and angle than you might have used before.' : '';
-      const spouseNote = reason.toLowerCase().includes('spouse')
-        ? `\nThe spouse wasn't home during the visit. Mention it was great meeting them today, reference any visit notes if available, and let them know there's an exclusive $250 discount available if they move forward this week. Keep the tone warm and low-pressure.`
-        : '';
-
-      const userMsg = `Customer first name: ${name}
-Rep name: ${repName}
-Not-sold reason: ${reason}
-Notes from the visit: ${notes || 'none provided'}
-Follow-up step: ${step} of 4 (${stepLabels[step] || 'follow-up'})${spouseNote}
-
-Write a single short follow-up SMS from the rep to the customer. Be friendly and conversational, keep it under 200 characters if possible, and directly address the reason or notes if available. The customer doesn't have the rep's number saved, so naturally identify the rep as "${repName} from LeafFilter" somewhere in the message — for example opening with "Hi, it's ${repName} from LeafFilter!" or weaving it in naturally.${respinNote} Output only the SMS text — no labels, no quotes, no explanation.`;
-
-      try {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true'
-          },
-          body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 300,
-            system: 'You are a LeafFilter sales rep assistant. Generate short, warm, personalized follow-up SMS messages. Output only the message text — no labels, no quotes, no explanation.',
-            messages: [{ role: 'user', content: userMsg }]
-          })
-        });
-        if (!res.ok) {
-          let errMsg = `HTTP ${res.status}`;
-          try { const errData = await res.json(); errMsg += ': ' + (errData?.error?.message || JSON.stringify(errData)); } catch {}
-          throw new Error(errMsg);
-        }
-        const data = await res.json();
-        const msg = data?.content?.[0]?.text?.trim() || '';
-        if (!msg) throw new Error('Empty response');
-        document.getElementById('fuMsg').value = msg;
-      } catch (e) {
-        toast('AI failed: ' + (e.message || 'unknown error'), 'err');
-        if (!respin) refreshFuMsg();
-      } finally {
-        btn.textContent = '🔄 Re-spin';
-        btn.disabled = false;
-      }
-    }
-
-    // Message templates keyed by dropdown value — Step 1 (initial, friendly)
-    // Use [RepName] as placeholder — replaced at render time with logged-in user's first name
-    const DEFAULT_FU_MSGS = {
-      too_much: `Hi [Name]! This is [RepName] from LeafFilter. I know price was a concern when we last spoke — I actually just spoke with my Install Manager and we have a large commercial job going on in the area, and I think I could save you a bunch of money. Is that something you might be interested in? 😊`,
-      think_about: `Hi [Name]! This is [RepName] from LeafFilter. I know you wanted some time to think things over after our last visit. Just checking in to see if you had any questions I could help answer. No pressure at all! 😊`,
-      shop_around: `Hi [Name]! This is [RepName] from LeafFilter. I know you were shopping around when we last spoke — just wanted to check in. LeafFilter is the only product with a lifetime no-clog guarantee. Happy to chat and compare if it would help! 😊`,
-      spouse: `Hi [Name]! This is [RepName] from LeafFilter. I know your spouse wasn't home to see our demo. I'd love to come back out when you're both available to show you how our system works! 😊`,
-      no_demo: `Hi [Name]! This is [RepName] from LeafFilter. I know the timing might not have been right to see our system when I stopped by. Just wanted to check in — happy to share a quick overview and answer any questions if anything has changed! 😊`,
-      no_one_home: `Hi [Name]! This is [RepName] from LeafFilter — I stopped by recently about gutter protection and missed you. I'd love to connect when it's a good time! Would you be open to a quick chat? 😊`,
-      default: `Hi [Name]! This is [RepName] from LeafFilter. I wanted to follow up on our previous conversation about gutter protection. Just wanted to check in and see if you wanted to move forward 😊`,
-    };
-
-    // Step 2 templates (3-day follow-up — more direct)
-    const DEFAULT_FU_MSGS_S2 = {
-      too_much: `Hey [Name], [RepName] again from LeafFilter! I wanted to circle back — I spoke with my manager and there may be a way to make this work within your budget. Worth a 5-minute chat? 😊`,
-      think_about: `Hey [Name], [RepName] from LeafFilter again! Just wanted to check back in — I know you were still thinking it over. Did any questions come up I could help answer? Happy to chat anytime! 😊`,
-      shop_around: `Hey [Name], [RepName] from LeafFilter checking in again! If you've gotten other quotes, I'd love a chance to compare — LeafFilter's lifetime no-clog guarantee is hard to beat. Still interested? 😊`,
-      spouse: `Hey [Name]! [RepName] from LeafFilter again. Just following up — have you and your spouse had a chance to chat about it? I'd love to come back out when you're both available. 😊`,
-      no_demo: `Hey [Name], [RepName] from LeafFilter! Wanted to try one more time — I'd love to show you our system when the timing works. It only takes about 15 minutes. Are you available soon? 😊`,
-      no_one_home: `Hey [Name], [RepName] from LeafFilter! Tried reaching out once before — just wanted to make sure I didn't miss you. Would love to connect about gutter protection when you have a moment! 😊`,
-      default: `Hey [Name]! [RepName] from LeafFilter again — just wanted to follow up one more time. Would now be a good time to chat about moving forward with gutter protection? 😊`,
-    };
-
-    // Step 3 templates (7-day follow-up — final, urgent nudge)
-    const DEFAULT_FU_MSGS_S3 = {
-      too_much: `Hi [Name], this is [RepName] from LeafFilter — last time I'll reach out! I genuinely think I can save you money on this. If price is the only thing holding you back, let's talk before the current offer expires. 😊`,
-      think_about: `Hi [Name], [RepName] from LeafFilter — final check-in! I don't want to bother you but I also don't want you to miss out. If you're still on the fence, I'm happy to answer any last questions before I close out the file. 😊`,
-      shop_around: `Hi [Name], [RepName] from LeafFilter — one last follow-up! If you're still comparing options, I'm confident LeafFilter will come out on top. Let me know if you'd like a final comparison before you decide. 😊`,
-      spouse: `Hi [Name], [RepName] from LeafFilter — just a final check-in! If you and your spouse have had a chance to discuss it, I'd love to hear where things landed. No pressure — just want to make sure you have everything you need! 😊`,
-      no_demo: `Hi [Name], [RepName] from LeafFilter — last follow-up from me! I'd still love the chance to show you our system — it truly sells itself. If the timing ever works out, just reply and I'll make it happen. 😊`,
-      no_one_home: `Hi [Name], [RepName] from LeafFilter — one final attempt! I've tried a couple of times and don't want to keep bothering you, but if you ever want to explore gutter protection, I'm just a text away. 😊`,
-      default: `Hi [Name], [RepName] from LeafFilter — this is my last follow-up! If now isn't the right time, no worries at all. But if you're ever ready to talk gutter protection, don't hesitate to reach out. 😊`,
-    };
-
-    // Step 4 templates (Cold Leads Defibrillator — 60+ days)
-    const DEFAULT_FU_MSGS_S4 = {
-      default: `Hey [Name], [RepName] from LeafFilter! My manager just gave me some promotional pricing to fill our install board for next week. Have you solved your gutter problem yet? 😊`
-    };
-
-    let FU_MSGS = JSON.parse(localStorage.getItem('cc_fu_msgs')) || DEFAULT_FU_MSGS;
-    if (FU_MSGS.price || FU_MSGS.nothome || FU_MSGS.think) {
-      FU_MSGS = DEFAULT_FU_MSGS;
-      localStorage.setItem('cc_fu_msgs', JSON.stringify(FU_MSGS));
-    }
-
     function refreshFuMsg() {
       const fullName = document.getElementById('fuName').value.trim();
-      const name = fullName.split(/\s+/)[0] || 'there';
-      const angleEl = document.getElementById('fuMsgAngle');
-      const angle = angleEl ? (angleEl.value || 'default') : 'default';
-      const step = _fuLead?.step || 1;
-      const repName = _repName || 'Your Rep';
-
-      // Pick the right template set based on which step we're on
-      const tplSet = step === 4 ? DEFAULT_FU_MSGS_S4 : step === 3 ? DEFAULT_FU_MSGS_S3 : step === 2 ? DEFAULT_FU_MSGS_S2 : FU_MSGS;
-      const tpl = tplSet[angle] || tplSet.default;
-
-      let msg = typeof tpl === 'function' ? tpl(name) : tpl
-        .replace(/\[Name\]/g, name)
-        .replace(/\[RepName\]/g, repName);
-      document.getElementById('fuMsg').value = msg;
+      const view = _fuLead && _fuLead.view;
+      const group = (view && view.plan && view.plan.group) || fuGroupKey(_fuLead && _fuLead.reason, _fuLead && _fuLead.notes) || 'other';
+      const product = (_fuLead && _fuLead.product) || 'leaffilter';
+      let step = view && view.plan && view.plan.step;
+      if (!step) {
+        const close = (view && view.salesDate) || todayEtKey();
+        step = fuSchedule(group, close, product)[0] || null;
+      }
+      const tpl = step ? fuTemplateText(group, product, step.key) : '';
+      document.getElementById('fuMsg').value = fillFuMsg(tpl, fullName, _repName);
+      const label = document.getElementById('fuStepLabel');
+      if (label) label.textContent = step ? fuStepLabel(step) : '';
     }
 
     async function fuMarkRehash() {
       const leadId = document.getElementById('fuLeadId').value;
-      const phone = document.getElementById('fuPhone').value.trim().replace(/\D/g, '');
+      const phone = document.getElementById('fuPhone').value.trim();
       const name = document.getElementById('fuName').value.trim();
-
-      // Save any updated phone/name before converting
       if (phone || name) {
         await sb.from('leads').update({
           followup_name: name || null,
-          followup_phone: phone || null
+          followup_phone: phone || null,
+          customer_phone: phone || null,
+          customer_name: name || null
         }).eq('id', leadId);
       }
-
       closeFu();
       await openLeadEdit(leadId);
       convertRehash();
@@ -4411,19 +4619,334 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     async function saveFu() {
       const leadId = document.getElementById('fuLeadId').value;
       const name = document.getElementById('fuName').value.trim();
-      const phone = document.getElementById('fuPhone').value.trim().replace(/\D/g, '');
+      const phone = document.getElementById('fuPhone').value.trim();
       const date = document.getElementById('fuDate').value;
-      if (!date) { toast('Pick a reach-out date', 'err'); return; }
-      const { error } = await sb.from('leads').update({
+      if (!leadId) return;
+      const patch = {
         followup_name: name || null,
         followup_phone: phone || null,
-        followup_date: date,
-        followup_done: false
-      }).eq('id', leadId);
+        customer_phone: phone || null
+      };
+      if (name) patch.customer_name = name;
+      if (date) patch.followup_date = date;
+      const { error } = await sb.from('leads').update(patch).eq('id', leadId);
       if (error) { toast('Save failed', 'err'); return; }
-      toast('Follow-up saved! 📞', 'ok');
+      toast('Number saved', 'ok');
       closeFu();
-      loadFollowUps();
+      refreshFuViews();
+    }
+
+    function copyFuMsg() {
+      const msg = document.getElementById('fuMsg').value;
+      const done = () => toast(smsWindowOpen() ? 'Message copied' : 'Text after 8 AM — message copied', 'ok');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(msg).then(done).catch(() => toast('Copy failed', 'err'));
+      } else {
+        toast('Copy failed', 'err');
+      }
+    }
+
+    async function logFuTouch(row) {
+      const step = row && row.plan && row.plan.step;
+      if (!step || !row.id) return false;
+      const insert = { lead_id: row.id, step_key: step.key, step_num: step.num };
+      if (_userId) insert.user_id = _userId;
+      const { error } = await sb.from('followup_touches').insert(insert);
+      if (error) {
+        toast('Text opened, but the touch did not save', 'err');
+        return false;
+      }
+      const steps = fuSchedule(row.plan.group, row.salesDate, row.product);
+      const next = steps.find(s => s.num > step.num);
+      const patch = next
+        ? { followup_date: next.date, followup_status: 'active', followup_done: false, followup_stopped_reason: null }
+        : { followup_status: 'completed', followup_stopped_reason: 'completed', followup_done: true };
+      let upd = await sb.from('leads').update(patch).eq('id', row.id);
+      if (upd.error && /followup_status|followup_stopped_reason/i.test(upd.error.message || '')) {
+        const slim = { followup_done: !!patch.followup_done };
+        if (patch.followup_date) slim.followup_date = patch.followup_date;
+        await sb.from('leads').update(slim).eq('id', row.id);
+      }
+      return true;
+    }
+
+    async function sendFollowUpRow(row, msgOverride) {
+      if (!row || _fuSending) return;
+      const phone = String(row.phone || '').replace(/\D/g, '');
+      const msg = msgOverride || messageForRow(row);
+      if (!msg) { toast('No message for this step', 'err'); return; }
+      if (phone.length < 10) {
+        openFu(row.id, row.reason, row.name, phone, row.notes || '');
+        toast('Add a phone number first', 'err');
+        return;
+      }
+      if (!smsWindowOpen()) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(msg).then(() => toast('Text after 8 AM — message copied', 'ok')).catch(() => toast('Text after 8 AM', 'err'));
+        } else {
+          toast('Text after 8 AM', 'err');
+        }
+        return;
+      }
+      _fuSending = true;
+      try {
+        if (row.plan && row.plan.step && row.plan.bucket !== 'done') await logFuTouch(row);
+        openSmsComposer(phone, msg);
+        refreshFuViews();
+      } finally {
+        _fuSending = false;
+      }
+    }
+
+    function textFollowUpById(id) {
+      const row = _fuCache.find(r => r.id === id);
+      if (!row) { openFu(id); return; }
+      const edited = _fuLead && _fuLead.id === id ? document.getElementById('fuMsg').value : '';
+      sendFollowUpRow(row, edited || null);
+    }
+
+    async function sendFuSMS() {
+      const leadId = document.getElementById('fuLeadId').value;
+      const phone = document.getElementById('fuPhone').value.trim().replace(/\D/g, '');
+      const name = document.getElementById('fuName').value.trim();
+      const msg = document.getElementById('fuMsg').value;
+      let row = _fuCache.find(r => r.id === leadId) || (_fuLead && _fuLead.view) || null;
+      if (row) {
+        row = Object.assign({}, row, { phone: phone || row.phone, name: name || row.name });
+      } else if (leadId) {
+        row = { id: leadId, phone: phone, name: name, plan: _fuLead && _fuLead.view && _fuLead.view.plan, product: _fuLead && _fuLead.product, salesDate: '', reason: _fuLead && _fuLead.reason, notes: _fuLead && _fuLead.notes };
+      }
+      if (!row) { toast('Open a follow-up first', 'err'); return; }
+      if (phone) {
+        sb.from('leads').update({ customer_phone: document.getElementById('fuPhone').value.trim(), followup_phone: document.getElementById('fuPhone').value.trim(), followup_name: name || null }).eq('id', leadId);
+      }
+      await sendFollowUpRow(row, msg);
+    }
+
+    async function stopFu(reason) {
+      const leadId = document.getElementById('fuLeadId').value;
+      if (!leadId) return;
+      const patch = { followup_status: 'stopped', followup_stopped_reason: reason, followup_done: true };
+      let res = await sb.from('leads').update(patch).eq('id', leadId);
+      if (res.error && /followup_status|followup_stopped_reason/i.test(res.error.message || '')) {
+        res = await sb.from('leads').update({ followup_done: true }).eq('id', leadId);
+      }
+      if (res.error) { toast('Could not update follow-up', 'err'); return; }
+      const labels = { not_interested: 'Marked not interested', opt_out: 'Opted out — no more texts', wrong_number: 'Marked wrong number', rehash_booked: 'Rehash booked — sequence stopped' };
+      toast(labels[reason] || 'Follow-up stopped', 'ok');
+      closeFu();
+      refreshFuViews();
+    }
+
+    async function stopOpenFollowupsForSale(phone) {
+      const needle = digits10(phone);
+      if (!needle || !sb) return;
+      try {
+        let q = sb.from('leads').select('id,customer_phone,followup_phone,followup_done,followup_status').eq('status', 'not_sold');
+        if (_userId) q = q.eq('user_id', _userId);
+        const { data, error } = await q;
+        if (error || !data) return;
+        const hits = data.filter(l => {
+          if (l.followup_done || l.followup_status === 'stopped' || l.followup_status === 'completed') return false;
+          const p = digits10(l.customer_phone || l.followup_phone);
+          return p && p === needle;
+        });
+        for (let i = 0; i < hits.length; i++) {
+          const upd = await sb.from('leads').update({
+            followup_status: 'stopped',
+            followup_stopped_reason: 'sold',
+            followup_done: true
+          }).eq('id', hits[i].id);
+          if (upd.error) {
+            await sb.from('leads').update({ followup_done: true }).eq('id', hits[i].id);
+          }
+        }
+      } catch (e) {}
+    }
+
+    function fuEnrollPatch(reasonLabel, notes, closeDate, product, phone, name) {
+      const group = fuGroupKey(reasonLabel, notes);
+      const patch = {
+        followup_name: name || null,
+        followup_phone: phone || null,
+        followup_done: false
+      };
+      if (phone) patch.customer_phone = phone;
+      if (!group) {
+        patch.followup_date = null;
+        patch.followup_status = null;
+        patch.followup_stopped_reason = null;
+        return patch;
+      }
+      const first = fuSchedule(group, closeDate, product)[0];
+      patch.followup_date = first ? first.date : null;
+      patch.followup_status = 'active';
+      patch.followup_stopped_reason = null;
+      return patch;
+    }
+
+    async function ensureUserId() {
+      if (_userId || !sb) return _userId;
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        _userId = session && session.user ? session.user.id : null;
+      } catch (e) {}
+      return _userId;
+    }
+
+    async function loadFollowUpRows() {
+      if (!sb) return [];
+      await ensureUserId();
+      const today = todayEtKey();
+      const cols = 'id,user_id,status,sales_date,notes,product,customer_name,customer_phone,customer_address,followup_name,followup_phone,followup_date,followup_done,followup_status,followup_stopped_reason,is_cancelled,not_sold_reasons(label)';
+      const shortCols = 'id,user_id,status,sales_date,notes,product,customer_name,customer_phone,customer_address,followup_name,followup_phone,followup_date,followup_done,is_cancelled,not_sold_reasons(label)';
+      let q = sb.from('leads').select(cols).eq('status', 'not_sold');
+      if (_userId) q = q.eq('user_id', _userId);
+      let res = await q;
+      if (res.error && /followup_status|followup_stopped_reason/i.test(res.error.message || '')) {
+        q = sb.from('leads').select(shortCols).eq('status', 'not_sold');
+        if (_userId) q = q.eq('user_id', _userId);
+        res = await q;
+      }
+      if (res.error) throw res.error;
+      const leads = res.data || [];
+      const ids = leads.map(l => l.id);
+      let touches = [];
+      if (ids.length) {
+        const t = await sb.from('followup_touches').select('lead_id,step_key,step_num,sent_at').in('lead_id', ids);
+        if (!t.error && t.data) touches = t.data;
+      }
+      const byLead = {};
+      touches.forEach(t => { (byLead[t.lead_id] || (byLead[t.lead_id] = [])).push(t); });
+      _fuCache = leads.map(l => fuView(l, byLead[l.id] || [], today)).filter(Boolean);
+      return _fuCache;
+    }
+
+    function renderTextTodayCard(rows) {
+      const el = document.getElementById('dashTextToday');
+      if (!el) return;
+      const due = (rows || []).filter(r => r.plan && (r.plan.bucket === 'today' || r.plan.bucket === 'overdue'));
+      due.sort((a, b) => String(a.plan.date).localeCompare(String(b.plan.date)) || a.name.localeCompare(b.name));
+      const shown = due.slice(0, 12);
+      const open = smsWindowOpen();
+      const btnLabel = open ? 'Text' : 'Text after 8 AM';
+      let body;
+      if (!shown.length) {
+        body = '<div style="font-size:12px;color:#92400E;padding:8px 0">Nothing due right now.</div>';
+      } else {
+        body = shown.map(r => {
+          const late = r.plan.bucket === 'overdue';
+          return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #FDE68A">'
+            + '<div style="flex:1;min-width:0">'
+            + '<div style="font-size:14px;font-weight:800;color:#1F2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(r.name) + '</div>'
+            + '<div style="font-size:11px;color:#92400E">' + escHtml(r.reason) + ' · ' + escHtml(r.stepLabel) + (late ? ' · overdue' : '') + '</div>'
+            + '</div>'
+            + '<button type="button" onclick="textFollowUpById(\'' + r.id + '\')" style="background:' + (open ? '#2563EB' : '#fff') + ';color:' + (open ? '#fff' : '#92400E') + ';border:1.5px solid ' + (open ? '#2563EB' : '#FCD34D') + ';border-radius:8px;padding:8px 10px;font-family:\'Inter\',sans-serif;font-size:12px;font-weight:800;cursor:pointer;flex-shrink:0">' + btnLabel + '</button>'
+            + '</div>';
+        }).join('');
+        if (due.length > shown.length) {
+          body += '<button type="button" onclick="openFollowUps()" style="margin-top:4px;background:transparent;border:none;padding:0;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;color:#92400E;cursor:pointer">See all ' + due.length + '</button>';
+        }
+      }
+      const hours = open ? '' : '<div style="font-size:10px;color:#B45309;margin-top:4px">Texting is 8 AM–9 PM Eastern. The button copies the message until then.</div>';
+      el.innerHTML = '<div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:14px;padding:12px 14px">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+        + '<div style="min-width:0"><div style="font-size:13px;font-weight:800;color:#92400E">Text today</div>'
+        + '<div style="font-size:11px;color:#B45309">No-sales due or overdue</div></div>'
+        + '<div style="display:flex;align-items:center;gap:8px">'
+        + '<button type="button" onclick="openFollowUps()" style="background:transparent;border:none;color:#92400E;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer">See all</button>'
+        + '<div style="background:#F59E0B;color:#fff;font-size:12px;font-weight:900;padding:4px 10px;border-radius:20px">' + due.length + '</div>'
+        + '</div></div>'
+        + body + hours + '</div>';
+    }
+
+    function renderFollowUpList(rows) {
+      const list = document.getElementById('fuList');
+      if (!list) return;
+      const showDone = document.getElementById('fuShowDone') && document.getElementById('fuShowDone').checked;
+      const groups = { overdue: [], today: [], upcoming: [], done: [] };
+      (rows || []).forEach(r => {
+        const bucket = r.plan && r.plan.bucket;
+        if (bucket === 'done') { if (showDone) groups.done.push(r); return; }
+        if (groups[bucket]) groups[bucket].push(r);
+      });
+      ['overdue', 'today', 'upcoming', 'done'].forEach(k => {
+        groups[k].sort((a, b) => String((a.plan && a.plan.date) || '').localeCompare(String((b.plan && b.plan.date) || '')) || a.name.localeCompare(b.name));
+      });
+      const total = groups.overdue.length + groups.today.length + groups.upcoming.length + groups.done.length;
+      if (!total) {
+        list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">No follow-ups yet.<br><span style="font-size:11px;opacity:.7">A no-sale with a phone shows up here on its own.</span></div>';
+        return;
+      }
+      const open = smsWindowOpen();
+      const btnLabel = open ? '📱 Text' : 'Text after 8 AM';
+      const renderGroup = (label, items, color, icon) => {
+        if (!items.length) return '';
+        return '<div style="margin-top:16px;margin-bottom:10px;padding:0 4px;display:flex;align-items:center;gap:6px">'
+          + '<span style="font-size:11px;font-weight:800;color:' + color + ';text-transform:uppercase;letter-spacing:.5px">' + icon + ' ' + label + '</span>'
+          + '<div style="flex:1;height:1px;background:' + color + ';opacity:.2"></div></div>'
+          + items.map(r => {
+            const d = (r.plan && r.plan.date) || '';
+            const dateLabel = d ? fuDateLabel(d) : '';
+            const statusClass = r.plan.bucket === 'done' ? 'done' : r.plan.bucket;
+            const meta = r.plan.bucket === 'done'
+              ? escHtml(r.reason) + ' · ' + escHtml(FU_STOP_LABELS[r.plan.stoppedReason] || 'Done')
+              : escHtml(r.reason) + ' · ' + escHtml(r.stepLabel);
+            const tel = digits10(r.phone);
+            return '<div class="fup-card ' + statusClass + '" onclick="openFu(\'' + r.id + '\')" style="cursor:pointer">'
+              + '<div class="fup-top"><div class="fup-name">' + escHtml(r.name) + '</div>'
+              + '<div style="font-size:11px;font-weight:700;color:var(--muted)">' + escHtml(dateLabel) + '</div></div>'
+              + '<div class="fup-reason" style="margin-bottom:8px">' + meta + '</div>'
+              + (r.address ? '<div style="font-size:11px;color:var(--muted);margin:-2px 0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + mapsDirLink(r.address) + '</div>' : '')
+              + '<div class="fup-actions" onclick="event.stopPropagation()">'
+              + (tel ? '<a href="tel:+1' + tel + '" class="fup-btn" style="background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;text-decoration:none;display:flex;align-items:center;justify-content:center">📞 Call</a>' : '')
+              + (r.plan.bucket === 'done' ? '' : '<button class="fup-btn sms" onclick="textFollowUpById(\'' + r.id + '\')">' + btnLabel + '</button>')
+              + '<button class="fup-btn done-btn" onclick="toggleFuDone(\'' + r.id + '\',' + (r.plan.bucket !== 'done') + ')" style="min-width:44px">' + (r.plan.bucket === 'done' ? '↩' : '✅') + '</button>'
+              + '</div></div>';
+          }).join('');
+      };
+      list.innerHTML = renderGroup('Overdue', groups.overdue, '#EF4444', '🔴')
+        + renderGroup('Today', groups.today, '#F59E0B', '🟡')
+        + renderGroup('Upcoming', groups.upcoming, '#10B981', '🟢')
+        + renderGroup('Done', groups.done, 'var(--muted)', '✅');
+    }
+
+    function refreshFuViews() {
+      const fuOpen = document.getElementById('histFuSection') && document.getElementById('histFuSection').style.display !== 'none';
+      if (fuOpen) loadFollowUps();
+      else loadTextToday();
+    }
+
+    async function loadTextToday() {
+      const el = document.getElementById('dashTextToday');
+      try {
+        const rows = await loadFollowUpRows();
+        renderTextTodayCard(rows);
+      } catch (err) {
+        if (el && !el.innerHTML) {
+          renderTextTodayCard([]);
+        }
+      }
+    }
+
+    async function loadFollowUps() {
+      const list = document.getElementById('fuList');
+      try {
+        if (list) list.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+        const rows = await loadFollowUpRows();
+        renderFollowUpList(rows);
+        renderTextTodayCard(rows);
+      } catch (err) {
+        if (list) {
+          list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">Could not load follow-ups.<br><span style="font-size:11px;opacity:.7">' + escHtml(err.message || 'Unknown error') + '</span></div>';
+        }
+      }
+    }
+
+    function openFollowUps() {
+      goTo('hist');
+      const btn = document.getElementById('htab-fu');
+      if (btn) switchHistTab('followups', btn);
     }
 
     function isAppleSmsLink() {
@@ -4448,191 +4971,18 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       const recipient = normalizeSmsRecipient(phone);
       const body = encodeURIComponent(msg || '');
       const sep = isAppleSmsLink() ? '&' : '?';
-      return `sms:${recipient}${body ? sep + 'body=' + body : ''}`;
-    }
-
-    function sendFuSMS() {
-      const phone = document.getElementById('fuPhone').value.trim().replace(/\D/g, '');
-      const msg = document.getElementById('fuMsg').value;
-      if (!phone) { toast('Enter a phone number first', 'err'); return; }
-      openSmsComposer(phone, msg);
-    }
-
-    function copyFuMsg() {
-      const msg = document.getElementById('fuMsg').value;
-      navigator.clipboard.writeText(msg).then(() => toast('Message copied!', 'ok')).catch(() => toast('Copy failed', 'err'));
-    }
-
-    async function loadFollowUps() {
-      const list = document.getElementById('fuList');
-      try {
-        list.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-        const showDone = document.getElementById('fuShowDone')?.checked;
-
-        const sixtyDaysAgo = new Date();
-        sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-        const sixtyStr = sixtyDaysAgo.toISOString().split('T')[0];
-
-        // Query 1: Active follow-ups
-        let qActive = sb.from('leads').select('id,followup_name,followup_phone,followup_date,followup_done,status,notes,is_cancelled,sales_date,customer_address,not_sold_reasons(label)')
-          .neq('status', 'pending')
-          .not('followup_date', 'is', null)
-          .order('followup_date', { ascending: true });
-
-        if (!showDone) qActive = qActive.neq('followup_done', true);
-
-        // Query 2: Cold Leads (60+ days old)
-        let qCold = sb.from('leads').select('id,followup_name,followup_phone,followup_date,followup_done,status,notes,is_cancelled,sales_date,customer_address,not_sold_reasons(label)')
-          .eq('status', 'not_sold')
-          .lte('sales_date', sixtyStr)
-          .order('sales_date', { ascending: false })
-          .limit(30);
-
-        const [resActive, resCold] = await Promise.all([qActive, qCold]);
-        if (resActive.error) throw resActive.error;
-        if (resCold.error) throw resCold.error;
-
-        const dataActive = resActive.data || [];
-        const dataCold = resCold.data || [];
-
-        // Deduplicate: Don't show cold leads if they are already in the active list
-        const activeIds = new Set(dataActive.map(l => l.id));
-        const finalCold = dataCold.filter(l => !activeIds.has(l.id));
-
-        dataActive.forEach(l => l._isCold = false);
-        finalCold.forEach(l => l._isCold = true);
-
-        const data = [...dataActive, ...finalCold];
-
-        if (data.length === 0) {
-          list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">No follow-ups or cold leads found.<br><span style="font-size:11px;opacity:.7">Tap 📞 Follow Up on any not-sold lead.</span></div>';
-          return;
-        }
-
-        const today = new Date();
-        today.setHours(12, 0, 0, 0);
-        const todayStr = localDate(new Date());
-
-        const groups = { overdue: [], today: [], upcoming: [], done: [], cold: [] };
-
-        data.forEach(l => {
-          if (l._isCold) {
-            l.active_followup_date = l.sales_date;
-            l.step_num = 4;
-            groups.cold.push(l);
-            return;
-          }
-
-          if (l.followup_done) { groups.done.push(l); return; }
-
-          const d1 = new Date(l.followup_date + 'T12:00:00');
-          const d3 = new Date(l.followup_date + 'T12:00:00'); d3.setDate(d3.getDate() + 3);
-          const d7 = new Date(l.followup_date + 'T12:00:00'); d7.setDate(d7.getDate() + 7);
-
-          let activeDate, stepNum;
-          if (today < d1) { activeDate = localDate(d1); stepNum = 1; }
-          else if (today < d3) { activeDate = localDate(d1); stepNum = 1; }
-          else if (today < d7) { activeDate = localDate(d3); stepNum = 2; }
-          else { activeDate = localDate(d7); stepNum = 3; }
-
-          l.active_followup_date = activeDate;
-          l.step_num = stepNum;
-
-          if (activeDate < todayStr) groups.overdue.push(l);
-          else if (activeDate === todayStr) groups.today.push(l);
-          else groups.upcoming.push(l);
-        });
-
-        let html = '';
-        const renderGroup = (label, leads, color, icon) => {
-          if (!leads.length) return '';
-          return `
-        <div style="margin-top:16px; margin-bottom:10px; padding:0 4px; display:flex; align-items:center; gap:6px">
-          <span style="font-size:11px; font-weight:800; color:${color}; text-transform:uppercase; letter-spacing:.5px">${icon} ${label}</span>
-          <div style="flex:1; height:1px; background:${color}; opacity:.2"></div>
-        </div>
-        ${leads.map(l => {
-            const d = l.active_followup_date || l.followup_date;
-            // Use UTC-safe date Label
-            const dateLabel = new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-            const rStr = l.not_sold_reasons?.label || '—';
-
-            // ESCAPING FOR ONCLICK: critical to prevent JS crashes
-            const esc = (s) => (s || '').replace(/'/g, "\\'").replace(/\n/g, " ");
-            const name = esc(l.followup_name);
-            const phone = (l.followup_phone || '').replace(/\D/g, '');
-            const reasonEsc = esc(rStr);
-            const notesEsc = esc(l.notes);
-
-            const origDateLabel = l.sales_date 
-              ? new Date(l.sales_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-              : '';
-            const origDateHtml = origDateLabel ? `<span style="font-size:10px; opacity:0.7; font-weight:normal; margin-left:4px">(Orig: ${origDateLabel})</span>` : '';
-
-            const statusClass = l.followup_done ? 'done' : (d < todayStr ? 'overdue' : (d === todayStr ? 'today' : 'upcoming'));
-            const stepBadge = l.step_num ? `<span style="font-size:9px; background:var(--bg); color:var(--muted); padding:2px 6px; border-radius:4px; font-weight:800; border:1px solid var(--border); margin-left:6px">Step ${l.step_num}</span>` : '';
-
-            return `<div class="fup-card ${statusClass}" onclick="openFu('${l.id}','${reasonEsc}','${name}','${phone}','${notesEsc}',${l.step_num || 1})" style="cursor:pointer">
-            <div class="fup-top">
-              <div class="fup-name">${l.followup_name || 'Customer'}</div>
-              <div style="font-size:11px; font-weight:700; color:var(--muted); display:flex; align-items:center">📅 ${dateLabel} ${stepBadge}</div>
-            </div>
-            <div class="fup-reason" style="margin-bottom:8px">Not Sold: ${rStr} ${origDateHtml}</div>
-            ${l.customer_address ? `<div style="font-size:11px;color:var(--muted);margin:-2px 0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mapsDirLink(l.customer_address)}</div>` : ''}
-            <div class="fup-actions" onclick="event.stopPropagation()">
-              ${phone ? `<a href="tel:+1${phone}" class="fup-btn" style="background:#F0FDF4; color:#166534; border:1px solid #BBF7D0; text-decoration:none; display:flex; align-items:center; justify-content:center">📞 Call</a>` : ''}
-              <button class="fup-btn sms" onclick="openFu('${l.id}','${reasonEsc}','${name}','${phone}','${notesEsc}',${l.step_num || 1})">📱 SMS</button>
-              <button class="fup-btn done-btn" onclick="toggleFuDone('${l.id}',${!l.followup_done})" style="min-width:44px">${l.followup_done ? '↩' : '✅'}</button>
-            </div>
-          </div>`;
-          }).join('')}
-      `;
-        };
-
-        html += renderGroup('Overdue', groups.overdue, '#EF4444', '🔴');
-        html += renderGroup('Today', groups.today, '#F59E0B', '🟡');
-        html += renderGroup('Upcoming', groups.upcoming, '#10B981', '🟢');
-        html += renderGroup('Completed', groups.done, 'var(--muted)', '✅');
-        html += renderGroup('Cold Leads (60+ Days)', groups.cold, '#3B82F6', '❄️');
-        list.innerHTML = html;
-      } catch (err) {
-        console.error('loadFollowUps Error:', err);
-        list.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">
-      ⚠️ Failed to load follow-ups.<br>
-      <span style="font-size:11px;opacity:.7">${err.message || 'Unknown error'}</span>
-    </div>`;
-      }
-    }
-
-    function fuQuickSMS(phone, name, reasonLabel) {
-      if (!phone) { toast('No phone number saved', 'err'); return; }
-      const clean = phone.replace(/\D/g, '');
-      // Determine the right message angle from the not-sold reason
-      const r = (reasonLabel || '').toLowerCase();
-      let angle = 'default';
-      if (r.includes('price') || r.includes('too high') || r.includes('expensive')) angle = 'price';
-      else if (r.includes('think') || r.includes('decide') || r.includes('consider')) angle = 'think';
-      else if (r.includes('quote') || r.includes('other') || r.includes('shop')) angle = 'quotes';
-      else if (r.includes('spouse') || r.includes('discuss') || r.includes('partner') || r.includes('husband') || r.includes('wife')) angle = 'spouse';
-      else if (r.includes('financ') || r.includes('bank') || r.includes('credit') || r.includes('denied')) angle = 'financing';
-      else if (r.includes('reschedule') || r.includes('call back') || r.includes('call me')) angle = 'reschedule';
-      else if (r.includes('not home') || r.includes('no one') || r.includes('missed')) angle = 'nothome';
-      else if (r.includes('not interested')) angle = 'notinterested';
-      else if (r.includes('already has') || r.includes('has gutter') || r.includes('existing')) angle = 'existing';
-      const fn = FU_MSGS[angle] || FU_MSGS.default;
-      const msg = fn(name && name.trim() ? name.trim() : 'there');
-      openSmsComposer(clean, msg);
+      return 'sms:' + recipient + (body ? sep + 'body=' + body : '');
     }
 
     function sendReviewSMS() {
-      const msg = `Hi! It was a pleasure working with you — we hope you're loving your new LeafFilter! 😊\n\nIf you have a moment, we'd really appreciate it if you could leave us a quick Google review. It means the world to us and helps other homeowners find us!\n\nThank you so much! 🙏`;
+      const msg = "Hi! It was a pleasure working with you — we hope you're loving your new LeafFilter! 😊\n\nIf you have a moment, we'd really appreciate it if you could leave us a quick Google review. It means the world to us and helps other homeowners find us!\n\nThank you so much! 🙏";
       openSmsComposer('', msg);
     }
 
     function buildInstallCheckMsg(name) {
       const first = (name || '').trim().split(/\s+/)[0] || 'there';
       const rep = _repName || 'your LeafFilter rep';
-      return `Hi ${first}! This is ${rep} from LeafFilter 👋\n\nHope your install went smoothly and everything looks great.\n\nIf you have any questions, text me here. And if you know a neighbor, friend, or family member who could use LeafFilter, I'd really appreciate the referral. Thank you!`;
+      return 'Hi ' + first + '! This is ' + rep + ' from LeafFilter 👋\n\nHope your install went smoothly and everything looks great.\n\nIf you have any questions, text me here. And if you know a neighbor, friend, or family member who could use LeafFilter, I\'d really appreciate the referral. Thank you!';
     }
 
     function sendInstallCheckSMS(phone, name, leadId) {
@@ -4658,7 +5008,13 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     }
 
     async function toggleFuDone(id, done) {
-      await sb.from('leads').update({ followup_done: done }).eq('id', id);
+      const patch = done
+        ? { followup_done: true, followup_status: 'stopped', followup_stopped_reason: 'completed' }
+        : { followup_done: false, followup_status: 'active', followup_stopped_reason: null };
+      let res = await sb.from('leads').update(patch).eq('id', id);
+      if (res.error && /followup_status|followup_stopped_reason/i.test(res.error.message || '')) {
+        await sb.from('leads').update({ followup_done: !!done }).eq('id', id);
+      }
       loadFollowUps();
     }
 
@@ -4808,6 +5164,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           ? 'Sale of $' + amt.toLocaleString() + ' saved on the appointment'
           : 'Sale of $' + amt.toLocaleString() + ' logged!');
         scheduleMileageRecalc(mileageDate);
+        try { await stopOpenFollowupsForSale(contact.phone || payload.customer_phone); } catch (e) {}
         loadAppointments();
         resetLog();
         return true;
@@ -4883,10 +5240,20 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       const mileageDate = undo.mileageDate || (undo.restore && (apptDateKey(undo.restore.appointment_at) || undo.restore.sales_date)) || null;
       if (undo.mode === 'revert') {
         let { error } = await sb.from('leads').update(undo.restore).eq('id', undo.id);
-        if (error && undo.restore && Object.prototype.hasOwnProperty.call(undo.restore, 'drove_there') && /drove_there/i.test(error.message || '')) {
-          const fallback = Object.assign({}, undo.restore);
-          delete fallback.drove_there;
-          ({ error } = await sb.from('leads').update(fallback).eq('id', undo.id));
+        let attempt = undo.restore;
+        for (let n = 0; error && attempt && n < 3; n++) {
+          const msg = error.message || '';
+          const next = Object.assign({}, attempt);
+          let stripped = false;
+          ['drove_there', 'followup_status', 'followup_stopped_reason'].forEach(col => {
+            if (new RegExp(col, 'i').test(msg) && Object.prototype.hasOwnProperty.call(next, col)) {
+              delete next[col];
+              stripped = true;
+            }
+          });
+          if (!stripped) break;
+          attempt = next;
+          ({ error } = await sb.from('leads').update(attempt).eq('id', undo.id));
         }
         if (error) { toast('Undo failed', 'err'); console.error(error); return; }
         toast('Back to pending ✓', 'ok');
@@ -5091,8 +5458,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const sold = l.status === 'sold';
         const installToday = sold && !l.is_cancelled && l.install_date === todayStr;
         const installComplete = sold && !l.is_cancelled && !!l.install_date && l.install_date <= todayStr;
-        const custPhone = (l.followup_phone || '').replace(/\D/g, '');
-        const custName = l.followup_name || '';
+        const custPhone = (l.customer_phone || l.followup_phone || '').replace(/\D/g, '');
+        const custName = l.customer_name || l.followup_name || '';
         // Top-right: show sales_date
         const displayDate = l.sales_date
           ? new Date(l.sales_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -5147,7 +5514,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       <div style="display:flex;flex-direction:column;gap:4px;align-items:center">
         <button class="edit-btn" onclick="openLeadEdit('${l.id}')">✏️</button>
         ${installComplete ? (installSmsHref ? `<a class="edit-btn" href="${installSmsHrefAttr}" data-no-card-toggle onclick="event.stopPropagation()" style="font-size:12px;text-decoration:none" title="How did install go?">🛠️</a>` : `<button class="edit-btn" data-no-card-toggle onclick="event.stopPropagation(); sendInstallCheckSMS(${JSON.stringify(custPhone)}, ${JSON.stringify(custName)}, ${JSON.stringify(l.id)})" style="font-size:12px" title="How did install go?">🛠️</button>`) : ''}
-        ${sold ? `<button class="edit-btn" onclick="event.stopPropagation(); sendReviewSMS()" style="font-size:12px" title="Request Google Review">⭐</button>` : `<button class="edit-btn" onclick="event.stopPropagation(); openFu('${l.id}','${(l.not_sold_reasons?.label || '').replace(/'/g, "\\'")}')" style="font-size:12px" title="Set Follow-Up">📞</button>`}
+        ${sold ? `<button class="edit-btn" onclick="event.stopPropagation(); sendReviewSMS()" style="font-size:12px" title="Request Google Review">⭐</button>` : `<button class="edit-btn" data-id="${l.id}" data-reason="${escHtml(l.not_sold_reasons?.label || '')}" data-name="${escHtml(custName)}" data-phone="${escHtml(custPhone)}" data-notes="${escHtml(l.notes || '')}" onclick="event.stopPropagation(); openFuFromBtn(this)" style="font-size:12px" title="Text follow-up">📞</button>`}
       </div>
     </div>`;
 
@@ -5232,16 +5599,18 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       document.getElementById('esNsLeftAt').value = nsLeftAt;
       esCalcPar();
 
+      const personName = l.customer_name || l.followup_name || '';
+      const personPhone = l.customer_phone || l.followup_phone || '';
       if (l.status === 'not_sold') {
-        document.getElementById('esNsFuName').value = l.followup_name || '';
-        document.getElementById('esNsFuPhone').value = l.followup_phone || '';
+        document.getElementById('esNsFuName').value = personName;
+        document.getElementById('esNsFuPhone').value = personPhone;
         document.getElementById('esNsFuDate').value = l.followup_date || '';
         document.getElementById('esNsFuDone').checked = !!l.followup_done;
         document.getElementById('esSoldCustName').value = '';
         document.getElementById('esSoldCustPhone').value = '';
       } else {
-        document.getElementById('esSoldCustName').value = l.followup_name || '';
-        document.getElementById('esSoldCustPhone').value = l.followup_phone || '';
+        document.getElementById('esSoldCustName').value = personName;
+        document.getElementById('esSoldCustPhone').value = personPhone;
         document.getElementById('esNsFuName').value = '';
         document.getElementById('esNsFuPhone').value = '';
         document.getElementById('esNsFuDate').value = '';
@@ -5250,6 +5619,9 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
 
       // Not-sold reason
       esSelReason = l.reason_id || null;
+      const editStar = document.getElementById('esNsPhoneReq');
+      const editReason = reasons.find(r => r.id === esSelReason);
+      if (editStar) editStar.style.display = fuPhoneOptional(editReason?.label || '') ? 'none' : 'inline';
       const rl = document.getElementById('esReasonList');
       rl.innerHTML = reasons.map(r => `
     <div class="ro ${esSelReason === r.id ? 'sel' : ''}" id="esr-${r.id}" onclick="esSelR('${r.id}')">
@@ -5301,6 +5673,9 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       esSelReason = id;
       document.querySelectorAll('#esReasonList .ro').forEach(r => r.classList.remove('sel'));
       document.getElementById('esr-' + id)?.classList.add('sel');
+      const reasonObj = reasons.find(r => String(r.id) === String(id));
+      const star = document.getElementById('esNsPhoneReq');
+      if (star) star.style.display = fuPhoneOptional(reasonObj?.label || '') ? 'none' : 'inline';
     }
 
     function esCalcPar() {
@@ -5371,6 +5746,13 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         payload.reason_id = null;
         payload.followup_name = contact.name;
         payload.followup_phone = contact.phone;
+        if (contact.phone) payload.customer_phone = contact.phone;
+        if (contact.name) payload.customer_name = contact.name;
+        if (!esCancelled && !esBtd) {
+          payload.followup_status = 'stopped';
+          payload.followup_stopped_reason = 'sold';
+          payload.followup_done = true;
+        }
         // If cancelled, wipe install date & commission so it drops off the commissions page
         if (esCancelled) {
           payload.install_date = null;
@@ -5383,7 +5765,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           leftAtEl: document.getElementById('esNsLeftAt'),
           fuNameEl: document.getElementById('esNsFuName'),
           fuPhoneEl: document.getElementById('esNsFuPhone'),
-          fuDateEl: document.getElementById('esNsFuDate')
+          fuDateEl: document.getElementById('esNsFuDate'),
+          reasonId: esSelReason
         });
         if (!contact) return;
 
@@ -5396,10 +5779,29 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         payload.commission_amount = null;
         payload.commission_paid = false;
 
-        payload.followup_date = contact.fuDate;
-        payload.followup_phone = contact.fuPhone;
-        payload.followup_name = contact.fuName;
-        payload.followup_done = document.getElementById('esNsFuDone').checked;
+        const editReason = reasons.find(r => String(r.id) === String(esSelReason))?.label || '';
+        const doneChecked = document.getElementById('esNsFuDone').checked;
+        payload.followup_phone = contact.fuPhone || null;
+        payload.followup_name = contact.fuName || null;
+        if (contact.fuPhone) payload.customer_phone = contact.fuPhone;
+        if (contact.fuName) payload.customer_name = contact.fuName;
+        if (doneChecked) {
+          payload.followup_done = true;
+          payload.followup_status = 'stopped';
+          payload.followup_stopped_reason = 'completed';
+          payload.followup_date = contact.fuDate || null;
+        } else if (fuGroupKey(editReason, '')) {
+          const enroll = fuEnrollPatch(editReason, '', payload.sales_date || todayEtKey(), esProduct, contact.fuPhone, contact.fuName);
+          payload.followup_done = false;
+          payload.followup_status = 'active';
+          payload.followup_stopped_reason = null;
+          payload.followup_date = contact.fuDate || enroll.followup_date;
+        } else {
+          payload.followup_done = false;
+          payload.followup_status = null;
+          payload.followup_stopped_reason = null;
+          payload.followup_date = contact.fuDate || null;
+        }
 
         // Build quote reference line for notes
         const baseNotes = stripLeadingQuoteRefNotes(document.getElementById('esNotes').value.trim());
@@ -5421,13 +5823,19 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           delete fallback.retail_price;
           ({ error } = await sb.from('leads').update(fallback).eq('id', editLeadId));
         }
+        if (error && /followup_status|followup_stopped_reason/i.test(error.message || '')) {
+          const fallback = { ...payload };
+          delete fallback.followup_status;
+          delete fallback.followup_stopped_reason;
+          ({ error } = await sb.from('leads').update(fallback).eq('id', editLeadId));
+        }
         if (error) { toast('Error saving', 'err'); console.error(error); return; }
         toast('Lead updated ✓', 'ok');
         document.getElementById('editOverlay').classList.remove('open');
         if (esCustomerAddress) saveLocationForLead(editLeadId, esCustomerAddress);
         editLeadId = null;
         if (document.getElementById('n-hist').classList.contains('active')) {
-          const isFu = false; // Follow-Ups tab removed — app tracks sales only
+          const isFu = document.getElementById('histFuSection') && document.getElementById('histFuSection').style.display !== 'none';
           if (isFu) loadFollowUps();
           else if (window._lastHistArgs) filterHist(...window._lastHistArgs);
           else document.querySelector('.ftab.active')?.click();
@@ -5435,8 +5843,18 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         return;
       }
       payload.notes = document.getElementById('esNotes').value.trim() || null;
-      const { error } = await sb.from('leads').update(payload).eq('id', editLeadId);
+      const soldPhone = payload.customer_phone || payload.followup_phone;
+      let { error } = await sb.from('leads').update(payload).eq('id', editLeadId);
+      if (error && /followup_status|followup_stopped_reason/i.test(error.message || '')) {
+        const fallback = { ...payload };
+        delete fallback.followup_status;
+        delete fallback.followup_stopped_reason;
+        ({ error } = await sb.from('leads').update(fallback).eq('id', editLeadId));
+      }
       if (error) { toast('Error saving', 'err'); console.error(error); return; }
+      if (!esCancelled && !esBtd) {
+        try { await stopOpenFollowupsForSale(soldPhone); } catch (e) {}
+      }
       toast('Lead updated ✓', 'ok');
       document.getElementById('editOverlay').classList.remove('open');
       if (esCustomerAddress) saveLocationForLead(editLeadId, esCustomerAddress);
@@ -5445,7 +5863,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (document.getElementById('n-comm').classList.contains('active')) {
         loadComm();
       } else if (document.getElementById('n-hist').classList.contains('active')) {
-        const isFu = false; // Follow-Ups tab removed — app tracks sales only
+        const isFu = document.getElementById('histFuSection') && document.getElementById('histFuSection').style.display !== 'none';
         if (isFu) {
           loadFollowUps();
         } else if (window._lastHistArgs) {
@@ -5486,7 +5904,7 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       if (document.getElementById('n-comm').classList.contains('active')) {
         loadComm();
       } else if (document.getElementById('n-hist').classList.contains('active')) {
-        const isFu = false; // Follow-Ups tab removed — app tracks sales only
+        const isFu = document.getElementById('histFuSection') && document.getElementById('histFuSection').style.display !== 'none';
         if (isFu) {
           loadFollowUps();
         } else if (window._lastHistArgs) {
@@ -5508,9 +5926,6 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       loadQuoteSettings();
       gcalLoadSettingsUI();
       loadMileageSettingsUI();
-      const savedAiKey = _aiKeyGet();
-      const aiKeyStatus = document.getElementById('aiKeyStatus');
-      if (aiKeyStatus) aiKeyStatus.textContent = savedAiKey ? '✓ Key saved: ' + savedAiKey.slice(0, 14) + '...' + savedAiKey.slice(-4) : 'No key saved';
       await loadReasons(); // still needed by the Edit Sale modal for viewing old not-sold records
     }
 
@@ -6080,6 +6495,15 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
 
     function closePriceListEditor() {
       document.getElementById('priceListOverlay').classList.remove('open');
+      const title = document.querySelector('#priceListOverlay .es-title');
+      if (title) title.textContent = '🏷️ Edit Price List';
+      const saveBtn = document.getElementById('plSaveBtn');
+      if (saveBtn) {
+        saveBtn.onclick = savePriceList;
+        saveBtn.textContent = '💾 Save Changes';
+      }
+      const addRow = document.getElementById('plAddRow');
+      if (addRow) addRow.style.display = '';
     }
 
     let _localPriceList = [];
@@ -6192,65 +6616,72 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     // ─────────────────────────────────────────
     function openFuTemplateEditor() {
       renderFuTemplateEditor();
-      document.getElementById('priceListOverlay').classList.add('open'); // reusing overlay shell
+      document.getElementById('priceListOverlay').classList.add('open');
       document.querySelector('#priceListOverlay .es-title').textContent = '📱 SMS Templates';
       document.getElementById('plAddRow').style.display = 'none';
-      document.getElementById('plSaveBtn').onclick = saveFuTemplates;
+      const saveBtn = document.getElementById('plSaveBtn');
+      saveBtn.onclick = saveFuTemplates;
+      saveBtn.textContent = 'Save templates';
     }
 
     let _localFuMsgs = {};
 
     function renderFuTemplateEditor() {
-      _localFuMsgs = JSON.parse(JSON.stringify(FU_MSGS));
-      const container = document.getElementById('plContent'); // reusing container
-      const keys = Object.keys(_localFuMsgs);
-
-      container.innerHTML = keys.map((key, i) => `
-    <div style="background:#F9FAFB;border:1.5px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;position:relative">
-      <button onclick="removeFuRow('${key}')" style="position:absolute;top:-8px;right:-8px;width:24px;height:24px;background:var(--red);color:#fff;border:none;border-radius:50%;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.2)">✕</button>
-      <div style="margin-bottom:8px">
-        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Template Name</label>
-        <input type="text" class="fi" style="font-size:12px;padding:8px" value="${key}" disabled>
-      </div>
-      <div>
-        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Message Body (use [Name] for placeholder)</label>
-        <textarea class="fi" style="font-size:12px;padding:8px;height:60px" oninput="_localFuMsgs['${key}']=this.value">${_localFuMsgs[key]}</textarea>
-      </div>
-    </div>
-  `).join('') + `
-    <div style="margin-top:20px; padding:10px; background:#EFF6FF; border-radius:12px; border:1px solid #BFDBFE">
-      <div style="font-size:11px; font-weight:700; margin-bottom:4px; color:#1E40AF">Add New Template</div>
-      <input type="text" id="newTplName" placeholder="e.g. Next Season" class="fi" style="padding:8px; font-size:12px; margin-bottom:8px">
-      <button onclick="addFuRow()" style="width:100%; padding:8px; background:var(--blue); color:#fff; border:none; border-radius:8px; font-weight:700; font-size:12px">+ Add Template</button>
-    </div>
-  `;
-
-      // Update the save button to use the correct function
-      const sheet = document.getElementById('priceListOverlay');
-      const saveBtn = sheet.querySelector('button[onclick*="save"]');
-      saveBtn.setAttribute('onclick', 'saveFuTemplates()');
+      _localFuMsgs = JSON.parse(JSON.stringify(FU_TEMPLATES || defaultFuTemplates()));
+      const container = document.getElementById('plContent');
+      container.innerHTML = '';
+      const hint = document.createElement('div');
+      hint.style.cssText = 'font-size:12px;color:var(--muted);line-height:1.45;margin-bottom:12px';
+      hint.textContent = 'Use [Name] for the first name and [RepName] for yours. The first text in each sequence should include: If you\'d rather I not follow up, just let me know.';
+      container.appendChild(hint);
+      const stepNames = { day1: 'Day 1 — sorry I missed you', day2: 'Day 2', day7: 'Day 7', day30: 'Day 30', seasonal: 'Seasonal' };
+      ['leaffilter', 'roofline'].forEach(product => {
+        const head = document.createElement('div');
+        head.style.cssText = 'font-size:15px;font-weight:800;margin:14px 0 8px';
+        head.textContent = product === 'roofline' ? 'Lighting' : 'LeafFilter';
+        container.appendChild(head);
+        FU_EDITOR_GROUPS.forEach(group => {
+          const box = document.createElement('div');
+          box.style.cssText = 'background:#F9FAFB;border:1.5px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px';
+          const title = document.createElement('div');
+          title.style.cssText = 'font-size:12px;font-weight:800;margin-bottom:8px';
+          title.textContent = group.title;
+          box.appendChild(title);
+          group.steps.forEach(step => {
+            const label = document.createElement('label');
+            label.style.cssText = 'font-size:10px;font-weight:700;color:var(--muted);display:block;margin:8px 0 4px';
+            label.textContent = stepNames[step] || step;
+            const ta = document.createElement('textarea');
+            ta.className = 'fi';
+            ta.style.cssText = 'font-size:12px;padding:8px;height:88px';
+            ta.value = (_localFuMsgs[group.key] && _localFuMsgs[group.key][product] && _localFuMsgs[group.key][product][step]) || '';
+            ta.addEventListener('input', () => {
+              if (!_localFuMsgs[group.key]) _localFuMsgs[group.key] = {};
+              if (!_localFuMsgs[group.key][product]) _localFuMsgs[group.key][product] = {};
+              _localFuMsgs[group.key][product][step] = ta.value;
+            });
+            box.appendChild(label);
+            box.appendChild(ta);
+          });
+          container.appendChild(box);
+        });
+      });
+      const saveBtn = document.getElementById('plSaveBtn');
+      if (saveBtn) saveBtn.onclick = saveFuTemplates;
     }
 
-    function addFuRow() {
-      const name = document.getElementById('newTplName').value.trim();
-      if (!name) { toast('Enter a name', 'err'); return; }
-      _localFuMsgs[name] = 'New message for [Name]...';
-      renderFuTemplateEditor();
-    }
-
-    function removeFuRow(key) {
-      delete _localFuMsgs[key];
-      renderFuTemplateEditor();
-    }
-
-    function saveFuTemplates() {
-      FU_MSGS = _localFuMsgs;
-      localStorage.setItem('cc_fu_msgs', JSON.stringify(FU_MSGS));
-      toast('Templates updated ✓');
+    async function saveFuTemplates() {
+      FU_TEMPLATES = JSON.parse(JSON.stringify(_localFuMsgs));
+      try { localStorage.setItem('cc_fu_templates', JSON.stringify(FU_TEMPLATES)); } catch (e) {}
+      const saved = await saveFuTemplatesRemote(FU_TEMPLATES);
+      toast(saved ? 'Templates saved to your account' : 'Templates saved on this phone', saved ? 'ok' : 'err');
       closePriceListEditor();
-      // Restore original overlay state for price list use
       document.querySelector('#priceListOverlay .es-title').textContent = '🏷️ Edit Price List';
-      document.getElementById('priceListOverlay').querySelector('button[onclick*="save"]').setAttribute('onclick', 'savePriceList()');
+      const saveBtn = document.getElementById('plSaveBtn');
+      saveBtn.onclick = savePriceList;
+      saveBtn.textContent = '💾 Save Changes';
+      const addRow = document.getElementById('plAddRow');
+      if (addRow) addRow.style.display = '';
     }
 
     function renderCCItems() {
@@ -6469,55 +6900,45 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       return { name, phone };
     }
 
-    /** Required on every not-sold log: last price, customer name, phone, follow-up date. */
+    /** Last price is required, and a phone is required except No one home / No demo. */
     function clearFieldErrors() {
       document.querySelectorAll('.fi-error').forEach(el => el.classList.remove('fi-error'));
-      const fuBox = document.getElementById('ccFollowUpBox');
-      if (fuBox) fuBox.style.outline = '';
     }
 
-    function validateNotSoldRequired({ leftAtEl, fuNameEl, fuPhoneEl, fuDateEl, soldAtEl }) {
+    function validateNotSoldRequired({ leftAtEl, fuNameEl, fuPhoneEl, fuDateEl, soldAtEl, reasonId }) {
       const leftAt = parseFloat(leftAtEl?.value) ||
         parseFloat(soldAtEl?.value) || null;
       const fuName = (fuNameEl?.value || '').trim();
       const fuPhone = (fuPhoneEl?.value || '').trim().replace(/\D/g, '');
       const fuDate = fuDateEl?.value || '';
 
-      // Skip contact/price checks for non-interaction reasons (not home, no demo)
-      const reasonObj = reasons.find(r => String(r.id) === String(selCcReason));
-      const label = (reasonObj?.label || '').toLowerCase();
-      const isNoContact = label.includes('not home') || label.includes('no demo') || label.includes('no one home');
+      const reasonObj = reasons.find(r => String(r.id) === String(reasonId || selCcReason));
+      const label = reasonObj?.label || '';
+      const optionalPhone = fuPhoneOptional(label);
+      const skipPrice = optionalPhone;
 
-      if (isNoContact) {
-        clearFieldErrors();
-        return { leftAt: null, fuName: '', fuPhone: '', fuDate: null };
+      clearFieldErrors();
+      if (skipPrice) {
+        return { leftAt: null, fuName, fuPhone, fuDate: fuDate || null };
       }
 
-      // Only last price given is required
       const checks = [
-        { ok: leftAt > 0, msg: 'Enter last price given', el: leftAtEl || soldAtEl, box: null }
+        { ok: leftAt > 0, msg: 'Enter last price given', el: leftAtEl || soldAtEl }
       ];
+      if (!optionalPhone) {
+        checks.push({ ok: fuPhone.length >= 10, msg: 'Enter a phone number', el: fuPhoneEl });
+      }
 
-      // Highlight ALL failing fields at once
-      clearFieldErrors();
       const failures = checks.filter(c => !c.ok);
-      failures.forEach(c => {
-        if (c.el) {
-          c.el.classList.add('fi-error');
-        }
-        if (c.box) {
-          c.box.style.outline = '2px solid #EF4444';
-        }
-      });
+      failures.forEach(c => { if (c.el) c.el.classList.add('fi-error'); });
 
       if (failures.length) {
         toast(failures[0].msg, 'err');
-        const firstEl = failures[0].el || (failures[0].box);
-        if (firstEl) firstEl.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+        if (failures[0].el) failures[0].el.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
         return null;
       }
 
-      return { leftAt, fuName, fuPhone, fuDate };
+      return { leftAt, fuName, fuPhone, fuDate: fuDate || null };
     }
 
     function ccSetOutcome(type) {
@@ -6565,13 +6986,6 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         const leftAtEl = document.getElementById('ccNotLeftAt');
         if (soldAt && !leftAtEl.value) leftAtEl.value = soldAt;
         buildCcReasonList();
-        // Default follow-up to tomorrow if blank
-        const fuDateEl = document.getElementById('ccNotFuDate');
-        if (fuDateEl && !fuDateEl.value) {
-          const d = new Date();
-          d.setDate(d.getDate() + 1);
-          fuDateEl.value = localDate(d);
-        }
         setTimeout(() => {
           const nameEl = document.getElementById('ccNotFuName');
           if (nameEl && !nameEl.value) nameEl.focus();
@@ -6615,9 +7029,10 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       document.getElementById('ccNotNotes').value = '';
       document.getElementById('ccNotSoldDate').value = today;
       document.getElementById('ccNotLeftAt').value = '';
-      document.querySelectorAll('[id="ccNotFuName"]').forEach(el => el.value = '');
-      document.querySelectorAll('[id="ccNotFuPhone"]').forEach(el => el.value = '');
-      document.querySelectorAll('[id="ccNotFuDate"]').forEach(el => el.value = '');
+      const fuNameReset = document.getElementById('ccNotFuName');
+      const fuPhoneReset = document.getElementById('ccNotFuPhone');
+      if (fuNameReset) fuNameReset.value = '';
+      if (fuPhoneReset) fuPhoneReset.value = '';
       if (document.getElementById('soldCustName')) document.getElementById('soldCustName').value = '';
       if (document.getElementById('soldCustPhone')) document.getElementById('soldCustPhone').value = '';
       selCcReason = null;
@@ -6649,21 +7064,15 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       document.getElementById('ccro-' + id)?.classList.add('sel');
       selCcReason = id;
 
-      // Hide price/contact fields for reasons where there was no customer interaction
       const reasonObj = reasons.find(r => String(r.id) === String(id));
-      const label = (reasonObj?.label || '').toLowerCase();
-      const isNoContact = label.includes('not home') || label.includes('no demo') || label.includes('no one home');
-      const priceRow   = document.getElementById('ccNotPriceRow');
-      const contactRow = document.getElementById('ccNotContactRow');
-      const fuBox      = document.getElementById('ccFollowUpBox');
-      if (priceRow)   priceRow.style.display   = isNoContact ? 'none' : '';
-      if (contactRow) contactRow.style.display = isNoContact ? 'none' : '';
-      if (fuBox)      fuBox.style.display      = isNoContact ? 'none' : '';
-      // Clear those fields when hidden so stale data isn't submitted
-      if (isNoContact) {
-        document.getElementById('ccNotLeftAt').value  = '';
-        document.querySelectorAll('[id="ccNotFuName"]').forEach(el => el.value = '');
-        document.querySelectorAll('[id="ccNotFuPhone"]').forEach(el => el.value = '');
+      const optional = fuPhoneOptional(reasonObj?.label || '');
+      const priceRow = document.getElementById('ccNotPriceRow');
+      if (priceRow) priceRow.style.display = optional ? 'none' : '';
+      const star = document.getElementById('ccNotPhoneReq');
+      if (star) star.style.display = optional ? 'none' : 'inline';
+      if (optional) {
+        const left = document.getElementById('ccNotLeftAt');
+        if (left) left.value = '';
       }
       clearFieldErrors();
     }
@@ -6711,26 +7120,32 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         
         const retailVal = parseFloat(document.getElementById('qcRetailHidden').value) || null;
         const parVal    = parseFloat(document.getElementById('qcParHidden').value) || null;
+        const calName = (document.getElementById('calCustName').value || '').trim();
+        const calPhone = (document.getElementById('calCustPhone').value || '').replace(/\D/g, '');
+        const personName = contact.fuName || calName;
+        const personPhone = contact.fuPhone || calPhone;
+        const closeDate = nsDate || todayEtKey();
+        const reasonLabelNow = reasons.find(r => r.id === selCcReason)?.label || '';
+        const enroll = fuEnrollPatch(reasonLabelNow, notes, closeDate, _qcProduct, personPhone, personName || calName);
         
         const payload = {
           status: 'not_sold',
           reason_id: selCcReason,
           product: _qcProduct,
           notes: notes || null,
-          sales_date: nsDate,
+          sales_date: closeDate,
           sale_amount: contact.leftAt,
           retail_price: retailVal,
           par_price: parVal,
-          followup_date: contact.fuDate,
-          followup_name: contact.fuName,
-          followup_phone: contact.fuPhone,
-          followup_done: false,
           lead_id: document.getElementById('calLeadId').value || null,
-          customer_name: document.getElementById('calCustName').value || null,
+          customer_name: calName || personName || null,
           customer_address: document.getElementById('calCustAddr').value || null,
-          customer_phone: document.getElementById('calCustPhone').value || null,
+          customer_phone: personPhone || null,
           lead_code: document.getElementById('calLeadCode').value || null
         };
+        Object.assign(payload, enroll);
+        payload.customer_name = calName || personName || null;
+        payload.customer_phone = personPhone || null;
         const quotingAppt = activeAppointment;
         const restore = quotingAppt ? pendingRestorePayload(quotingAppt) : null;
         const mileageDate = mileageDayFromClose(quotingAppt, payload);
@@ -6749,6 +7164,12 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
           delete fallback.product;
           ({ data, error } = await writeNs(fallback));
         }
+        if (error && /followup_status|followup_stopped_reason/i.test(error.message || '')) {
+          const fallback = { ...payload };
+          delete fallback.followup_status;
+          delete fallback.followup_stopped_reason;
+          ({ data, error } = await writeNs(fallback));
+        }
         if (error) {
           toast('Save failed: ' + (error.message || 'unknown error'), 'err');
           console.error('[not_sold save]', error);
@@ -6763,18 +7184,6 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         lastId = data.id;
         saveLocationForLead(data.id, document.getElementById('calCustAddr').value || null);
         scheduleMileageRecalc(mileageDate);
-
-        const _reasonLabel = reasons.find(r => r.id === selCcReason)?.label || '';
-        if (_reasonLabel.toLowerCase().includes('spouse') && data?.id) {
-          setTimeout(() => openFu(
-            data.id,
-            _reasonLabel,
-            payload.followup_name || payload.customer_name || '',
-            payload.followup_phone || payload.customer_phone || '',
-            notes || '',
-            1
-          ), 700);
-        }
 
         showUndo(quotingAppt ? 'Appointment marked not sold' : 'Not sold lead logged + Follow-up scheduled');
         loadAppointments();
@@ -6918,6 +7327,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         followup_phone: null,
         followup_date: null,
         followup_done: false,
+        followup_status: null,
+        followup_stopped_reason: null,
         retail_percentage: null,
         commission_percentage: null,
         retail_price: null,
@@ -6930,10 +7341,13 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
     }
 
     function matchingNoShowReason() {
-      return (reasons || []).find(r => {
-        const label = (r.label || '').toLowerCase();
-        return label.includes('no show') || label.includes('no-show') || label.includes('cancel');
-      }) || null;
+      const list = reasons || [];
+      return list.find(r => (r.label || '').trim().toLowerCase() === 'no show')
+        || list.find(r => {
+          const label = (r.label || '').toLowerCase();
+          return label.includes('no show') || label.includes('no-show');
+        })
+        || null;
     }
 
     function appendNoShowNote(existing, line) {
@@ -9103,6 +9517,8 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       driveQuestionBusy = false;
       const nameEl = document.getElementById('driveQuestionName');
       if (nameEl) nameEl.textContent = appt.customer_name || 'This appointment';
+      const phoneEl = document.getElementById('driveQuestionPhone');
+      if (phoneEl) phoneEl.value = appt.customer_phone || '';
       setDriveButtons(false);
       const overlay = document.getElementById('driveQuestionOverlay');
       if (overlay) overlay.style.display = 'flex';
@@ -9125,9 +9541,13 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
       setDriveButtons(true);
       const noteLine = droveThere ? 'No show' : 'Cancelled before arrival';
       const reason = matchingNoShowReason();
+      const close = apptDateKey(appt.appointment_at) || todayEtKey();
+      const typedPhone = (document.getElementById('driveQuestionPhone')?.value || '').trim();
+      const phone = typedPhone || appt.customer_phone || '';
+      const enroll = fuEnrollPatch('No show', noteLine, close, appt.product || 'leaffilter', phone, appt.customer_name || '');
       const payload = {
         status: 'not_sold',
-        sales_date: apptDateKey(appt.appointment_at) || todayEtKey(),
+        sales_date: close,
         notes: appendNoShowNote(appt.notes, noteLine),
         reason_id: reason ? reason.id : null,
         sale_amount: null,
@@ -9135,18 +9555,26 @@ Write a single short follow-up SMS from the rep to the customer. Be friendly and
         commission_paid: false,
         job_number: null,
         install_date: null,
-        followup_name: null,
-        followup_phone: null,
-        followup_date: null,
-        followup_done: false,
         drove_there: !!droveThere
       };
+      Object.assign(payload, enroll);
+      if (phone) payload.customer_phone = phone;
       try {
         let result = await sb.from('leads').update(payload).eq('id', id).eq('status', 'pending').select('id');
-        if (result.error && /drove_there/i.test(result.error.message || '')) {
-          const fallback = Object.assign({}, payload);
-          delete fallback.drove_there;
-          result = await sb.from('leads').update(fallback).eq('id', id).eq('status', 'pending').select('id');
+        let attempt = payload;
+        for (let n = 0; result.error && n < 3; n++) {
+          const msg = result.error.message || '';
+          const next = Object.assign({}, attempt);
+          let stripped = false;
+          ['drove_there', 'followup_status', 'followup_stopped_reason'].forEach(col => {
+            if (new RegExp(col, 'i').test(msg) && Object.prototype.hasOwnProperty.call(next, col)) {
+              delete next[col];
+              stripped = true;
+            }
+          });
+          if (!stripped) break;
+          attempt = next;
+          result = await sb.from('leads').update(attempt).eq('id', id).eq('status', 'pending').select('id');
         }
         if (result.error || !result.data || !result.data.length) {
           toast('Could not update appointment', 'err');
