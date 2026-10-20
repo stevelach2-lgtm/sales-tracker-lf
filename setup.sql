@@ -664,5 +664,12 @@ where not exists (
 );
 
 -- ============================================================
+-- MIGRATION: quote footage and line items on leads
+-- Same statements as migrations/2026-10-20_add_lead_footage_quote_items.sql.
+-- ============================================================
+alter table public.leads add column if not exists footage numeric;
+alter table public.leads add column if not exists quote_items jsonb;
+
+-- ============================================================
 -- Done! Your tables are ready.
 -- ============================================================

@@ -2881,6 +2881,10 @@
         </button>
         <!-- Min-to-PAR indicator -->
         <div id="qcMinParBox" style="display:none;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;line-height:1.6"></div>
+        <button type="button" id="qcSaveToLeadBtn" onclick="saveQuoteToLead()"
+          style="width:100%;margin-top:8px;padding:12px;border:none;border-radius:10px;background:#1D4ED8;color:#fff;font-family:'Inter',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
+          💾 Save quote to lead
+        </button>
     </div>
 
     <div style="padding:16px 14px 100px;margin-top:16px;border-top:2.5px solid var(--border)">
@@ -2939,7 +2943,7 @@
             <div id="rehashLookupBox" style="display:none;background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:10px;padding:10px 12px;margin-bottom:10px">
               <div style="font-size:10px;font-weight:800;color:#92400E;letter-spacing:.5px;margin-bottom:6px">🔎 FIND PRIOR CUSTOMER</div>
               <div style="display:flex;gap:6px;margin-bottom:6px">
-                <input type="text" id="rehashSearchInput" class="fi" placeholder="Lead ID or phone number" style="flex:1;padding:9px 11px;font-size:12px" oninput="rehashSearch(this.value)">
+                <input type="text" id="rehashSearchInput" class="fi" placeholder="Name, lead ID, or phone" style="flex:1;padding:9px 11px;font-size:12px" oninput="rehashSearch(this.value)">
               </div>
               <div id="rehashResults" style="display:none;background:#fff;border:1.5px solid var(--border);border-radius:8px;overflow:hidden"></div>
             </div>
@@ -2999,6 +3003,10 @@
                 <label class="fl">Visit Date</label>
                 <input type="date" class="fi" id="ccNotSoldDate" style="font-size:13px;padding:11px 13px">
               </div>
+            </div>
+            <div class="fg" id="ccNotFootageRow" style="margin-bottom:8px">
+              <label class="fl">Footage (ft)</label>
+              <input type="number" class="fi" id="ccNotFootage" min="0" inputmode="decimal" placeholder="0" style="font-size:14px;padding:11px 13px" oninput="this.dataset.touched='1'">
             </div>
             <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;padding:12px;margin-bottom:12px" id="ccNotContactBlock">
               <div style="font-size:11px;font-weight:800;color:#991B1B;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px">
@@ -3438,6 +3446,13 @@
 
         <!-- SOLD fields -->
         <div id="esFieldsSold">
+          <div id="esSoldContext" style="background:#F9FAFB;border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:12px;line-height:1.5">
+            <div id="esSoldAddrRead"></div>
+            <div id="esSoldProductRead" style="font-weight:800"></div>
+            <div id="esSoldRetailRead"></div>
+            <div id="esSoldFootageRead"></div>
+          </div>
+          <input type="hidden" id="esSoldRetail">
           <div class="fg">
             <label class="fl">Sale Amount</label>
             <div class="amt-wrap"><span class="amt-pre">$</span><input type="number" class="fi" id="esSaleAmt"
@@ -3549,6 +3564,11 @@
             <input type="number" class="fi" id="esNsLeftAt" inputmode="decimal" placeholder="0.00" required
               style="padding:8px 10px;font-size:13px" oninput="esCalcPar()">
           </div>
+          <div style="margin-top:8px">
+            <label class="fl" style="font-size:10px">Footage (ft)</label>
+            <input type="number" class="fi" id="esNsFootage" min="0" inputmode="decimal" placeholder="0"
+              style="padding:8px 10px;font-size:13px" oninput="refreshSoldReadout()">
+          </div>
           <div id="esNsParGap" style="display:none;margin-top:8px;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700"></div>
         </div>
         <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;padding:12px;margin-bottom:12px">
@@ -3597,7 +3617,7 @@
     // ─────────────────────────────────────────
     // STATE
     // ─────────────────────────────────────────
-    let sb = null;
+    var sb = null;
     let reasons = [];
     let selReason = null;
     let selCcReason = null;
@@ -5011,6 +5031,7 @@
       }
       closeFu();
       await openLeadEdit(leadId);
+      if (String(editLeadId) !== String(leadId)) return;
       convertRehash();
     }
 
@@ -5546,6 +5567,10 @@
           customer_phone: document.getElementById('calCustPhone').value || null,
           lead_code: document.getElementById('calLeadCode').value || null
         };
+        const quoted = quotePayloadFromCalc();
+        if (quoted.footage != null) payload.footage = quoted.footage;
+        if (quoted.items.length) payload.quote_items = quoted.items;
+        if (quoted.retail) payload.retail_price = quoted.retail;
 
         const quotingAppt = activeAppointment;
         const restore = quotingAppt ? pendingRestorePayload(quotingAppt) : null;
@@ -5553,12 +5578,7 @@
         const writeSold = (row) => quotingAppt
           ? sb.from('leads').update(row).eq('id', quotingAppt.id).eq('status', 'pending').select().single()
           : sb.from('leads').insert(row).select().single();
-        let { data, error } = await writeSold(payload);
-        if (error && (error.message || '').includes('product')) {
-          const fallback = { ...payload };
-          delete fallback.product;
-          ({ data, error } = await writeSold(fallback));
-        }
+        let { data, error } = await writeLeadTolerant(writeSold, payload, ['product']);
         if (error) {
           toast('Save failed: ' + (error.message || 'unknown error'), 'err');
           console.error('[sold save]', error);
@@ -5659,11 +5679,11 @@
       if (undo.mode === 'revert') {
         let { error } = await sb.from('leads').update(undo.restore).eq('id', undo.id);
         let attempt = undo.restore;
-        for (let n = 0; error && attempt && n < 3; n++) {
+        for (let n = 0; error && attempt && n < 8; n++) {
           const msg = error.message || '';
           const next = Object.assign({}, attempt);
           let stripped = false;
-          ['drove_there', 'followup_status', 'followup_stopped_reason'].forEach(col => {
+          ['drove_there', 'followup_status', 'followup_stopped_reason', 'footage', 'quote_items', 'retail_price', 'par_price'].forEach(col => {
             if (new RegExp(col, 'i').test(msg) && Object.prototype.hasOwnProperty.call(next, col)) {
               delete next[col];
               stripped = true;
@@ -5992,6 +6012,148 @@
     let esOriginalNsDate = null;
     let esInitialStatus = 'sold';
     let esSelReason = null;
+    let esQuoteItems = null;
+    let esCustomerNameLoaded = '';
+    let esCustomerPhoneLoaded = '';
+    let esKeptQuoteRef = '';
+
+    function footageNumber(raw) {
+      if (raw == null || String(raw).trim() === '') return null;
+      const n = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/,/g, ''));
+      if (!isFinite(n) || n < 0) return null;
+      return Math.round(n * 100) / 100;
+    }
+
+    function formatFootageQty(raw) {
+      const n = footageNumber(raw);
+      if (n == null) return '';
+      return String(n);
+    }
+
+    function moneyLabel(n) {
+      return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function isInstallFootageSection(section) {
+      const s = String(section || '');
+      return /leaffilter installation/i.test(s) || /lighting installation/i.test(s);
+    }
+
+    function isFootageUnit(unit) {
+      return /^ft\b/i.test(String(unit || '').trim());
+    }
+
+    /** Linear feet from LeafFilter Installation and Lighting Installation rows only. */
+    function installFootageFromItems(items) {
+      return (items || []).reduce((sum, item) => {
+        if (!item || !isFootageUnit(item.u) || !isInstallFootageSection(item.s)) return sum;
+        return sum + (parseFloat(item.qty) || 0);
+      }, 0);
+    }
+
+    function quoteItemsFromPriceList(list, qtyAt) {
+      const items = [];
+      (list || []).forEach((item, i) => {
+        const qty = parseFloat(qtyAt(item, i)) || 0;
+        if (!(qty > 0)) return;
+        items.push({ s: item.s, l: item.l, u: item.u, qty: qty, p: item.p });
+      });
+      return items;
+    }
+
+    function currentQuoteItems() {
+      return quoteItemsFromPriceList(PRICE_LIST, (_item, i) => {
+        const input = document.getElementById('qc_' + i);
+        return input ? input.value : 0;
+      });
+    }
+
+    function normalizeQuoteItems(raw) {
+      if (!raw) return null;
+      let parsed = raw;
+      if (typeof raw === 'string') {
+        try { parsed = JSON.parse(raw); } catch (e) { return null; }
+      }
+      return Array.isArray(parsed) ? parsed : null;
+    }
+
+    function leadingQuoteRefLines(notes) {
+      if (!notes) return '';
+      const lines = String(notes).split('\n');
+      const kept = [];
+      while (lines.length && /^\s*📊/.test(lines[0])) kept.push(lines.shift().trim());
+      return kept.join('\n');
+    }
+
+    function buildQuoteRefLine({ retail, leftAt, footage }) {
+      const parts = [];
+      const retailN = parseFloat(retail) || 0;
+      const leftN = parseFloat(leftAt) || 0;
+      const feet = footageNumber(footage);
+      if (retailN > 0) {
+        parts.push('Retail: $' + moneyLabel(retailN));
+        parts.push('Par: $' + moneyLabel(retailN * 0.65));
+      }
+      if (leftN > 0) parts.push('Left at: $' + moneyLabel(leftN));
+      if (feet != null && feet > 0) parts.push('Footage: ' + formatFootageQty(feet) + ' ft');
+      return parts.length ? '📊 ' + parts.join(' | ') : '';
+    }
+
+    function quotePayloadFromCalc() {
+      const items = currentQuoteItems();
+      const typed = footageNumber(document.getElementById('ccNotFootage')?.value);
+      const summed = installFootageFromItems(items);
+      const footage = typed != null ? typed : (summed > 0 ? Math.round(summed * 100) / 100 : null);
+      const retail = parseFloat(document.getElementById('qcRetailHidden')?.value) || null;
+      return { items, footage, retail };
+    }
+
+    // Unknown footage/quote_items (and other optional columns) are dropped and the write is retried.
+    async function writeLeadTolerant(writeFn, payload, extraCols) {
+      const optional = ['footage', 'quote_items', 'par_price', 'retail_price', 'followup_status', 'followup_stopped_reason', 'drove_there'].concat(extraCols || []);
+      let row = Object.assign({}, payload);
+      let result = await writeFn(row);
+      for (let n = 0; result && result.error && n < optional.length; n++) {
+        const msg = String(result.error.message || '').toLowerCase();
+        const next = Object.assign({}, row);
+        let stripped = false;
+        optional.forEach(col => {
+          if (Object.prototype.hasOwnProperty.call(next, col) && msg.includes(String(col).toLowerCase())) {
+            delete next[col];
+            stripped = true;
+          }
+        });
+        if (!stripped) break;
+        row = next;
+        result = await writeFn(row);
+      }
+      result = result || { error: { message: 'Save failed' } };
+      result.saved = row;
+      return result;
+    }
+
+    function productReadLabel(product) {
+      return leadProductKey(product) === 'roofline' ? 'Lighting' : 'LeafFilter';
+    }
+
+    function refreshSoldReadout() {
+      const addrEl = document.getElementById('esSoldAddrRead');
+      const prodEl = document.getElementById('esSoldProductRead');
+      const retEl = document.getElementById('esSoldRetailRead');
+      const ftEl = document.getElementById('esSoldFootageRead');
+      if (addrEl) addrEl.innerHTML = esCustomerAddress ? mapsDirLink(esCustomerAddress) : '';
+      if (prodEl) prodEl.textContent = 'Product: ' + productReadLabel(esProduct);
+      const retail = parseFloat(document.getElementById('esSoldRetail')?.value) || parseFloat(document.getElementById('esNsRetail')?.value) || 0;
+      if (retEl) retEl.textContent = retail > 0 ? 'Retail: $' + moneyLabel(retail) : '';
+      const feet = footageNumber(document.getElementById('esNsFootage')?.value);
+      if (ftEl) ftEl.textContent = feet != null && feet > 0 ? 'Footage: ' + formatFootageQty(feet) + ' ft' : '';
+    }
+
+    function openQuoteLeadId() {
+      if (editLeadId) return editLeadId;
+      if (activeAppointment && activeAppointment.id) return activeAppointment.id;
+      return null;
+    }
 
     /** Removes auto-prepended 📊 quote summary lines so notes edit cleanly and save does not duplicate them. */
     function stripLeadingQuoteRefNotes(notes) {
@@ -6005,7 +6167,7 @@
     async function openLeadEdit(id) {
       editLeadId = id;
       const { data: l, error } = await sb.from('leads').select('*, not_sold_reasons(label)').eq('id', id).single();
-      if (error || !l) { toast('Could not load lead', 'err'); return; }
+      if (error || !l) { editLeadId = null; toast('Could not load lead', 'err'); return; }
       if (l.status === 'pending') {
         startAppointment(l);
         return;
@@ -6057,6 +6219,15 @@
       const nsLeftAt = l.status === 'not_sold' ? (l.sale_amount || '') : '';
       document.getElementById('esNsRetail').value = nsRetail;
       document.getElementById('esNsLeftAt').value = nsLeftAt;
+      esQuoteItems = normalizeQuoteItems(l.quote_items);
+      esCustomerNameLoaded = l.customer_name || '';
+      esCustomerPhoneLoaded = l.customer_phone || '';
+      esKeptQuoteRef = leadingQuoteRefLines(l.notes || '');
+      const ftInput = document.getElementById('esNsFootage');
+      const loadedFeet = footageNumber(l.footage);
+      if (ftInput) ftInput.value = loadedFeet == null ? '' : loadedFeet;
+      const soldRetailEl = document.getElementById('esSoldRetail');
+      if (soldRetailEl) soldRetailEl.value = l.retail_price || '';
       esCalcPar();
 
       const personName = l.customer_name || l.followup_name || '';
@@ -6092,27 +6263,38 @@
         document.getElementById('esRehashBtn').style.display = 'block';
       }
 
+      refreshSoldReadout();
       document.getElementById('editOverlay').classList.add('open');
     }
 
     function convertRehash() {
-      // Switch tab to sold
-      esSetStatus('sold');
-      
-      // Inherit the Left At price to Sale Amount if empty
       const leftAt = document.getElementById('esNsLeftAt').value;
-      if (leftAt && !document.getElementById('esSaleAmt').value) {
-        document.getElementById('esSaleAmt').value = leftAt;
-      }
-      
-      // Set to today's date
+      const retail = document.getElementById('esNsRetail').value;
+      const footage = document.getElementById('esNsFootage') ? document.getElementById('esNsFootage').value : '';
+      const name = (document.getElementById('esNsFuName').value || '').trim() || (esCustomerNameLoaded || '').trim();
+      const phone = (document.getElementById('esNsFuPhone').value || '').trim() || (esCustomerPhoneLoaded || '').trim();
+
+      esSetStatus('sold');
+
+      if (leftAt) document.getElementById('esSaleAmt').value = leftAt;
+      document.getElementById('esSoldCustName').value = name;
+      document.getElementById('esSoldCustPhone').value = phone;
+      const soldRetailEl = document.getElementById('esSoldRetail');
+      if (soldRetailEl) soldRetailEl.value = retail || '';
+
       document.getElementById('esSalesDate').value = localDate(new Date());
-      
-      // Ensure Rehash is checked
       document.getElementById('esChkRehash').classList.add('active');
-      
-      // Hide button as it's logically sold now
+      document.getElementById('esChkSelfGen').classList.remove('active');
       document.getElementById('esRehashBtn').style.display = 'none';
+
+      const quoteRef = buildQuoteRefLine({
+        retail: parseFloat(retail) || 0,
+        leftAt: parseFloat(leftAt) || 0,
+        footage: footage
+      }) || esKeptQuoteRef;
+      const baseNotes = stripLeadingQuoteRefNotes(document.getElementById('esNotes').value.trim());
+      document.getElementById('esNotes').value = [quoteRef, baseNotes].filter(Boolean).join('\n');
+      refreshSoldReadout();
     }
 
     function esSetProduct(p) {
@@ -6121,6 +6303,7 @@
       const ltg = document.getElementById('esProdLtg');
       if (lf) lf.classList.toggle('active', esProduct !== 'roofline');
       if (ltg) ltg.classList.toggle('active', esProduct === 'roofline');
+      refreshSoldReadout();
     }
 
     function esSetStatus(s) {
@@ -6227,6 +6410,10 @@
           payload.commission_amount = null;
           payload.commission_paid = false;
         }
+        payload.footage = footageNumber(document.getElementById('esNsFootage')?.value);
+        if (Array.isArray(esQuoteItems)) payload.quote_items = esQuoteItems;
+        const soldRetail = parseFloat(document.getElementById('esSoldRetail')?.value) || parseFloat(document.getElementById('esNsRetail')?.value) || null;
+        if (soldRetail) payload.retail_price = soldRetail;
       } else {
         if (!esSelReason) { toast('Select a reason', 'err'); return; }
         const contact = validateNotSoldRequired({
@@ -6244,6 +6431,8 @@
         payload.sale_amount = contact.leftAt;
         payload.retail_price = nsRetail;
         payload.par_price = nsRetail ? Math.round(nsRetail * 0.65 * 100) / 100 : null;
+        payload.footage = footageNumber(document.getElementById('esNsFootage')?.value);
+        if (Array.isArray(esQuoteItems)) payload.quote_items = esQuoteItems;
         payload.commission_amount = null;
         payload.commission_paid = false;
 
@@ -6278,32 +6467,13 @@
           payload.followup_date = contact.fuDate || null;
         }
 
-        // Build quote reference line for notes
+        const nsFootage = footageNumber(document.getElementById('esNsFootage')?.value);
         const baseNotes = stripLeadingQuoteRefNotes(document.getElementById('esNotes').value.trim());
-        let quoteRef = '';
-        if (nsRetail || contact.leftAt) {
-          const par = nsRetail ? (nsRetail * 0.65) : null;
-          const parts = [];
-          if (nsRetail) parts.push(`Retail: $${nsRetail.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-          if (par) parts.push(`Par: $${par.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-          if (contact.leftAt) parts.push(`Left at: $${contact.leftAt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-          quoteRef = '📊 ' + parts.join(' | ');
-        }
+        const quoteRef = buildQuoteRefLine({ retail: nsRetail, leftAt: contact.leftAt, footage: nsFootage });
         payload.notes = [quoteRef, baseNotes].filter(Boolean).join('\n') || null;
 
-        let { error } = await sb.from('leads').update(payload).eq('id', editLeadId);
-        if (error && ((error.message || '').includes('par_price') || (error.message || '').includes('retail_price'))) {
-          const fallback = { ...payload };
-          delete fallback.par_price;
-          delete fallback.retail_price;
-          ({ error } = await sb.from('leads').update(fallback).eq('id', editLeadId));
-        }
-        if (error && /followup_status|followup_stopped_reason/i.test(error.message || '')) {
-          const fallback = { ...payload };
-          delete fallback.followup_status;
-          delete fallback.followup_stopped_reason;
-          ({ error } = await sb.from('leads').update(fallback).eq('id', editLeadId));
-        }
+        const nsLeadId = editLeadId;
+        let { error } = await writeLeadTolerant((row) => sb.from('leads').update(row).eq('id', nsLeadId), payload);
         if (error) { toast('Error saving', 'err'); console.error(error); return; }
         toast('Lead updated ✓', 'ok');
         document.getElementById('editOverlay').classList.remove('open');
@@ -6317,15 +6487,19 @@
         } else if (document.getElementById('n-dash').classList.contains('active')) loadDash();
         return;
       }
-      payload.notes = document.getElementById('esNotes').value.trim() || null;
-      const soldPhone = payload.customer_phone || payload.followup_phone;
-      let { error } = await sb.from('leads').update(payload).eq('id', editLeadId);
-      if (error && /followup_status|followup_stopped_reason/i.test(error.message || '')) {
-        const fallback = { ...payload };
-        delete fallback.followup_status;
-        delete fallback.followup_stopped_reason;
-        ({ error } = await sb.from('leads').update(fallback).eq('id', editLeadId));
+      let soldNotes = document.getElementById('esNotes').value.trim();
+      if (esInitialStatus === 'not_sold' && !/^\s*📊/.test(soldNotes)) {
+        const quoteRef = buildQuoteRefLine({
+          retail: parseFloat(document.getElementById('esSoldRetail')?.value) || parseFloat(document.getElementById('esNsRetail')?.value) || 0,
+          leftAt: parseFloat(document.getElementById('esNsLeftAt')?.value) || parseFloat(document.getElementById('esSaleAmt')?.value) || 0,
+          footage: document.getElementById('esNsFootage')?.value
+        }) || esKeptQuoteRef;
+        soldNotes = [quoteRef, soldNotes].filter(Boolean).join('\n');
       }
+      payload.notes = soldNotes || null;
+      const soldPhone = payload.customer_phone || payload.followup_phone;
+      const soldLeadId = editLeadId;
+      let { error } = await writeLeadTolerant((row) => sb.from('leads').update(row).eq('id', soldLeadId), payload);
       if (error) { toast('Error saving', 'err'); console.error(error); return; }
       if (!esCancelled && !esBtd) {
         try { await stopOpenFollowupsForSale(soldPhone); } catch (e) {}
@@ -7508,6 +7682,8 @@
       const fuPhoneReset = document.getElementById('ccNotFuPhone');
       if (fuNameReset) fuNameReset.value = '';
       if (fuPhoneReset) fuPhoneReset.value = '';
+      const ccFtReset = document.getElementById('ccNotFootage');
+      if (ccFtReset) { ccFtReset.value = ''; delete ccFtReset.dataset.touched; }
       if (document.getElementById('soldCustName')) document.getElementById('soldCustName').value = '';
       if (document.getElementById('soldCustPhone')) document.getElementById('soldCustPhone').value = '';
       selCcReason = null;
@@ -7593,8 +7769,9 @@
         const notes   = document.getElementById('ccNotNotes').value.trim();
         const nsDate  = document.getElementById('ccNotSoldDate').value || null;
         
-        const retailVal = parseFloat(document.getElementById('qcRetailHidden').value) || null;
-        const parVal    = parseFloat(document.getElementById('qcParHidden').value) || null;
+        const quoted = quotePayloadFromCalc();
+        const retailVal = quoted.retail || parseFloat(document.getElementById('qcRetailHidden').value) || null;
+        const parVal    = parseFloat(document.getElementById('qcParHidden').value) || (retailVal ? Math.round(retailVal * 0.65 * 100) / 100 : null);
         const calName = (document.getElementById('calCustName').value || '').trim();
         const calPhone = (document.getElementById('calCustPhone').value || '').replace(/\D/g, '');
         const personName = contact.fuName || calName;
@@ -7603,15 +7780,18 @@
         const reasonLabelNow = reasons.find(r => r.id === selCcReason)?.label || '';
         const enroll = fuEnrollPatch(reasonLabelNow, notes, closeDate, _qcProduct === 'roofline' ? 'roofline' : 'leaffilter', personPhone, personName || calName);
         
+        const quoteRef = buildQuoteRefLine({ retail: retailVal, leftAt: contact.leftAt, footage: quoted.footage });
         const payload = {
           status: 'not_sold',
           reason_id: selCcReason,
           product: _qcProduct === 'roofline' ? 'roofline' : 'leaffilter',
-          notes: notes || null,
+          notes: [quoteRef, stripLeadingQuoteRefNotes(notes)].filter(Boolean).join('\n') || null,
           sales_date: closeDate,
           sale_amount: contact.leftAt,
           retail_price: retailVal,
           par_price: parVal,
+          footage: quoted.footage,
+          quote_items: quoted.items.length ? quoted.items : null,
           lead_id: document.getElementById('calLeadId').value || null,
           customer_name: calName || personName || null,
           customer_address: document.getElementById('calCustAddr').value || null,
@@ -7627,19 +7807,7 @@
         const writeNs = (row) => quotingAppt
           ? sb.from('leads').update(row).eq('id', quotingAppt.id).eq('status', 'pending').select().single()
           : sb.from('leads').insert(row).select().single();
-        let { data, error } = await writeNs(payload);
-        if (error && (error.message || '').includes('retail_price') || (error && (error.message || '').includes('par_price'))) {
-          const fallback = { ...payload };
-          delete fallback.retail_price;
-          delete fallback.par_price;
-          ({ data, error } = await writeNs(fallback));
-        }
-        if (error && /followup_status|followup_stopped_reason/i.test(error.message || '')) {
-          const fallback = { ...payload };
-          delete fallback.followup_status;
-          delete fallback.followup_stopped_reason;
-          ({ data, error } = await writeNs(fallback));
-        }
+        let { data, error } = await writeLeadTolerant(writeNs, payload);
         if (error) {
           toast('Save failed: ' + (error.message || 'unknown error'), 'err');
           console.error('[not_sold save]', error);
@@ -7803,6 +7971,8 @@
         commission_percentage: null,
         retail_price: null,
         par_price: null,
+        footage: null,
+        quote_items: null,
         draw_sheet_url: null,
         lat: null,
         lng: null,
@@ -8256,6 +8426,12 @@
       
       document.getElementById('qcRetailHidden').value = retail.toFixed(2);
       document.getElementById('qcParHidden').value = par.toFixed(2);
+
+      const quotedFeet = installFootageFromItems(currentQuoteItems());
+      const ftInput = document.getElementById('ccNotFootage');
+      if (ftInput && ftInput.dataset.touched !== '1') {
+        ftInput.value = quotedFeet > 0 ? formatFootageQty(quotedFeet) : '';
+      }
       
       // Auto-update Log Outcome sold inputs
       const qcSold = document.getElementById('qcSoldAt').value;
@@ -8263,6 +8439,43 @@
         document.getElementById('ccNotLeftAt').value = qcSold;
         document.getElementById('commAmt').value = document.getElementById('qcComm').textContent.replace(/[$,]/g, '') || 0;
       }
+    }
+
+    async function saveQuoteToLead() {
+      const leadId = openQuoteLeadId();
+      if (!leadId || !sb) { toast('Open a lead first', 'err'); return; }
+      const items = currentQuoteItems();
+      const feet = installFootageFromItems(items);
+      const footage = feet > 0 ? Math.round(feet * 100) / 100 : null;
+      const retail = parseFloat(document.getElementById('qcRetailHidden')?.value) || null;
+      const payload = {
+        footage: footage,
+        quote_items: items,
+        retail_price: retail
+      };
+      const result = await writeLeadTolerant((row) => sb.from('leads').update(row).eq('id', leadId), payload);
+      if (result.error) { toast('Could not save quote', 'err'); console.error(result.error); return; }
+      esQuoteItems = items;
+      const savedFeet = Object.prototype.hasOwnProperty.call(result.saved, 'footage') ? result.saved.footage : null;
+      const ftEdit = document.getElementById('esNsFootage');
+      if (ftEdit && savedFeet != null) ftEdit.value = savedFeet;
+      const ftNew = document.getElementById('ccNotFootage');
+      if (ftNew && savedFeet != null && ftNew.dataset.touched !== '1') ftNew.value = savedFeet;
+      if (editLeadId && String(editLeadId) === String(leadId)) {
+        const retailEl = document.getElementById('esNsRetail');
+        const soldRetailEl = document.getElementById('esSoldRetail');
+        if (retailEl && retail != null) retailEl.value = retail;
+        if (soldRetailEl && retail != null) soldRetailEl.value = retail;
+        if (typeof esCalcPar === 'function') esCalcPar();
+        refreshSoldReadout();
+      }
+      if (activeAppointment && String(activeAppointment.id) === String(leadId)) {
+        activeAppointment.footage = Object.prototype.hasOwnProperty.call(result.saved, 'footage') ? result.saved.footage : activeAppointment.footage;
+        activeAppointment.quote_items = Object.prototype.hasOwnProperty.call(result.saved, 'quote_items') ? result.saved.quote_items : activeAppointment.quote_items;
+        if (Object.prototype.hasOwnProperty.call(result.saved, 'retail_price')) activeAppointment.retail_price = result.saved.retail_price;
+      }
+      const droppedQuote = !Object.prototype.hasOwnProperty.call(result.saved, 'footage') || !Object.prototype.hasOwnProperty.call(result.saved, 'quote_items');
+      toast(droppedQuote ? 'Retail saved. Add footage columns to store the quote lines.' : 'Quote saved to lead ✓', droppedQuote ? 'err' : 'ok');
     }
 
     function saveOpeningPricePct(val) {
@@ -8781,69 +8994,177 @@
     }
 
     let _rehashSearchTimer;
+    let _rehashHits = [];
+
+    function rehashSearchClause(q) {
+      const raw = String(q || '').trim();
+      const phone = raw.replace(/\D/g, '');
+      const phoneLike = phone.length >= 7 && phone.length >= raw.replace(/[\s().+-]/g, '').length;
+      if (phoneLike) {
+        const last7 = phone.slice(-7);
+        return 'customer_phone.ilike.%' + last7 + '%,followup_phone.ilike.%' + last7 + '%';
+      }
+      const token = raw.replace(/[%,()"\\]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (token.length < 2) return '';
+      const needsQuote = /[\s,]/.test(token);
+      const like = needsQuote ? '"%' + token + '%"' : '%' + token + '%';
+      const eq = needsQuote ? '"' + token + '"' : token;
+      return 'lead_id.eq.' + eq + ',customer_name.ilike.' + like + ',followup_name.ilike.' + like;
+    }
+
+    function rehashRowName(row) {
+      return (row && (row.customer_name || row.followup_name)) || '';
+    }
+
+    function applyRehashQuoteFields(row) {
+      if (!row) return;
+      if (row.product && typeof setQcProduct === 'function') {
+        const next = leadProductKey(row.product);
+        if (_qcProduct !== next) setQcProduct(next);
+      }
+      const items = normalizeQuoteItems(row.quote_items);
+      if (items && items.length && Array.isArray(PRICE_LIST)) {
+        items.forEach(q => {
+          const idx = PRICE_LIST.findIndex(item => item && item.l === q.l && item.s === q.s);
+          if (idx < 0) return;
+          const input = document.getElementById('qc_' + idx);
+          if (input) input.value = q.qty;
+        });
+      }
+      if (row.sale_amount != null && row.sale_amount !== '') {
+        const soldAt = document.getElementById('qcSoldAt');
+        if (soldAt) soldAt.value = row.sale_amount;
+        const saleAmt = document.getElementById('saleAmt');
+        if (saleAmt) saleAmt.value = row.sale_amount;
+      }
+      if (row.footage != null && row.footage !== '') {
+        const ft = document.getElementById('ccNotFootage');
+        if (ft) { ft.value = row.footage; ft.dataset.touched = '1'; }
+      }
+      if (typeof calcQuote === 'function') calcQuote();
+      if (!(items && items.length) && row.retail_price != null && row.retail_price !== '') {
+        const hidden = document.getElementById('qcRetailHidden');
+        if (hidden) hidden.value = Number(row.retail_price).toFixed(2);
+      }
+      if (row.notes) {
+        const soldNotes = document.getElementById('soldNotes');
+        if (soldNotes && !String(soldNotes.value || '').trim()) soldNotes.value = row.notes;
+        const nsNotes = document.getElementById('ccNotNotes');
+        if (nsNotes && !String(nsNotes.value || '').trim()) nsNotes.value = stripLeadingQuoteRefNotes(row.notes);
+      }
+    }
+
     function rehashSearch(q) {
       clearTimeout(_rehashSearchTimer);
       const rr = document.getElementById('rehashResults');
       q = (q || '').trim();
-      if (q.length < 3) { rr.style.display = 'none'; rr.innerHTML = ''; return; }
+      if (q.length < 3) { rr.style.display = 'none'; rr.innerHTML = ''; _rehashHits = []; return; }
       _rehashSearchTimer = setTimeout(async () => {
-        const phone = q.replace(/\D/g, '');
-        let query = sb.from('leads').select('lead_id,customer_name,customer_address,customer_phone,lead_code').neq('status', 'pending').not('customer_name', 'is', null).limit(5);
-        if (phone.length >= 7) {
-          query = query.ilike('customer_phone', '%' + phone.slice(-7) + '%');
-        } else {
-          query = query.eq('lead_id', q);
-        }
-        const { data } = await query;
-        if (!data || !data.length) {
+        const clause = rehashSearchClause(q);
+        if (!clause || !sb) {
           rr.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--muted)">No prior customer found</div>';
           rr.style.display = 'block';
           return;
         }
-        rr.innerHTML = data.map(r =>
-          `<div onclick="rehashFillCustomer('${r.lead_id || ''}','${(r.customer_name||'').replace(/'/g,"\\'")}','${(r.customer_address||'').replace(/'/g,"\\'")}','${(r.customer_phone||'').replace(/'/g,"\\'")}','${(r.lead_code||'')}' )" style="padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;active:background:#F9FAFB">
-            <div style="font-size:13px;font-weight:700;color:var(--text)">${r.customer_name}</div>
-            <div style="font-size:11px;color:var(--muted)">${mapsDirLink(r.customer_address)}${r.customer_address && r.lead_id ? ' · ' : ''}${r.lead_id ? 'ID: ' + r.lead_id : ''}</div>
-          </div>`
-        ).join('');
+        const fullCols = 'id,status,lead_id,customer_name,followup_name,customer_address,customer_phone,lead_code,product,retail_price,sale_amount,footage,notes,quote_items';
+        const slimCols = 'id,status,lead_id,customer_name,followup_name,customer_address,customer_phone,lead_code,product,retail_price,sale_amount,notes';
+        const run = (cols) => sb.from('leads').select(cols).neq('status', 'pending').or(clause).limit(8);
+        let { data, error } = await run(fullCols);
+        if (error && /footage|quote_items/i.test(error.message || '')) {
+          ({ data, error } = await run(slimCols));
+        }
+        if (error && /followup_name|followup_phone/i.test(error.message || '')) {
+          const phone = q.replace(/\D/g, '');
+          const fallback = phone.length >= 7
+            ? sb.from('leads').select(slimCols).neq('status', 'pending').ilike('customer_phone', '%' + phone.slice(-7) + '%').limit(8)
+            : sb.from('leads').select(slimCols).neq('status', 'pending').or('lead_id.eq.' + q.replace(/[%,()]/g, '') + ',customer_name.ilike.%' + q.replace(/[%,()]/g, '') + '%').limit(8);
+          ({ data, error } = await fallback);
+        }
+        if (error || !data || !data.length) {
+          _rehashHits = [];
+          rr.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--muted)">No prior customer found</div>';
+          rr.style.display = 'block';
+          return;
+        }
+        _rehashHits = data;
+        rr.innerHTML = data.map((r, i) => {
+          const name = rehashRowName(r) || 'Customer';
+          const statusNote = r.status === 'not_sold' ? ' · Not sold — open this lead' : (r.status === 'sold' ? ' · Sold' : '');
+          return `<div onclick="rehashPick(${i})" style="padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer">
+            <div style="font-size:13px;font-weight:700;color:var(--text)">${escHtml(name)}</div>
+            <div style="font-size:11px;color:var(--muted)">${mapsDirLink(r.customer_address)}${r.customer_address && r.lead_id ? ' · ' : ''}${r.lead_id ? 'ID: ' + escHtml(r.lead_id) : ''}${statusNote}</div>
+          </div>`;
+        }).join('');
         rr.style.display = 'block';
       }, 400);
     }
 
+    async function rehashPick(index) {
+      const row = _rehashHits[index];
+      if (!row) return;
+      const rr = document.getElementById('rehashResults');
+      if (rr) rr.style.display = 'none';
+      if (row.status === 'not_sold' && row.id) {
+        await openLeadEdit(row.id);
+        if (String(editLeadId) !== String(row.id)) return;
+        convertRehash();
+        toast('Opened the not-sold lead. Save to update this row.', 'ok');
+        return;
+      }
+      rehashFillCustomer(row);
+    }
+
     function rehashFillCustomer(leadId, name, address, phone, leadCode) {
-      document.getElementById('calLeadId').value   = leadId;
-      document.getElementById('calCustName').value  = name;
-      document.getElementById('calCustAddr').value  = address;
-      document.getElementById('calCustPhone').value = phone;
-      document.getElementById('calLeadCode').value  = leadCode;
+      const row = (leadId && typeof leadId === 'object')
+        ? leadId
+        : { lead_id: leadId, customer_name: name, customer_address: address, customer_phone: phone, lead_code: leadCode, status: '' };
+      if (row.status === 'not_sold' && row.id) {
+        rehashPick(_rehashHits.indexOf(row));
+        return;
+      }
+      const custName = rehashRowName(row) || name || '';
+      const custPhone = row.customer_phone || row.followup_phone || phone || '';
+      const custAddr = row.customer_address || address || '';
+      const custLeadId = row.lead_id || '';
+      const custCode = row.lead_code || leadCode || '';
+
+      document.getElementById('calLeadId').value   = custLeadId;
+      document.getElementById('calCustName').value  = custName;
+      document.getElementById('calCustAddr').value  = custAddr;
+      document.getElementById('calCustPhone').value = custPhone;
+      document.getElementById('calLeadCode').value  = custCode;
 
       const sn = document.getElementById('soldCustName');
       const sp = document.getElementById('soldCustPhone');
-      if (sn) sn.value = name;
-      if (sp) sp.value = phone;
+      if (sn) sn.value = custName;
+      if (sp) sp.value = custPhone;
+      document.querySelectorAll('[id="ccNotFuName"]').forEach(el => { if (!el.value) el.value = custName; });
+      document.querySelectorAll('[id="ccNotFuPhone"]').forEach(el => { if (!el.value) el.value = custPhone; });
 
-      // Show banner with prior customer info
       const banner = document.getElementById('ccCalBanner');
       if (banner) {
         banner.style.display = 'block';
-        document.getElementById('ccCalBannerName').textContent = name + ' (Rehash)';
-        setMapsAddressEl(document.getElementById('ccCalBannerAddr'), address);
-        document.getElementById('ccCalBannerMeta').textContent = [leadCode ? 'Code: ' + leadCode : ''].filter(Boolean).join(' · ');
+        document.getElementById('ccCalBannerName').textContent = custName + ' (Rehash)';
+        setMapsAddressEl(document.getElementById('ccCalBannerAddr'), custAddr);
+        document.getElementById('ccCalBannerMeta').textContent = [custCode ? 'Code: ' + custCode : ''].filter(Boolean).join(' · ');
         const leadIdBadge = document.getElementById('ccCalBannerLeadId');
         if (leadIdBadge) {
-          if (leadId) {
-            leadIdBadge.textContent = '📋 Lead ID: ' + leadId + ' (tap to copy)';
+          if (custLeadId) {
+            leadIdBadge.textContent = '📋 Lead ID: ' + custLeadId + ' (tap to copy)';
             leadIdBadge.style.display = 'block';
-            leadIdBadge.onclick = () => { navigator.clipboard.writeText(leadId).then(() => toast('Lead ID copied ✓', 'ok')); };
+            leadIdBadge.onclick = () => { navigator.clipboard.writeText(custLeadId).then(() => toast('Lead ID copied ✓', 'ok')); };
           } else {
             leadIdBadge.style.display = 'none';
           }
         }
       }
 
+      applyRehashQuoteFields(row);
+
       const rr = document.getElementById('rehashResults');
       if (rr) { rr.style.display = 'none'; }
-      document.getElementById('rehashSearchInput').value = name;
+      const searchInput = document.getElementById('rehashSearchInput');
+      if (searchInput) searchInput.value = custName;
       toast('Customer filled in ✓', 'ok');
     }
 
