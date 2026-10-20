@@ -410,6 +410,124 @@
       line-height: 1.4
     }
 
+    /* Close rate by product — own periods, not the dashboard tabs */
+    .cr-card {
+      background: #fff;
+      border-radius: 16px;
+      margin: 2px 10px 18px;
+      padding: 14px 12px 12px;
+      box-shadow: var(--shadow);
+      border: 1.5px solid #D1FAE5
+    }
+
+    .cr-title {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -.2px;
+      line-height: 1.2
+    }
+
+    .cr-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.4
+    }
+
+    .cr-prod {
+      margin-top: 12px;
+      border-radius: 12px;
+      background: #F0FDF4;
+      padding: 10px 8px 8px
+    }
+
+    .cr-prod.ltg {
+      background: #FFFBEB
+    }
+
+    .cr-prod-name {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 800;
+      margin: 0 2px 8px
+    }
+
+    .cr-cols {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px
+    }
+
+    .cr-col {
+      background: #fff;
+      border-radius: 10px;
+      padding: 8px 4px 7px;
+      text-align: center;
+      border: 1px solid #E5E7EB;
+      min-width: 0
+    }
+
+    .cr-period {
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .2px;
+      color: var(--muted);
+      line-height: 1.2
+    }
+
+    .cr-range {
+      font-size: 8px;
+      color: #9CA3AF;
+      font-weight: 600;
+      margin: 1px 0 4px;
+      line-height: 1.2
+    }
+
+    .cr-rate {
+      font-size: 20px;
+      font-weight: 900;
+      color: #111827;
+      line-height: 1;
+      letter-spacing: -.4px;
+      font-variant-numeric: tabular-nums
+    }
+
+    .cr-rate.good {
+      color: var(--green)
+    }
+
+    .cr-rate.low {
+      color: #B45309
+    }
+
+    .cr-rate.empty {
+      color: #9CA3AF
+    }
+
+    .cr-meta {
+      margin-top: 6px;
+      font-size: 10px;
+      line-height: 1.35;
+      color: #374151;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums
+    }
+
+    .cr-meta span {
+      display: block
+    }
+
+    .cr-noshow {
+      margin-top: 4px;
+      font-size: 9px;
+      color: #9CA3AF;
+      font-weight: 600;
+      line-height: 1.2
+    }
+
     .ns-section {
       padding: 0 10px 16px
     }
@@ -2226,6 +2344,11 @@
             <div class="spinner"></div>
           </div>
         </div>
+        <div id="closeRateCard" class="cr-card" aria-live="polite">
+          <div class="loading">
+            <div class="spinner"></div>
+          </div>
+        </div>
       </div>
 
 
@@ -3977,10 +4100,179 @@
     ${note ? `<div class="mc-note">${note}</div>` : ''}</div>`;
     }
 
+    // Close rate by product. Count only leads dated on or after the day
+    // no-sales started being logged. Week is Sun–Sat. Month is the calendar
+    // month. "Since tracking" has no end date. Cancelled, pending, and
+    // not-sold "No show" leads stay out of the rate. No-shows are counted
+    // beside it. Date is sales_date, the appointment/sale date.
+    const CLOSE_RATE_START = '2026-10-19';
+
+    function crYmd(d) {
+      const pad = n => String(n).padStart(2, '0');
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    }
+
+    function crParseDate(iso) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+      if (!m) return null;
+      return new Date(+m[1], +m[2] - 1, +m[3]);
+    }
+
+    function crFmtShort(iso) {
+      const d = crParseDate(iso);
+      if (!d) return '';
+      return (d.getMonth() + 1) + '/' + d.getDate();
+    }
+
+    function crProductKey(product) {
+      return product === 'roofline' ? 'roofline' : 'leaffilter';
+    }
+
+    function crReasonLabel(lead) {
+      const reason = lead && lead.not_sold_reasons;
+      if (!reason) return '';
+      if (Array.isArray(reason)) return (reason[0] && reason[0].label) || '';
+      return reason.label || '';
+    }
+
+    function crIsCancelled(lead) {
+      return !!(lead && (lead.is_cancelled === true || lead.is_cancelled === 'true'));
+    }
+
+    function crIsNoShow(lead) {
+      return !!(lead && lead.status === 'not_sold' && String(crReasonLabel(lead)).trim().toLowerCase() === 'no show');
+    }
+
+    function closeRateWindows(now) {
+      const today = now instanceof Date ? now : new Date();
+      const sun = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
+      const sat = new Date(sun.getFullYear(), sun.getMonth(), sun.getDate() + 6);
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      const weekStart = crYmd(sun) < CLOSE_RATE_START ? CLOSE_RATE_START : crYmd(sun);
+      const monthFrom = crYmd(monthStart) < CLOSE_RATE_START ? CLOSE_RATE_START : crYmd(monthStart);
+      return [
+        { key: 'week', label: 'This week', start: weekStart, end: crYmd(sat) },
+        { key: 'month', label: 'This month', start: monthFrom, end: crYmd(monthEnd) },
+        { key: 'all', label: 'Since tracking', start: CLOSE_RATE_START, end: null }
+      ];
+    }
+
+    function crInWindow(dateStr, win) {
+      if (!dateStr || dateStr < CLOSE_RATE_START || dateStr < win.start) return false;
+      if (win.end && dateStr > win.end) return false;
+      return true;
+    }
+
+    function crEmptyBucket() {
+      return { appts: 0, sold: 0, noShows: 0, saleSum: 0, saleCount: 0 };
+    }
+
+    function closeRateStats(leads, win) {
+      const stats = { leaffilter: crEmptyBucket(), roofline: crEmptyBucket() };
+      (leads || []).forEach(lead => {
+        if (!lead || lead.status === 'pending' || crIsCancelled(lead)) return;
+        if (!crInWindow(lead.sales_date, win)) return;
+        const bucket = stats[crProductKey(lead.product)];
+        if (!bucket) return;
+        if (crIsNoShow(lead)) {
+          bucket.noShows += 1;
+          return;
+        }
+        if (lead.status === 'sold') {
+          bucket.sold += 1;
+          bucket.appts += 1;
+          const amt = parseFloat(lead.sale_amount);
+          if (!isNaN(amt)) {
+            bucket.saleSum += amt;
+            bucket.saleCount += 1;
+          }
+          return;
+        }
+        if (lead.status === 'not_sold') bucket.appts += 1;
+      });
+      return stats;
+    }
+
+    function crMoney(v) {
+      if (v == null || isNaN(v)) return '—';
+      return '$' + Math.round(v).toLocaleString('en-US');
+    }
+
+    function crRateText(sold, appts) {
+      if (!appts) return '—';
+      const pct = Math.round((sold / appts) * 1000) / 10;
+      return (Math.abs(pct - Math.round(pct)) < 0.001 ? String(Math.round(pct)) : pct.toFixed(1)) + '%';
+    }
+
+    function crRateClass(sold, appts) {
+      if (!appts) return ' empty';
+      return (sold / appts) >= 0.5 ? ' good' : ' low';
+    }
+
+    function crRangeLabel(win) {
+      if (!win.end) return crFmtShort(win.start) + ' on';
+      if (win.start > win.end) return '—';
+      return crFmtShort(win.start) + '–' + crFmtShort(win.end);
+    }
+
+    function renderCloseRateCard(leads, now) {
+      const products = [
+        { key: 'leaffilter', name: 'LeafFilter', badge: 'LF', cls: 'lf' },
+        { key: 'roofline', name: 'Lighting', badge: 'LTG', cls: 'ltg' }
+      ];
+      const windows = closeRateWindows(now);
+      const byWindow = windows.map(win => ({ win, stats: closeRateStats(leads, win) }));
+      const blocks = products.map(prod => {
+        const cols = byWindow.map(({ win, stats }) => {
+          const s = stats[prod.key];
+          const avg = s.saleCount ? s.saleSum / s.saleCount : null;
+          return `<div class="cr-col">
+            <div class="cr-period">${win.label}</div>
+            <div class="cr-range">${crRangeLabel(win)}</div>
+            <div class="cr-rate${crRateClass(s.sold, s.appts)}">${crRateText(s.sold, s.appts)}</div>
+            <div class="cr-meta">
+              <span>${s.appts} run</span>
+              <span>${s.sold} sold</span>
+              <span>Avg ${avg == null ? '—' : crMoney(avg)}</span>
+              <span>Total ${crMoney(s.saleSum)}</span>
+            </div>
+            <div class="cr-noshow">${s.noShows} no-show${s.noShows === 1 ? '' : 's'}</div>
+          </div>`;
+        }).join('');
+        return `<section class="cr-prod ${prod.cls}">
+          <div class="cr-prod-name"><span class="hbadge ${prod.cls}">${prod.badge}</span>${prod.name}</div>
+          <div class="cr-cols">${cols}</div>
+        </section>`;
+      }).join('');
+      return `<div class="cr-head">
+        <div class="cr-title">Close rate by product</div>
+        <div class="cr-sub">Sold ÷ appointments run (sold + not sold). From Oct 19, 2026. No-shows, cancelled, and pending are left out.</div>
+      </div>${blocks}`;
+    }
+
+    async function loadCloseRateByProduct() {
+      const el = document.getElementById('closeRateCard');
+      if (!el) return;
+      try {
+        const { data, error } = await sb.from('leads')
+          .select('status,product,sale_amount,is_cancelled,sales_date,not_sold_reasons(label)')
+          .neq('status', 'pending')
+          .not('sales_date', 'is', null)
+          .gte('sales_date', CLOSE_RATE_START);
+        if (error) throw error;
+        el.innerHTML = renderCloseRateCard(data || [], new Date());
+      } catch (err) {
+        console.error('Close rate card:', err);
+        el.innerHTML = '<div class="cr-head"><div class="cr-title">Close rate by product</div><div class="cr-sub">Could not load close rates.</div></div>';
+      }
+    }
+
     async function loadDash() {
       document.getElementById('heroDate').textContent =
         new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
       document.getElementById('mgrid').innerHTML = '<div class="loading" style="grid-column:1/-1"><div class="spinner"></div></div>';
+      loadCloseRateByProduct();
       loadAppointments();
       // Restore any unlogged calendar leads from previous sessions immediately
       const persisted = calLeadsLoad();
