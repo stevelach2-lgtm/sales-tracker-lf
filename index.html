@@ -2688,7 +2688,7 @@
             <span id="smsIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
           </div>
           <div id="smsConfigSection" style="display:none">
-            <div class="s-sub" style="margin-bottom:10px">Edit every follow-up text. Saved to your account. Use [Name] and [RepName].</div>
+            <div class="s-sub" style="margin-bottom:10px">Edit every follow-up text. Saved to your account. Use [Name] for the customer's first name and [RepName] for yours.</div>
             <div style="margin-bottom:12px">
               <button onclick="openFuTemplateEditor()"
                 style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
@@ -3014,7 +3014,7 @@
                   <input type="tel" class="fi" id="ccNotFuPhone" placeholder="555-555-5555" maxlength="14" style="padding:8px 10px;font-size:12px" oninput="this.classList.remove('fi-error')">
                 </div>
               </div>
-              <div style="font-size:10px;color:#991B1B;line-height:1.4">Texts go out on their own schedule from the visit date. Phone is required except No one home and No demo.</div>
+              <div style="font-size:10px;color:#991B1B;line-height:1.4">No demo, No one home, and No show are not texted. Other follow-ups go out from the visit date. Phone is required except No one home and No demo.</div>
             </div>
             <div class="fg" style="margin-bottom:12px">
               <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
@@ -4497,13 +4497,21 @@
       return dt.toISOString().slice(0, 10);
     }
 
+    function fuNoTextReason(label) {
+      const r = String(label || '').toLowerCase().replace(/\s+/g, ' ').trim();
+      if (!r || r.includes('spouse')) return '';
+      if (r.includes('no demo')) return 'no_demo';
+      if (r.includes('no one home')) return 'no_one_home';
+      if (r.includes('no show') || r.includes('no-show')) return 'no_show';
+      return '';
+    }
+
     function fuGroupKey(label, notes) {
       const r = String(label || '').toLowerCase().trim();
       const n = String(notes || '').toLowerCase();
-      if (r.includes('no demo')) return null;
+      if (fuNoTextReason(label)) return null;
       if (r.includes('spouse') || r.includes('wouldn') || r.includes('think about') || r.includes('commit')) return 'decision';
-      if (r.includes('no show') || r.includes('no-show') || r.includes('no one home') || r.includes('not home')) return 'noshow';
-      if (!r && (n.includes('cancelled before arrival') || n.includes('no show'))) return 'noshow';
+      if (!r && (n.includes('cancelled before arrival') || n.includes('no show'))) return null;
       if (r.includes('too much') || r.includes('shop around')) return 'price';
       if (r.includes('other')) return 'other';
       return null;
@@ -4561,6 +4569,7 @@
     function fuPlan(lead, touches, today) {
       if (!lead || lead.status !== 'not_sold' || lead.is_cancelled) return null;
       const reason = lead.reasonLabel || '';
+      if (fuNoTextReason(reason)) return null;
       const group = fuGroupKey(reason, lead.notes);
       if (!group) return null;
       const stopped = lead.followup_status === 'stopped' || lead.followup_status === 'completed';
@@ -4599,10 +4608,34 @@
       return h >= 8 && h < 21;
     }
 
+    function smsFirstName(fullName) {
+      const title = /^(?:mr|mrs|ms|miss|dr)\.?$/i;
+      const conj = /^(?:and|&)$/i;
+      const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+      let i = 0;
+      while (i < parts.length) {
+        if (title.test(parts[i])) { i += 1; continue; }
+        if (conj.test(parts[i]) && title.test(parts[i + 1] || '')) { i += 1; continue; }
+        break;
+      }
+      const word = parts[i] || '';
+      if (!word || /^[A-Za-z]\.?$/.test(word)) return '';
+      return word.replace(/[.,]+$/g, '');
+    }
+
     function fillFuMsg(tpl, fullName, repName) {
-      const first = String(fullName || '').trim().split(/\s+/)[0] || 'there';
+      const first = smsFirstName(fullName);
       const rep = repName && repName !== 'Your Rep' ? repName : 'Steve';
-      return String(tpl || '').replace(/\[Name\]/g, first).replace(/\[RepName\]/g, rep);
+      let text = String(tpl || '');
+      if (first) text = text.replace(/\[Name\]/g, first);
+      else {
+        text = text.replace(/[ \t]*\[Name\][ \t]*/g, ' ');
+        text = text.replace(/[ \t][ \t]+/g, ' ');
+        text = text.replace(/[ \t]+([,!.?;:])/g, '$1');
+        text = text.replace(/^[ \t]+/, '');
+        text = text.replace(/^[ \t]*,[ \t]*/, '');
+      }
+      return text.replace(/\[RepName\]/g, rep);
     }
 
     function fuProductKey(product) {
@@ -4676,7 +4709,10 @@
       wrong_number: 'Wrong number',
       rehash_booked: 'Rehash booked',
       sold: 'Sold',
-      completed: 'Finished'
+      completed: 'Finished',
+      no_demo: 'No demo',
+      no_one_home: 'No one home',
+      no_show: 'No show'
     };
 
     const FU_EDITOR_GROUPS = [
@@ -4809,9 +4845,11 @@
       }, (touches || []).map(t => ({ step_key: t.step_key, sent_on: t.sent_on || sentOnEt(t.sent_at) })), today);
       if (!plan) return null;
       const stepLabel = plan.step ? fuStepLabel(plan.step) : (FU_STOP_LABELS[plan.stoppedReason] || 'Done');
+      const person = leadPersonName(lead);
       return {
         id: lead.id,
-        name: leadPersonName(lead) || 'Customer',
+        name: person || 'Customer',
+        smsName: person,
         phone: leadPhoneDigits(lead),
         reason: reason || 'No reason',
         address: lead.customer_address || '',
@@ -4825,9 +4863,10 @@
 
     function messageForRow(row, nameOverride) {
       const step = row && row.plan && row.plan.step;
-      if (!step) return '';
+      if (!step || (row && fuNoTextReason(row.reason))) return '';
       const tpl = fuTemplateText(row.plan.group, row.product, step.key);
-      return fillFuMsg(tpl, nameOverride || row.name, _repName);
+      const source = nameOverride != null ? nameOverride : (row && row.smsName != null ? row.smsName : (row && row.name) || '');
+      return fillFuMsg(tpl, source, _repName);
     }
 
     async function saveFuTemplatesRemote(templates) {
@@ -4889,7 +4928,7 @@
       const cached = (_fuCache || []).find(r => r.id === leadId);
       if (cached) {
         if (!reasonLabel) reasonLabel = cached.reason || '';
-        if (!name) name = cached.name || '';
+        if (!name) name = cached.smsName != null ? cached.smsName : (cached.name || '');
         if (!phone) phone = cached.phone || '';
         if (!notes) notes = cached.notes || '';
         if (!product) product = cached.product || '';
@@ -4937,6 +4976,13 @@
 
     function refreshFuMsg() {
       const fullName = document.getElementById('fuName').value.trim();
+      const reason = (_fuLead && _fuLead.reason) || '';
+      if (fuNoTextReason(reason)) {
+        document.getElementById('fuMsg').value = '';
+        const blocked = document.getElementById('fuStepLabel');
+        if (blocked) blocked.textContent = 'No follow-up text';
+        return;
+      }
       const view = _fuLead && _fuLead.view;
       const group = (view && view.plan && view.plan.group) || fuGroupKey(_fuLead && _fuLead.reason, _fuLead && _fuLead.notes) || 'other';
       const product = (_fuLead && _fuLead.product) || 'leaffilter';
@@ -4999,6 +5045,7 @@
     }
 
     async function logFuTouch(row) {
+      if (row && fuNoTextReason(row.reason)) return false;
       const step = row && row.plan && row.plan.step;
       if (!step || !row.id) return false;
       const insert = { lead_id: row.id, step_key: step.key, step_num: step.num };
@@ -5024,11 +5071,15 @@
 
     async function sendFollowUpRow(row, msgOverride) {
       if (!row || _fuSending) return;
+      if (fuNoTextReason(row.reason)) {
+        toast('No follow-up text for this reason', 'err');
+        return;
+      }
       const phone = String(row.phone || '').replace(/\D/g, '');
       const msg = msgOverride || messageForRow(row);
       if (!msg) { toast('No message for this step', 'err'); return; }
       if (phone.length < 10) {
-        openFu(row.id, row.reason, row.name, phone, row.notes || '', row.product);
+        openFu(row.id, row.reason, row.smsName != null ? row.smsName : row.name, phone, row.notes || '', row.product);
         toast('Add a phone number first', 'err');
         return;
       }
@@ -5117,6 +5168,7 @@
     }
 
     function fuEnrollPatch(reasonLabel, notes, closeDate, product, phone, name) {
+      const stoppedReason = fuNoTextReason(reasonLabel);
       const group = fuGroupKey(reasonLabel, notes);
       const patch = {
         followup_name: name || null,
@@ -5124,6 +5176,13 @@
         followup_done: false
       };
       if (phone) patch.customer_phone = phone;
+      if (stoppedReason) {
+        patch.followup_date = null;
+        patch.followup_status = 'stopped';
+        patch.followup_stopped_reason = stoppedReason;
+        patch.followup_done = true;
+        return patch;
+      }
       if (!group) {
         patch.followup_date = null;
         patch.followup_status = null;
@@ -5334,9 +5393,10 @@
     }
 
     function buildInstallCheckMsg(name) {
-      const first = (name || '').trim().split(/\s+/)[0] || 'there';
+      const first = smsFirstName(name);
       const rep = _repName || 'your LeafFilter rep';
-      return 'Hi ' + first + '! This is ' + rep + ' from LeafFilter 👋\n\nHope your install went smoothly and everything looks great.\n\nIf you have any questions, text me here. And if you know a neighbor, friend, or family member who could use LeafFilter, I\'d really appreciate the referral. Thank you!';
+      const hello = first ? ('Hi ' + first + '!') : 'Hi!';
+      return hello + ' This is ' + rep + ' from LeafFilter 👋\n\nHope your install went smoothly and everything looks great.\n\nIf you have any questions, text me here. And if you know a neighbor, friend, or family member who could use LeafFilter, I\'d really appreciate the referral. Thank you!';
     }
 
     function sendInstallCheckSMS(phone, name, leadId) {
@@ -5537,6 +5597,8 @@
         const notes = notesEl ? notesEl.value.trim() : '';
         const nsDate = nsDateEl ? nsDateEl.value || null : null;
 
+        const reasonLabelNow = (reasons.find(r => String(r.id) === String(selReason)) || {}).label || '';
+        const enroll = fuEnrollPatch(reasonLabelNow, notes, nsDate || todayEtKey(), _qcProduct === 'roofline' ? 'roofline' : 'leaffilter', contact.fuPhone, contact.fuName);
         const payload = {
           status: 'not_sold',
           reason_id: selReason,
@@ -5544,10 +5606,12 @@
           notes: notes || null,
           sales_date: nsDate,
           sale_amount: contact.leftAt,
-          followup_date: contact.fuDate,
-          followup_name: contact.fuName,
-          followup_phone: contact.fuPhone,
-          followup_done: false
+          followup_date: enroll.followup_date,
+          followup_name: enroll.followup_name,
+          followup_phone: enroll.followup_phone,
+          followup_done: enroll.followup_done,
+          followup_status: enroll.followup_status,
+          followup_stopped_reason: enroll.followup_stopped_reason
         };
 
         const quotingAppt = activeAppointment;
@@ -5566,7 +5630,7 @@
         }
         lastId = data.id;
         saveGPSForLead(data.id);
-        showUndo(quotingAppt ? 'Appointment marked not sold' : 'Not sold lead logged + Follow-up scheduled');
+        showUndo(quotingAppt ? 'Appointment marked not sold' : (enroll.followup_status === 'active' ? 'Not sold lead logged + Follow-up scheduled' : 'Not sold lead logged'));
         scheduleMileageRecalc(mileageDate);
         loadAppointments();
         resetLog();
@@ -5851,6 +5915,7 @@
         const installComplete = sold && !l.is_cancelled && !!l.install_date && l.install_date <= todayStr;
         const custPhone = (l.customer_phone || l.followup_phone || '').replace(/\D/g, '');
         const custName = l.customer_name || l.followup_name || '';
+        const skipFollowupText = !sold && !!fuNoTextReason(l.not_sold_reasons?.label || '');
         // Top-right: show sales_date
         const displayDate = l.sales_date
           ? new Date(l.sales_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -5895,7 +5960,7 @@
         ${tags.length ? '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">' + tags.join('') + '</div>' : ''}
         ${sold && l.retail_percentage ? `<div style="font-size:11px;color:var(--text);margin-top:4px">Retail: <strong>${parseFloat(l.retail_percentage).toFixed(1)}%</strong> &nbsp; Comm: <strong>${parseFloat(l.commission_percentage || 0).toFixed(1)}%</strong></div>` : ''}
         ${l.customer_address ? `<div class="hcard-note">${mapsDirLink(l.customer_address)}</div>` : ''}
-        ${l.followup_date ? `<div style="font-size:9px;font-weight:700;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 6px;display:inline-block;margin-top:3px">📞 Follow-up: ${new Date(l.followup_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>` : ''}
+        ${l.followup_date && !skipFollowupText ? `<div style="font-size:9px;font-weight:700;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 6px;display:inline-block;margin-top:3px">📞 Follow-up: ${new Date(l.followup_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>` : ''}
         ${sub.length ? `<div class="hcard-note">${sub.join(' · ')}</div>` : (l.notes ? `<div class="hcard-note">${l.notes}</div>` : '')}
         <div class="hcard-detail">
           ${sub.length ? sub.join(' &nbsp;·&nbsp; ') + '<br>' : ''}
@@ -5908,7 +5973,7 @@
       <div style="display:flex;flex-direction:column;gap:4px;align-items:center">
         <button class="edit-btn" onclick="openLeadEdit('${l.id}')">✏️</button>
         ${installComplete ? (installSmsHref ? `<a class="edit-btn" href="${installSmsHrefAttr}" data-no-card-toggle onclick="event.stopPropagation()" style="font-size:12px;text-decoration:none" title="How did install go?">🛠️</a>` : `<button class="edit-btn" data-no-card-toggle onclick="event.stopPropagation(); sendInstallCheckSMS(${JSON.stringify(custPhone)}, ${JSON.stringify(custName)}, ${JSON.stringify(l.id)})" style="font-size:12px" title="How did install go?">🛠️</button>`) : ''}
-        ${sold ? `<button class="edit-btn" onclick="event.stopPropagation(); sendReviewSMS()" style="font-size:12px" title="Request Google Review">⭐</button>` : `<button class="edit-btn" data-id="${l.id}" data-reason="${escHtml(l.not_sold_reasons?.label || '')}" data-name="${escHtml(custName)}" data-phone="${escHtml(custPhone)}" data-notes="${escHtml(l.notes || '')}" data-product="${escHtml(l.product || 'leaffilter')}" onclick="event.stopPropagation(); openFuFromBtn(this)" style="font-size:12px" title="Text follow-up">📞</button>`}
+        ${sold ? `<button class="edit-btn" onclick="event.stopPropagation(); sendReviewSMS()" style="font-size:12px" title="Request Google Review">⭐</button>` : (skipFollowupText ? '' : `<button class="edit-btn" data-id="${l.id}" data-reason="${escHtml(l.not_sold_reasons?.label || '')}" data-name="${escHtml(custName)}" data-phone="${escHtml(custPhone)}" data-notes="${escHtml(l.notes || '')}" data-product="${escHtml(l.product || 'leaffilter')}" onclick="event.stopPropagation(); openFuFromBtn(this)" style="font-size:12px" title="Text follow-up">📞</button>`)}
       </div>
     </div>`;
 
@@ -6184,11 +6249,18 @@
 
         const editReason = reasons.find(r => String(r.id) === String(esSelReason))?.label || '';
         const doneChecked = document.getElementById('esNsFuDone').checked;
+        const stoppedReason = fuNoTextReason(editReason);
         payload.followup_phone = contact.fuPhone || null;
         payload.followup_name = contact.fuName || null;
         if (contact.fuPhone) payload.customer_phone = contact.fuPhone;
         if (contact.fuName) payload.customer_name = contact.fuName;
-        if (doneChecked) {
+        if (stoppedReason) {
+          const enroll = fuEnrollPatch(editReason, '', payload.sales_date || todayEtKey(), esProduct, contact.fuPhone, contact.fuName);
+          payload.followup_done = enroll.followup_done;
+          payload.followup_status = enroll.followup_status;
+          payload.followup_stopped_reason = enroll.followup_stopped_reason;
+          payload.followup_date = enroll.followup_date;
+        } else if (doneChecked) {
           payload.followup_done = true;
           payload.followup_status = 'stopped';
           payload.followup_stopped_reason = 'completed';
@@ -7583,7 +7655,7 @@
         saveLocationForLead(data.id, document.getElementById('calCustAddr').value || null);
         scheduleMileageRecalc(mileageDate);
 
-        showUndo(quotingAppt ? 'Appointment marked not sold' : 'Not sold lead logged + Follow-up scheduled');
+        showUndo(quotingAppt ? 'Appointment marked not sold' : (enroll.followup_status === 'active' ? 'Not sold lead logged + Follow-up scheduled' : 'Not sold lead logged'));
         loadAppointments();
         ccResetLogPanel();
         document.getElementById('ccNotPanel').style.display = 'none';
