@@ -980,6 +980,7 @@
 
     .fup-actions {
       display: flex;
+      flex-wrap: wrap;
       gap: 6px;
       margin-top: 8px
     }
@@ -3023,6 +3024,11 @@
                 </div>
               </div>
               <div style="font-size:10px;color:#991B1B;line-height:1.4">No demo, No one home, and No show are not texted. Other follow-ups go out from the visit date. Phone is required except No one home and No demo.</div>
+              <label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer">
+                <input type="checkbox" id="ccNotDontText" style="width:18px;height:18px;accent-color:#B91C1C;flex-shrink:0">
+                <span style="font-size:13px;font-weight:800;color:#991B1B">Don't text</span>
+              </label>
+              <div style="font-size:10px;color:#991B1B;line-height:1.4;margin-top:4px">Skips follow-up texts for this no-sale. Resume later from Follow-ups.</div>
             </div>
             <div class="fg" style="margin-bottom:12px">
               <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
@@ -3119,6 +3125,7 @@
   <div class="toast" id="toast"></div>
   <div class="undo-bar" id="undoBar"><span id="undoMsg">Lead logged</span><button class="undo-btn"
       onclick="undoLead()">UNDO</button></div>
+  <div class="undo-bar" id="fuUndoBar" style="bottom:calc(var(--nav) + 62px + env(safe-area-inset-bottom));max-width:92%;white-space:normal"><span id="fuUndoMsg">Texts stopped</span><button class="undo-btn" type="button" onclick="undoDontText()">Resume texting</button></div>
 
   <!-- Delete Lead Warning Modal -->
   <div id="deleteWarnOverlay"
@@ -3202,6 +3209,10 @@
           <button onclick="copyFuMsg()"
             style="padding:13px; border:1.5px solid var(--border); border-radius:12px; background:#fff; color:var(--text); font-size:14px; font-weight:800; cursor:pointer">Copy</button>
         </div>
+        <button type="button" id="fuDontTextBtn" onclick="dontTextLead(document.getElementById('fuLeadId').value)"
+          style="display:none;width:100%;padding:12px;border:1.5px solid #FECACA;border-radius:10px;background:#FEF2F2;color:#B91C1C;font-size:14px;font-weight:800;cursor:pointer">Don't text</button>
+        <button type="button" id="fuResumeTextBtn" onclick="resumeTexting(document.getElementById('fuLeadId').value)"
+          style="display:none;width:100%;padding:12px;border:1.5px solid #86EFAC;border-radius:10px;background:#F0FDF4;color:#166534;font-size:14px;font-weight:800;cursor:pointer">Resume texting</button>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%">
           <button onclick="stopFu('not_interested')"
             style="padding:10px; border:1.5px solid #FECACA; border-radius:10px; background:#fff; color:#B91C1C; font-size:12px; font-weight:800; cursor:pointer">Not interested</button>
@@ -4737,7 +4748,8 @@
       completed: 'Finished',
       no_demo: 'No demo',
       no_one_home: 'No one home',
-      no_show: 'No show'
+      no_show: 'No show',
+      'Do not text': "Don't text"
     };
 
     const FU_EDITOR_GROUPS = [
@@ -4974,6 +4986,7 @@
       document.getElementById('fuMsg').value = '';
       document.getElementById('fuOverlay').classList.add('open');
       updateFuSendButton();
+      updateFuTextChoice(cached);
       refreshFuMsg();
       if (!leadId || !sb) return;
       const { data } = await sb.from('leads').select('*, not_sold_reasons(label)').eq('id', leadId).maybeSingle();
@@ -4995,6 +5008,82 @@
       document.getElementById('fuDate').value = due || data.sales_date || todayEtKey();
       refreshFuMsg();
       updateFuSendButton();
+      updateFuTextChoice(view);
+    }
+
+    function updateFuTextChoice(row) {
+      const stopBtn = document.getElementById('fuDontTextBtn');
+      const resumeBtn = document.getElementById('fuResumeTextBtn');
+      if (!stopBtn || !resumeBtn) return;
+      const plan = row && row.plan;
+      const stopped = !!(plan && plan.bucket === 'done' && plan.stoppedReason === 'Do not text');
+      const canStop = !!(plan && plan.bucket && plan.bucket !== 'done');
+      stopBtn.style.display = canStop ? 'block' : 'none';
+      resumeBtn.style.display = stopped ? 'block' : 'none';
+    }
+
+    let fuUndoId = null;
+    let fuUndoTimer = null;
+
+    function showFuUndo(name, id) {
+      fuUndoId = id;
+      const msg = document.getElementById('fuUndoMsg');
+      if (msg) msg.textContent = (name && name !== 'Customer' ? name + ' — texts stopped' : 'Texts stopped');
+      const bar = document.getElementById('fuUndoBar');
+      if (bar) bar.classList.add('show');
+      clearTimeout(fuUndoTimer);
+      fuUndoTimer = setTimeout(() => {
+        if (bar) bar.classList.remove('show');
+        fuUndoId = null;
+      }, 8000);
+    }
+
+    function hideFuUndo() {
+      clearTimeout(fuUndoTimer);
+      fuUndoId = null;
+      const bar = document.getElementById('fuUndoBar');
+      if (bar) bar.classList.remove('show');
+    }
+
+    function undoDontText() {
+      const id = fuUndoId;
+      hideFuUndo();
+      if (id) resumeTexting(id);
+    }
+
+    async function writeFollowupStatus(id, patch) {
+      let res = await sb.from('leads').update(patch).eq('id', id);
+      if (res.error && /followup_status|followup_stopped_reason/i.test(res.error.message || '')) {
+        res = await sb.from('leads').update({ followup_done: !!patch.followup_done }).eq('id', id);
+      }
+      return res;
+    }
+
+    async function dontTextLead(id) {
+      id = String(id || '').trim();
+      if (!id || !sb) return;
+      const row = (_fuCache || []).find(r => String(r.id) === id);
+      const openName = document.getElementById('fuLeadId') && document.getElementById('fuLeadId').value === id
+        ? (document.getElementById('fuName').value || '').trim()
+        : '';
+      const name = (row && row.name && row.name !== 'Customer' ? row.name : '') || openName || 'this customer';
+      if (!window.confirm("Don't text " + name + "? They will come off Text today.")) return;
+      const res = await writeFollowupStatus(id, fuDontTextPatch());
+      if (res.error) { toast('Could not stop texts', 'err'); return; }
+      closeFu();
+      showFuUndo(name, id);
+      refreshFuViews();
+    }
+
+    async function resumeTexting(id) {
+      id = String(id || '').trim();
+      if (!id || !sb) return;
+      const res = await writeFollowupStatus(id, fuResumeTextPatch());
+      if (res.error) { toast('Could not resume texts', 'err'); return; }
+      if (fuUndoId === id) hideFuUndo();
+      closeFu();
+      toast('Texting resumed', 'ok');
+      refreshFuViews();
     }
 
     function closeFu() { document.getElementById('fuOverlay').classList.remove('open'); }
@@ -5193,7 +5282,15 @@
       } catch (e) {}
     }
 
-    function fuEnrollPatch(reasonLabel, notes, closeDate, product, phone, name) {
+    function fuDontTextPatch() {
+      return { followup_status: 'stopped', followup_stopped_reason: 'Do not text', followup_done: true };
+    }
+
+    function fuResumeTextPatch() {
+      return { followup_status: 'active', followup_stopped_reason: null, followup_done: false };
+    }
+
+    function fuEnrollPatch(reasonLabel, notes, closeDate, product, phone, name, opts) {
       const stoppedReason = fuNoTextReason(reasonLabel);
       const group = fuGroupKey(reasonLabel, notes);
       const patch = {
@@ -5202,24 +5299,39 @@
         followup_done: false
       };
       if (phone) patch.customer_phone = phone;
+      const finish = () => {
+        if (opts && opts.dontText && patch.followup_status !== 'stopped') {
+          const stop = fuDontTextPatch();
+          patch.followup_status = stop.followup_status;
+          patch.followup_stopped_reason = stop.followup_stopped_reason;
+          patch.followup_done = stop.followup_done;
+          patch.followup_date = null;
+        }
+        return patch;
+      };
       if (stoppedReason) {
         patch.followup_date = null;
         patch.followup_status = 'stopped';
         patch.followup_stopped_reason = stoppedReason;
         patch.followup_done = true;
-        return patch;
+        return finish();
       }
       if (!group) {
         patch.followup_date = null;
         patch.followup_status = null;
         patch.followup_stopped_reason = null;
-        return patch;
+        return finish();
       }
       const first = fuSchedule(group, closeDate, product)[0];
       patch.followup_date = first ? first.date : null;
       patch.followup_status = 'active';
       patch.followup_stopped_reason = null;
-      return patch;
+      return finish();
+    }
+
+    function dontTextLogOpt() {
+      const el = document.getElementById('ccNotDontText');
+      return { dontText: !!(el && el.checked) };
     }
 
     async function ensureUserId() {
@@ -5280,7 +5392,10 @@
             + '<div style="display:flex;align-items:center;gap:6px;min-width:0">' + productBadgeHtml(r.product) + '<div style="font-size:14px;font-weight:800;color:#1F2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(r.name) + '</div></div>'
             + '<div style="font-size:11px;color:#92400E">' + escHtml(r.reason) + ' · ' + escHtml(r.stepLabel) + (late ? ' · overdue' : '') + '</div>'
             + '</div>'
-            + '<button type="button" onclick="textFollowUpById(\'' + r.id + '\')" style="background:' + (open ? '#2563EB' : '#fff') + ';color:' + (open ? '#fff' : '#92400E') + ';border:1.5px solid ' + (open ? '#2563EB' : '#FCD34D') + ';border-radius:8px;padding:8px 10px;font-family:\'Inter\',sans-serif;font-size:12px;font-weight:800;cursor:pointer;flex-shrink:0">' + btnLabel + '</button>'
+            + '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">'
+            + '<button type="button" onclick="textFollowUpById(\'' + r.id + '\')" style="background:' + (open ? '#2563EB' : '#fff') + ';color:' + (open ? '#fff' : '#92400E') + ';border:1.5px solid ' + (open ? '#2563EB' : '#FCD34D') + ';border-radius:8px;padding:8px 10px;font-family:\'Inter\',sans-serif;font-size:12px;font-weight:800;cursor:pointer">' + btnLabel + '</button>'
+            + '<button type="button" onclick="dontTextLead(\'' + r.id + '\')" style="background:#fff;color:#B91C1C;border:1.5px solid #FECACA;border-radius:8px;padding:8px 10px;font-family:\'Inter\',sans-serif;font-size:12px;font-weight:800;cursor:pointer">Don\'t text</button>'
+            + '</div>'
             + '</div>';
         }).join('');
         if (due.length > shown.length) {
@@ -5332,6 +5447,7 @@
               ? escHtml(r.reason) + ' · ' + escHtml(FU_STOP_LABELS[r.plan.stoppedReason] || 'Done')
               : escHtml(r.reason) + ' · ' + escHtml(r.stepLabel);
             const tel = digits10(r.phone);
+            const doNotText = r.plan.bucket === 'done' && r.plan.stoppedReason === 'Do not text';
             return '<div class="fup-card ' + statusClass + '" onclick="openFu(\'' + r.id + '\')" style="cursor:pointer">'
               + '<div class="fup-top"><div class="fup-name" style="display:flex;align-items:center;gap:6px">' + productBadgeHtml(r.product) + '<span>' + escHtml(r.name) + '</span></div>'
               + '<div style="font-size:11px;font-weight:700;color:var(--muted)">' + escHtml(dateLabel) + '</div></div>'
@@ -5340,7 +5456,14 @@
               + '<div class="fup-actions" onclick="event.stopPropagation()">'
               + (tel ? '<a href="tel:+1' + tel + '" class="fup-btn" style="background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;text-decoration:none;display:flex;align-items:center;justify-content:center">📞 Call</a>' : '')
               + (r.plan.bucket === 'done' ? '' : '<button class="fup-btn sms" onclick="textFollowUpById(\'' + r.id + '\')">' + btnLabel + '</button>')
-              + '<button class="fup-btn done-btn" onclick="toggleFuDone(\'' + r.id + '\',' + (r.plan.bucket !== 'done') + ')" style="min-width:44px">' + (r.plan.bucket === 'done' ? '↩' : '✅') + '</button>'
+              + (doNotText
+                ? ''
+                : '<button class="fup-btn done-btn" onclick="toggleFuDone(\'' + r.id + '\',' + (r.plan.bucket !== 'done') + ')" style="min-width:44px">' + (r.plan.bucket === 'done' ? '↩' : '✅') + '</button>')
+              + (doNotText
+                ? '<button type="button" class="fup-btn" onclick="resumeTexting(\'' + r.id + '\')" style="flex:1 0 100%;background:#F0FDF4;color:#166534;border:1.5px solid #86EFAC">Resume texting</button>'
+                : (r.plan.bucket === 'done'
+                  ? ''
+                  : '<button type="button" class="fup-btn" onclick="dontTextLead(\'' + r.id + '\')" style="flex:1 0 100%;background:#fff;color:#B91C1C;border:1.5px solid #FECACA">Don\'t text</button>'))
               + '</div></div>';
           }).join('');
       };
@@ -5623,7 +5746,7 @@
         const nsDate = nsDateEl ? nsDateEl.value || null : null;
 
         const reasonLabelNow = (reasons.find(r => String(r.id) === String(selReason)) || {}).label || '';
-        const enroll = fuEnrollPatch(reasonLabelNow, notes, nsDate || todayEtKey(), _qcProduct === 'roofline' ? 'roofline' : 'leaffilter', contact.fuPhone, contact.fuName);
+        const enroll = fuEnrollPatch(reasonLabelNow, notes, nsDate || todayEtKey(), _qcProduct === 'roofline' ? 'roofline' : 'leaffilter', contact.fuPhone, contact.fuName, dontTextLogOpt());
         const payload = {
           status: 'not_sold',
           reason_id: selReason,
@@ -7689,6 +7812,8 @@
       if (fuPhoneReset) fuPhoneReset.value = '';
       const ccFtReset = document.getElementById('ccNotFootage');
       if (ccFtReset) { ccFtReset.value = ''; delete ccFtReset.dataset.touched; }
+      const dontTextReset = document.getElementById('ccNotDontText');
+      if (dontTextReset) dontTextReset.checked = false;
       if (document.getElementById('soldCustName')) document.getElementById('soldCustName').value = '';
       if (document.getElementById('soldCustPhone')) document.getElementById('soldCustPhone').value = '';
       selCcReason = null;
@@ -7783,7 +7908,7 @@
         const personPhone = contact.fuPhone || calPhone;
         const closeDate = nsDate || todayEtKey();
         const reasonLabelNow = reasons.find(r => r.id === selCcReason)?.label || '';
-        const enroll = fuEnrollPatch(reasonLabelNow, notes, closeDate, _qcProduct === 'roofline' ? 'roofline' : 'leaffilter', personPhone, personName || calName);
+        const enroll = fuEnrollPatch(reasonLabelNow, notes, closeDate, _qcProduct === 'roofline' ? 'roofline' : 'leaffilter', personPhone, personName || calName, dontTextLogOpt());
         
         const quoteRef = buildQuoteRefLine({ retail: retailVal, leftAt: contact.leftAt, footage: quoted.footage });
         const payload = {
