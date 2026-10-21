@@ -23,6 +23,7 @@ function extractFunction(source, name) {
 
 const names = [
   'smsFirstName',
+  'fuProductLabel',
   'fillFuMsg',
   'fuNoTextReason',
   'fuGroupKey',
@@ -36,17 +37,17 @@ const names = [
 const api = new Function(
   'const FU_OPT_OUT = "If you\'d rather I not follow up, just let me know.";\n' +
   names.map(name => extractFunction(html, name)).join('\n') +
-  '\nreturn { smsFirstName, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuEnrollPatch, defaultFuTemplates };'
+  '\nreturn { smsFirstName, fuProductLabel, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuEnrollPatch, defaultFuTemplates };'
 )();
 
-const { smsFirstName, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuEnrollPatch, defaultFuTemplates } = api;
+const { smsFirstName, fuProductLabel, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuEnrollPatch, defaultFuTemplates } = api;
 
 const day2 = defaultFuTemplates().price.leaffilter.day2;
 
 test('saved template wording stays exactly as written', () => {
   assert.equal(
     day2,
-    "Hi [Name], it's [RepName] from LeafFilter. Thanks for letting me show you the gutter guards. I know the price was more than you wanted to spend. I'm happy to answer questions or walk through the quote again if that helps. If you'd rather I not follow up, just let me know.\n– [RepName]"
+    "Hi [Name], it's [RepName] from [Product]. Thanks for letting me show you the gutter guards. I know the price was more than you wanted to spend. I'm happy to answer questions or walk through the quote again if that helps. If you'd rather I not follow up, just let me know.\n– [RepName]"
   );
 });
 
@@ -54,10 +55,11 @@ test('Linda Coleman is filled as Linda and the rest of the template is unchanged
   const msg = fillFuMsg(day2, 'Linda Coleman', 'Steve');
   assert.equal(
     msg,
-    day2.replaceAll('[Name]', 'Linda').replaceAll('[RepName]', 'Steve')
+    day2.replaceAll('[Name]', 'Linda').replaceAll('[Product]', 'LeafFilter').replaceAll('[RepName]', 'Steve')
   );
   assert.equal(msg.includes('Linda Coleman'), false);
   assert.equal(msg.includes('there'), false);
+  assert.equal(msg.includes('[Product]'), false);
 });
 
 test('trims whitespace and skips leading titles', () => {
@@ -121,7 +123,7 @@ test('Spouse not home still gets a follow-up text cadence', () => {
   assert.equal(patch.followup_status, 'active');
   assert.equal(patch.followup_stopped_reason, null);
   assert.equal(patch.followup_done, false);
-  assert.equal(patch.followup_date, '2026-10-03');
+  assert.equal(patch.followup_date, '2026-10-02');
   const plan = fuPlan({
     status: 'not_sold',
     sales_date: '2026-10-01',
@@ -130,8 +132,81 @@ test('Spouse not home still gets a follow-up text cadence', () => {
     reasonLabel: 'Spouse not home',
     followup_done: false,
     followup_status: 'active',
+    followup_date: '2026-10-03',
     is_cancelled: false
-  }, [], '2026-10-03');
+  }, [], '2026-10-02');
   assert.equal(plan && plan.bucket, 'today');
+  assert.equal(plan.date, '2026-10-02');
+  assert.equal(plan.step && plan.step.key, 'day2');
   assert.equal(plan.group, 'decision');
+});
+
+test('an unsent first text is due the day after the appointment', () => {
+  const lead = {
+    status: 'not_sold',
+    sales_date: '2026-10-01',
+    product: 'leaffilter',
+    notes: '',
+    reasonLabel: 'Too much',
+    followup_done: false,
+    followup_status: 'active',
+    followup_date: '2026-10-03',
+    is_cancelled: false
+  };
+  const sameDay = fuPlan(lead, [], '2026-10-01');
+  assert.equal(sameDay.bucket, 'upcoming');
+  assert.equal(sameDay.date, '2026-10-02');
+  assert.equal(sameDay.step.key, 'day2');
+  const nextDay = fuPlan(lead, [], '2026-10-02');
+  assert.equal(nextDay.bucket, 'today');
+  const sentFirst = fuPlan(lead, [{ step_key: 'day2', sent_on: '2026-10-02' }], '2026-10-08');
+  assert.equal(sentFirst.bucket, 'today');
+  assert.equal(sentFirst.step.key, 'day7');
+  assert.equal(sentFirst.date, '2026-10-08');
+  const day30 = fuPlan(lead, [
+    { step_key: 'day2', sent_on: '2026-10-02' },
+    { step_key: 'day7', sent_on: '2026-10-08' }
+  ], '2026-10-31');
+  assert.equal(day30.bucket, 'today');
+  assert.equal(day30.step.key, 'day30');
+  assert.equal(day30.date, '2026-10-31');
+  const seasonal = fuPlan(lead, [
+    { step_key: 'day2', sent_on: '2026-10-02' },
+    { step_key: 'day7', sent_on: '2026-10-08' },
+    { step_key: 'day30', sent_on: '2026-10-31' }
+  ], '2026-11-01');
+  assert.equal(seasonal.step.key, 'seasonal');
+  assert.equal(seasonal.date, '2027-09-15');
+  const lighting = fuPlan(Object.assign({}, lead, { product: 'roofline' }), [
+    { step_key: 'day2', sent_on: '2026-10-02' },
+    { step_key: 'day7', sent_on: '2026-10-08' },
+    { step_key: 'day30', sent_on: '2026-10-31' }
+  ], '2026-11-01');
+  assert.equal(lighting.step.key, 'seasonal');
+  assert.equal(lighting.date, '2027-10-03');
+});
+
+test('[Product] is filled from the lead product and literal LeafFilter is left alone', () => {
+  assert.equal(fuProductLabel('leaffilter'), 'LeafFilter');
+  assert.equal(fuProductLabel('roofline'), 'permanent lighting');
+  assert.equal(fuProductLabel(undefined), 'LeafFilter');
+  const defaults = JSON.stringify(defaultFuTemplates());
+  assert.equal(defaults.includes('LeafFilter'), false);
+  assert.equal(defaults.includes('[Product]'), true);
+  const lighting = fillFuMsg(day2, 'Linda Coleman', 'Steve', 'roofline');
+  assert.equal(lighting.includes('permanent lighting'), true);
+  assert.equal(lighting.includes('LeafFilter'), false);
+  assert.equal(lighting.includes('[Product]'), false);
+  const saved = fillFuMsg("Hi [Name], checking on [Product].", 'Linda Coleman', 'Steve', 'roofline');
+  assert.equal(saved, 'Hi Linda, checking on permanent lighting.');
+  const literal = fillFuMsg("Hi [Name], it's [RepName] from LeafFilter.", 'Linda Coleman', 'Steve', 'roofline');
+  assert.equal(literal, "Hi Linda, it's Steve from LeafFilter.");
+});
+
+test('the first no-sale step is labeled day 1', () => {
+  assert.equal(html.includes("day2: 'Day 2'"), false);
+  assert.equal(html.includes('Day 2'), false);
+  assert.equal(html.includes("day2: 'Day 1'"), true);
+  assert.equal(html.includes('fuAddDays(closeDate, 2)'), false);
+  assert.equal(html.includes("date: fuAddDays(closeDate, 1)"), true);
 });
