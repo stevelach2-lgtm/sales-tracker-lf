@@ -2688,7 +2688,7 @@
             <span id="smsIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
           </div>
           <div id="smsConfigSection" style="display:none">
-            <div class="s-sub" style="margin-bottom:10px">Edit every follow-up text. Saved to your account. Use [Name] for the customer's first name and [RepName] for yours.</div>
+            <div class="s-sub" style="margin-bottom:10px">Edit every follow-up text. Saved to your account. Use [Name] for the customer's first name, [RepName] for yours, and [Product] for the product (LeafFilter or permanent lighting).</div>
             <div style="margin-bottom:12px">
               <button onclick="openFuTemplateEditor()"
                 style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
@@ -4572,14 +4572,14 @@
       }
       const day30 = fuAddDays(closeDate, 30);
       return [
-        { key: 'day2', num: 1, total: 4, date: fuAddDays(closeDate, 2) },
+        { key: 'day2', num: 1, total: 4, date: fuAddDays(closeDate, 1) },
         { key: 'day7', num: 2, total: 4, date: fuAddDays(closeDate, 7) },
         { key: 'day30', num: 3, total: 4, date: day30 },
         { key: 'seasonal', num: 4, total: 4, date: fuSeasonalDate(product, fuAddDays(day30, 1)) }
       ];
     }
 
-    const FU_STEP_NAMES = { day1: 'Day 1', day2: 'Day 2', day7: 'Day 7', day30: 'Day 30', seasonal: 'Seasonal' };
+    const FU_STEP_NAMES = { day1: 'Day 1', day2: 'Day 1', day7: 'Day 7', day30: 'Day 30', seasonal: 'Seasonal' };
 
     function fuStepLabel(step) {
       if (!step) return '';
@@ -4643,7 +4643,11 @@
       return word.replace(/[.,]+$/g, '');
     }
 
-    function fillFuMsg(tpl, fullName, repName) {
+    function fuProductLabel(product) {
+      return product === 'roofline' ? 'permanent lighting' : 'LeafFilter';
+    }
+
+    function fillFuMsg(tpl, fullName, repName, product) {
       const first = smsFirstName(fullName);
       const rep = repName && repName !== 'Your Rep' ? repName : 'Steve';
       let text = String(tpl || '');
@@ -4655,6 +4659,7 @@
         text = text.replace(/^[ \t]+/, '');
         text = text.replace(/^[ \t]*,[ \t]*/, '');
       }
+      text = text.replace(/\[Product\]/g, fuProductLabel(product));
       return text.replace(/\[RepName\]/g, rep);
     }
 
@@ -4669,10 +4674,10 @@
       return {
         price: {
           leaffilter: {
-            day2: t("Hi [Name], it's [RepName] from LeafFilter. Thanks for letting me show you the gutter guards. I know the price was more than you wanted to spend. I'm happy to answer questions or walk through the quote again if that helps. " + opt),
-            day7: t("Hi [Name], [RepName] again. Just checking whether you had any questions about the LeafFilter quote. If the price still doesn't work, that's okay — I won't keep bugging you."),
-            day30: t("Hi [Name], it's [RepName]. It's been about a month since I quoted the LeafFilter. If gutter cleaning is still on your mind, I can come back out. If not, no worries at all."),
-            seasonal: t("Hi [Name], it's [RepName] from LeafFilter. Leaves are starting to fall, so I wanted to check in once in case the gutters are on your list this season. Happy to take another look if you want. If not, I'll leave you be.")
+            day2: t("Hi [Name], it's [RepName] from [Product]. Thanks for letting me show you the gutter guards. I know the price was more than you wanted to spend. I'm happy to answer questions or walk through the quote again if that helps. " + opt),
+            day7: t("Hi [Name], [RepName] again. Just checking whether you had any questions about the [Product] quote. If the price still doesn't work, that's okay — I won't keep bugging you."),
+            day30: t("Hi [Name], it's [RepName]. It's been about a month since I quoted the [Product]. If gutter cleaning is still on your mind, I can come back out. If not, no worries at all."),
+            seasonal: t("Hi [Name], it's [RepName] from [Product]. Leaves are starting to fall, so I wanted to check in once in case the gutters are on your list this season. Happy to take another look if you want. If not, I'll leave you be.")
           },
           roofline: {
             day2: t("Hi [Name], it's [RepName]. Thanks for looking at the permanent roofline lighting with me. I know the price was the hard part. I'm glad to answer questions or go over the quote again if that helps. " + opt),
@@ -4683,10 +4688,10 @@
         },
         decision: {
           leaffilter: {
-            day2: t("Hi [Name], it's [RepName] from LeafFilter. I know you wanted time to think it over, or to talk it through with your spouse. I'm happy to come back when you're both home, or just answer questions by text. " + opt),
-            day7: t("Hi [Name], [RepName] checking in. Did you and your spouse get a chance to talk about the LeafFilter? I can swing back by if that would help you decide. No rush."),
-            day30: t("Hi [Name], it's [RepName]. It's been about a month since we looked at LeafFilter for your gutters. If you're still thinking about it, I'm here. If you've decided to pass, just say so."),
-            seasonal: t("Hi [Name], it's [RepName] from LeafFilter. Leaf season is here, so I wanted to check once more in case you and your spouse are ready to look at the gutters again. If the timing is still off, no worries.")
+            day2: t("Hi [Name], it's [RepName] from [Product]. I know you wanted time to think it over, or to talk it through with your spouse. I'm happy to come back when you're both home, or just answer questions by text. " + opt),
+            day7: t("Hi [Name], [RepName] checking in. Did you and your spouse get a chance to talk about the [Product]? I can swing back by if that would help you decide. No rush."),
+            day30: t("Hi [Name], it's [RepName]. It's been about a month since we looked at [Product] for your gutters. If you're still thinking about it, I'm here. If you've decided to pass, just say so."),
+            seasonal: t("Hi [Name], it's [RepName] from [Product]. Leaf season is here, so I wanted to check once more in case you and your spouse are ready to look at the gutters again. If the timing is still off, no worries.")
           },
           roofline: {
             day2: t("Hi [Name], it's [RepName]. I know you wanted time to think about the permanent roofline lighting, or to go over it with your spouse. I can come back when you're both there, or answer questions here. " + opt),
@@ -4697,10 +4702,10 @@
         },
         other: {
           leaffilter: {
-            day2: t("Hi [Name], it's [RepName] from LeafFilter. I know you had other projects going on when I stopped by. Whenever the gutters move up the list, I'm happy to come back. " + opt),
-            day7: t("Hi [Name], [RepName] again. Just a quick check-in on the LeafFilter quote in case the other projects have settled down. No rush at all."),
+            day2: t("Hi [Name], it's [RepName] from [Product]. I know you had other projects going on when I stopped by. Whenever the gutters move up the list, I'm happy to come back. " + opt),
+            day7: t("Hi [Name], [RepName] again. Just a quick check-in on the [Product] quote in case the other projects have settled down. No rush at all."),
             day30: t("Hi [Name], it's [RepName]. It's been about a month. If the other work is done and you want to look at the gutters again, I can come by. If not, no problem."),
-            seasonal: t("Hi [Name], it's [RepName] from LeafFilter. Leaves are coming down, so I thought I'd check once in case now is a better time for the gutter guards. If you're still tied up with other projects, I'll leave you be.")
+            seasonal: t("Hi [Name], it's [RepName] from [Product]. Leaves are coming down, so I thought I'd check once in case now is a better time for the gutter guards. If you're still tied up with other projects, I'll leave you be.")
           },
           roofline: {
             day2: t("Hi [Name], it's [RepName]. I know other projects were in the way when we looked at the permanent roofline lighting. When you're ready, I can come back. " + opt),
@@ -4711,8 +4716,8 @@
         },
         noshow: {
           leaffilter: {
-            day1: t("Hi [Name], it's [RepName] from LeafFilter. Sorry I missed you — want to reschedule? I can come back and show you the gutter guards when it's a better time. " + opt),
-            day7: t("Hi [Name], [RepName] again. I missed you last week for the LeafFilter appointment. If you still want to reschedule, text me a day that works. If not, I'll close it out.")
+            day1: t("Hi [Name], it's [RepName] from [Product]. Sorry I missed you — want to reschedule? I can come back and show you the gutter guards when it's a better time. " + opt),
+            day7: t("Hi [Name], [RepName] again. I missed you last week for the [Product] appointment. If you still want to reschedule, text me a day that works. If not, I'll close it out.")
           },
           roofline: {
             day1: t("Hi [Name], it's [RepName]. Sorry I missed you — want to reschedule? I was there to show the permanent roofline lighting. " + opt),
@@ -4886,7 +4891,7 @@
       if (!step || (row && fuNoTextReason(row.reason))) return '';
       const tpl = fuTemplateText(row.plan.group, row.product, step.key);
       const source = nameOverride != null ? nameOverride : (row && row.smsName != null ? row.smsName : (row && row.name) || '');
-      return fillFuMsg(tpl, source, _repName);
+      return fillFuMsg(tpl, source, _repName, row && row.product);
     }
 
     async function saveFuTemplatesRemote(templates) {
@@ -5012,7 +5017,7 @@
         step = fuSchedule(group, close, product)[0] || null;
       }
       const tpl = step ? fuTemplateText(group, product, step.key) : '';
-      document.getElementById('fuMsg').value = fillFuMsg(tpl, fullName, _repName);
+      document.getElementById('fuMsg').value = fillFuMsg(tpl, fullName, _repName, product);
       const label = document.getElementById('fuStepLabel');
       if (label) label.textContent = step ? fuStepLabel(step) : '';
     }
@@ -7281,9 +7286,9 @@
       container.innerHTML = '';
       const hint = document.createElement('div');
       hint.style.cssText = 'font-size:12px;color:var(--muted);line-height:1.45;margin-bottom:12px';
-      hint.textContent = 'Use [Name] for the first name and [RepName] for yours. The first text in each sequence should include: If you\'d rather I not follow up, just let me know.';
+      hint.textContent = 'Use [Name] for the first name, [RepName] for yours, and [Product] for the product (LeafFilter or permanent lighting). The first text in each sequence should include: If you\'d rather I not follow up, just let me know.';
       container.appendChild(hint);
-      const stepNames = { day1: 'Day 1 — sorry I missed you', day2: 'Day 2', day7: 'Day 7', day30: 'Day 30', seasonal: 'Seasonal' };
+      const stepNames = { day1: 'Day 1 — sorry I missed you', day2: 'Day 1', day7: 'Day 7', day30: 'Day 30', seasonal: 'Seasonal' };
       ['leaffilter', 'roofline'].forEach(product => {
         const head = document.createElement('div');
         head.style.cssText = 'font-size:15px;font-weight:800;margin:14px 0 8px';
