@@ -31,16 +31,18 @@ const names = [
   'fuSeasonalDate',
   'fuSchedule',
   'fuPlan',
+  'fuDontTextPatch',
+  'fuResumeTextPatch',
   'fuEnrollPatch',
   'defaultFuTemplates'
 ];
 const api = new Function(
   'const FU_OPT_OUT = "If you\'d rather I not follow up, just let me know.";\n' +
   names.map(name => extractFunction(html, name)).join('\n') +
-  '\nreturn { smsFirstName, fuProductLabel, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuEnrollPatch, defaultFuTemplates };'
+  '\nreturn { smsFirstName, fuProductLabel, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuDontTextPatch, fuResumeTextPatch, fuEnrollPatch, defaultFuTemplates };'
 )();
 
-const { smsFirstName, fuProductLabel, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuEnrollPatch, defaultFuTemplates } = api;
+const { smsFirstName, fuProductLabel, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuDontTextPatch, fuResumeTextPatch, fuEnrollPatch, defaultFuTemplates } = api;
 
 const day2 = defaultFuTemplates().price.leaffilter.day2;
 
@@ -209,4 +211,60 @@ test('the first no-sale step is labeled day 1', () => {
   assert.equal(html.includes("day2: 'Day 1'"), true);
   assert.equal(html.includes('fuAddDays(closeDate, 2)'), false);
   assert.equal(html.includes("date: fuAddDays(closeDate, 1)"), true);
+});
+
+test("Don't text stops an active no-sale and resume turns it back on", () => {
+  const stop = fuDontTextPatch();
+  assert.equal(stop.followup_status, 'stopped');
+  assert.equal(stop.followup_stopped_reason, 'Do not text');
+  assert.equal(stop.followup_done, true);
+  const resume = fuResumeTextPatch();
+  assert.equal(resume.followup_status, 'active');
+  assert.equal(resume.followup_stopped_reason, null);
+  assert.equal(resume.followup_done, false);
+
+  const optedOut = fuEnrollPatch('Spouse not home', '', '2026-10-01', 'leaffilter', '5555550100', 'Linda Coleman', { dontText: true });
+  assert.equal(optedOut.followup_status, 'stopped');
+  assert.equal(optedOut.followup_stopped_reason, 'Do not text');
+  assert.equal(optedOut.followup_done, true);
+  assert.equal(optedOut.followup_date, null);
+
+  const alreadyStopped = fuEnrollPatch('No demo', '', '2026-10-01', 'leaffilter', '5555550100', 'Linda Coleman', { dontText: true });
+  assert.equal(alreadyStopped.followup_stopped_reason, 'no_demo');
+  assert.equal(alreadyStopped.followup_status, 'stopped');
+
+  const hidden = fuPlan({
+    status: 'not_sold',
+    sales_date: '2026-10-01',
+    product: 'leaffilter',
+    notes: '',
+    reasonLabel: 'Spouse not home',
+    followup_done: true,
+    followup_status: 'stopped',
+    followup_stopped_reason: 'Do not text',
+    is_cancelled: false
+  }, [], '2026-10-02');
+  assert.equal(hidden && hidden.bucket, 'done');
+  assert.equal(hidden.stoppedReason, 'Do not text');
+
+  const back = fuPlan({
+    status: 'not_sold',
+    sales_date: '2026-10-01',
+    product: 'leaffilter',
+    notes: '',
+    reasonLabel: 'Spouse not home',
+    followup_done: resume.followup_done,
+    followup_status: resume.followup_status,
+    followup_stopped_reason: resume.followup_stopped_reason,
+    is_cancelled: false
+  }, [], '2026-10-02');
+  assert.equal(back && back.bucket, 'today');
+
+  assert.equal(html.includes('id="ccNotDontText"'), true);
+  assert.equal(html.includes('id="fuDontTextBtn"'), true);
+  assert.equal(html.includes('id="fuResumeTextBtn"'), true);
+  assert.equal(html.includes("Don't text "), true);
+  assert.equal(html.includes('function dontTextLead'), true);
+  assert.equal(html.includes('function resumeTexting'), true);
+  assert.equal(html.includes('window.confirm'), true);
 });
