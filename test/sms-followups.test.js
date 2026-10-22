@@ -24,6 +24,11 @@ function extractFunction(source, name) {
 const names = [
   'smsFirstName',
   'fuProductLabel',
+  'fuLeadHasPhone',
+  'fuReferralLinkValue',
+  'fuReferralSteps',
+  'fuReferralBackfillMap',
+  'fuReferralPlan',
   'fillFuMsg',
   'fuNoTextReason',
   'fuGroupKey',
@@ -39,10 +44,10 @@ const names = [
 const api = new Function(
   'const FU_OPT_OUT = "If you\'d rather I not follow up, just let me know.";\n' +
   names.map(name => extractFunction(html, name)).join('\n') +
-  '\nreturn { smsFirstName, fuProductLabel, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuDontTextPatch, fuResumeTextPatch, fuEnrollPatch, defaultFuTemplates };'
+  '\nreturn { smsFirstName, fuProductLabel, fuReferralLinkValue, fuReferralSteps, fuReferralBackfillMap, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuDontTextPatch, fuResumeTextPatch, fuEnrollPatch, defaultFuTemplates };'
 )();
 
-const { smsFirstName, fuProductLabel, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuDontTextPatch, fuResumeTextPatch, fuEnrollPatch, defaultFuTemplates } = api;
+const { smsFirstName, fuProductLabel, fuReferralLinkValue, fuReferralSteps, fuReferralBackfillMap, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuDontTextPatch, fuResumeTextPatch, fuEnrollPatch, defaultFuTemplates } = api;
 
 const day2 = defaultFuTemplates().price.leaffilter.day2;
 
@@ -192,9 +197,11 @@ test('[Product] is filled from the lead product and literal LeafFilter is left a
   assert.equal(fuProductLabel('leaffilter'), 'LeafFilter');
   assert.equal(fuProductLabel('roofline'), 'permanent lighting');
   assert.equal(fuProductLabel(undefined), 'LeafFilter');
-  const defaults = JSON.stringify(defaultFuTemplates());
-  assert.equal(defaults.includes('LeafFilter'), false);
-  assert.equal(defaults.includes('[Product]'), true);
+  const defaults = defaultFuTemplates();
+  ['price', 'decision', 'other', 'noshow'].forEach(group => {
+    assert.equal(JSON.stringify(defaults[group]).includes('LeafFilter'), false);
+  });
+  assert.equal(JSON.stringify(defaults).includes('[Product]'), true);
   const lighting = fillFuMsg(day2, 'Linda Coleman', 'Steve', 'roofline');
   assert.equal(lighting.includes('permanent lighting'), true);
   assert.equal(lighting.includes('LeafFilter'), false);
@@ -267,4 +274,173 @@ test("Don't text stops an active no-sale and resume turns it back on", () => {
   assert.equal(html.includes('function dontTextLead'), true);
   assert.equal(html.includes('function resumeTexting'), true);
   assert.equal(html.includes('window.confirm'), true);
+});
+
+const referralInstall = "Hi [First name], it's Steve from LeafFilter. How did the install go? I hope your new [Product] looks great! Quick favor: if you know anyone who could use it, grab the referral app here [Referral link] and share your link. You get $250 for every friend whose project over $1,000 gets installed, no limit.";
+const referralReminder = "Hi [First name], Steve from LeafFilter. Hope you're loving your new [Product]! Quick reminder: your referral link pays you $250 for every friend whose project over $1,000 gets installed, no limit. Get the app here: [Referral link]. Fall is when neighbors notice their gutters, so it's a great time to share it.";
+
+test('sold referral texts follow the install date and saved templates', () => {
+  const templates = defaultFuTemplates();
+  assert.equal(templates.referral.leaffilter.referral_install, referralInstall);
+  assert.equal(templates.referral.leaffilter.referral_reminder, referralReminder);
+  assert.equal(templates.referral.roofline.referral_install, referralInstall);
+  assert.equal(templates.referral.roofline.referral_reminder, referralReminder);
+  assert.equal(templates.referral.leaffilter.referral_install.includes('\n– [RepName]'), false);
+
+  const future = fuPlan({
+    status: 'sold',
+    sales_date: '2026-10-01',
+    install_date: '2026-11-01',
+    product: 'roofline',
+    followup_done: true,
+    followup_status: 'stopped',
+    followup_stopped_reason: 'sold',
+    is_cancelled: false
+  }, [], '2026-10-22');
+  assert.equal(future.group, 'referral');
+  assert.equal(future.bucket, 'upcoming');
+  assert.equal(future.step.key, 'referral_install');
+  assert.equal(future.date, '2026-11-02');
+  assert.equal(fuReferralSteps({ install_date: '2026-11-01', sales_date: '2026-10-01' })[1].date, '2026-11-22');
+
+  const noInstall = fuPlan({
+    status: 'sold',
+    sales_date: '2026-10-22',
+    install_date: '',
+    followup_stopped_reason: 'sold',
+    followup_done: true,
+    is_cancelled: false
+  }, [], '2026-10-22');
+  assert.equal(noInstall, null);
+
+  const onAnchor = fuPlan({
+    status: 'sold',
+    sales_date: '2026-09-01',
+    install_date: '2026-10-22',
+    is_cancelled: false
+  }, [], '2026-10-22');
+  assert.equal(onAnchor.step.key, 'referral_install');
+  assert.equal(onAnchor.date, '2026-10-23');
+  assert.equal(fuReferralSteps({ install_date: '2026-10-22', sales_date: '2026-09-01' })[1].date, '2026-11-12');
+
+  const cancelled = fuPlan({
+    status: 'sold',
+    sales_date: '2026-10-01',
+    install_date: '2026-11-01',
+    is_cancelled: true
+  }, [], '2026-10-22');
+  assert.equal(cancelled, null);
+
+  const backfilled = fuPlan({
+    status: 'sold',
+    sales_date: '2026-07-01',
+    install_date: '2026-07-15',
+    referral_backfill_on: '2026-10-25',
+    followup_done: true,
+    followup_status: 'stopped',
+    followup_stopped_reason: 'sold',
+    customer_phone: '5555550100',
+    is_cancelled: false
+  }, [], '2026-10-22');
+  assert.equal(backfilled.step.key, 'referral_reminder');
+  assert.equal(backfilled.step.total, 1);
+  assert.equal(backfilled.date, '2026-10-25');
+  assert.equal(backfilled.bucket, 'upcoming');
+
+  const pastWithoutDate = fuPlan({
+    status: 'sold',
+    sales_date: '2026-07-01',
+    install_date: '2026-07-15',
+    is_cancelled: false,
+    customer_phone: '5555550100'
+  }, [], '2026-10-22');
+  assert.equal(pastWithoutDate, null);
+
+  const ancient = fuPlan({
+    status: 'sold',
+    sales_date: '2026-06-01',
+    install_date: '2026-06-15',
+    is_cancelled: false,
+    customer_phone: '5555550100'
+  }, [], '2026-10-22');
+  assert.equal(ancient, null);
+
+  const stopped = fuPlan({
+    status: 'sold',
+    sales_date: '2026-10-01',
+    install_date: '2026-11-01',
+    followup_status: 'stopped',
+    followup_stopped_reason: 'Do not text',
+    followup_done: true,
+    is_cancelled: false
+  }, [], '2026-10-22');
+  assert.equal(stopped.bucket, 'done');
+  assert.equal(stopped.stoppedReason, 'Do not text');
+
+  const resume = fuResumeTextPatch();
+  const resumed = fuPlan({
+    status: 'sold',
+    sales_date: '2026-10-01',
+    install_date: '2026-11-01',
+    followup_status: resume.followup_status,
+    followup_stopped_reason: resume.followup_stopped_reason,
+    followup_done: resume.followup_done,
+    is_cancelled: false
+  }, [], '2026-10-22');
+  assert.equal(resumed.bucket, 'upcoming');
+  assert.equal(resumed.step.key, 'referral_install');
+
+  const lighting = fillFuMsg(referralInstall, 'Linda Coleman', 'Steve', 'roofline');
+  assert.equal(lighting.includes('Linda'), true);
+  assert.equal(lighting.includes('[First name]'), false);
+  assert.equal(lighting.includes('permanent lighting'), true);
+  assert.equal(lighting.includes('[Product]'), false);
+  assert.equal(lighting.includes('https://gtrfl.us/TNCz3q'), true);
+  assert.equal(lighting.includes('[Referral link]'), false);
+  assert.equal(lighting.includes('for every friend whose project over $1,000 gets installed, no limit.'), true);
+  const gutters = fillFuMsg(referralInstall, 'Linda Coleman', 'Steve', 'leaffilter');
+  assert.equal(gutters.includes('LeafFilter'), true);
+  assert.equal(gutters.includes('your new LeafFilter'), true);
+  assert.equal(fillFuMsg('Link [Referral link].', 'Linda', 'Steve', 'leaffilter', 'https://example.com/mine'), 'Link https://example.com/mine.');
+  assert.equal(fuReferralLinkValue(''), 'https://gtrfl.us/TNCz3q');
+  assert.equal(fillFuMsg('Hi [First name].', '   ', 'Steve'), 'Hi.');
+
+  assert.equal(html.includes('Referral: after install'), true);
+  assert.equal(html.includes('Referral: reminder'), true);
+  assert.equal(html.includes('id="fuReferralLink"'), true);
+  assert.equal(html.includes('function saveReferralLinkSetting'), true);
+  assert.equal(html.includes(".in('status', ['not_sold', 'sold'])"), true);
+
+  const sql = fs.readFileSync(path.join(__dirname, '..', 'migrations', '2026-10-22_referral_backfill.sql'), 'utf8');
+  assert.equal(sql.includes('add column if not exists referral_backfill_on'), true);
+  assert.equal(sql.includes('2026-07-01'), true);
+  assert.equal(sql.includes('2026-10-22'), true);
+  assert.equal(sql.includes('install_date is not null'), true);
+  assert.equal(sql.includes('install_date < date'), true);
+  assert.equal(/drop table/i.test(sql), false);
+  assert.equal(sql.includes('DO NOT APPLY'), true);
+});
+
+test('past sold installs are staggered about five reminders a day', () => {
+  const phone = '5555550100';
+  const leads = [0, 1, 2, 3, 4, 5].map(i => ({
+    id: 's' + i,
+    status: 'sold',
+    sales_date: '2026-07-' + String(i + 1).padStart(2, '0'),
+    install_date: '2026-07-20',
+    customer_phone: phone,
+    is_cancelled: false
+  }));
+  leads.push({ id: 'nophone', status: 'sold', sales_date: '2026-07-01', install_date: '2026-07-20', customer_phone: '', is_cancelled: false });
+  leads.push({ id: 'noinstall', status: 'sold', sales_date: '2026-07-02', install_date: '', customer_phone: phone, is_cancelled: false });
+  leads.push({ id: 'early', status: 'sold', sales_date: '2026-06-15', install_date: '2026-06-20', customer_phone: phone, is_cancelled: false });
+  leads.push({ id: 'cancelled', status: 'sold', sales_date: '2026-07-03', install_date: '2026-07-20', customer_phone: phone, is_cancelled: true });
+  leads.push({ id: 'future', status: 'sold', sales_date: '2026-07-04', install_date: '2026-11-01', customer_phone: phone, is_cancelled: false });
+  const map = fuReferralBackfillMap(leads);
+  assert.deepEqual(Object.keys(map).sort(), ['s0', 's1', 's2', 's3', 's4', 's5']);
+  assert.equal(map.s0, '2026-10-22');
+  assert.equal(map.s4, '2026-10-22');
+  assert.equal(map.s5, '2026-10-23');
+  assert.equal(map.nophone, undefined);
+  assert.equal(map.future, undefined);
 });

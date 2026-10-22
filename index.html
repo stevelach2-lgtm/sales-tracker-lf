@@ -2689,7 +2689,10 @@
             <span id="smsIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
           </div>
           <div id="smsConfigSection" style="display:none">
-            <div class="s-sub" style="margin-bottom:10px">Edit every follow-up text. Saved to your account. Use [Name] for the customer's first name, [RepName] for yours, and [Product] for the product (LeafFilter or permanent lighting).</div>
+            <div class="s-sub" style="margin-bottom:10px">Edit every follow-up text. Saved to your account. Use [Name] or [First name] for the customer's first name, [RepName] for yours, [Product] for LeafFilter or permanent lighting, and [Referral link] for the link below.</div>
+            <label class="fl">Referral app link</label>
+            <input type="url" class="fi" id="fuReferralLink" value="https://gtrfl.us/TNCz3q" placeholder="https://gtrfl.us/TNCz3q" style="margin-bottom:8px;font-size:12px">
+            <button type="button" onclick="saveReferralLinkSetting()" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#fff;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:12px">Save referral link</button>
             <div style="margin-bottom:12px">
               <button onclick="openFuTemplateEditor()"
                 style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
@@ -4590,7 +4593,89 @@
       ];
     }
 
-    const FU_STEP_NAMES = { day1: 'Day 1', day2: 'Day 1', day7: 'Day 7', day30: 'Day 30', seasonal: 'Seasonal' };
+    const FU_STEP_NAMES = {
+      day1: 'Day 1', day2: 'Day 1', day7: 'Day 7', day30: 'Day 30', seasonal: 'Seasonal',
+      referral_install: 'Referral: after install', referral_reminder: 'Referral: reminder'
+    };
+
+    function fuLeadHasPhone(lead) {
+      const raw = String((lead && (lead.customer_phone || lead.followup_phone || lead.phone)) || '');
+      return raw.replace(/\D/g, '').length >= 10;
+    }
+
+    function fuReferralLinkValue(override) {
+      const fallback = 'https://gtrfl.us/TNCz3q';
+      if (override == null) return fallback;
+      const link = String(override).trim();
+      return link || fallback;
+    }
+
+    function fuReferralSteps(lead) {
+      if (!lead || !lead.install_date) return [];
+      const anchor = '2026-10-22';
+      const from = '2026-07-01';
+      if (lead.install_date < anchor) {
+        if (!(lead.sales_date && lead.sales_date >= from && lead.referral_backfill_on)) return [];
+        return [{ key: 'referral_reminder', num: 1, total: 1, date: lead.referral_backfill_on }];
+      }
+      const first = fuAddDays(lead.install_date, 1);
+      const reminder = fuAddDays(lead.install_date, 21);
+      if (!first || !reminder) return [];
+      return [
+        { key: 'referral_install', num: 1, total: 2, date: first },
+        { key: 'referral_reminder', num: 2, total: 2, date: reminder }
+      ];
+    }
+
+    function fuReferralBackfillMap(leads, anchor) {
+      const start = anchor || '2026-10-22';
+      const from = '2026-07-01';
+      const eligible = (Array.isArray(leads) ? leads : []).filter(lead => {
+        if (!lead || lead.status !== 'sold' || lead.is_cancelled) return false;
+        if (!lead.id || !lead.sales_date || lead.sales_date < from) return false;
+        if (!lead.install_date || lead.install_date >= start) return false;
+        return fuLeadHasPhone(lead);
+      });
+      eligible.sort((a, b) => String(a.sales_date).localeCompare(String(b.sales_date)) || String(a.id).localeCompare(String(b.id)));
+      const map = {};
+      eligible.forEach((lead, i) => { map[lead.id] = fuAddDays(start, Math.floor(i / 5)); });
+      return map;
+    }
+
+    function fuReferralPlan(lead, touches, today) {
+      if (!lead || lead.status !== 'sold' || lead.is_cancelled) return null;
+      const reason = lead.followup_stopped_reason || '';
+      const halted = reason === 'Do not text' || (reason && reason !== 'sold' && (
+        lead.followup_status === 'stopped' ||
+        lead.followup_status === 'completed' ||
+        (lead.followup_done && lead.followup_status !== 'active')
+      ));
+      if (halted) return { bucket: 'done', group: 'referral', stoppedReason: reason };
+      const steps = fuReferralSteps(lead);
+      if (!steps.length) return null;
+      const sent = Array.isArray(touches) ? touches : [];
+      const sentKeys = {};
+      sent.forEach(t => { if (t && t.step_key) sentKeys[t.step_key] = true; });
+      const sentToday = sent.some(t => t && t.sent_on === today);
+      let active = null;
+      for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        if (sentKeys[step.key]) continue;
+        if (step.date && step.date <= today) active = step;
+        else {
+          if (!active) active = step;
+          break;
+        }
+      }
+      if (!active) return { bucket: 'done', group: 'referral', stoppedReason: 'completed' };
+      if (sentToday && active.date <= today) {
+        return { bucket: 'upcoming', group: 'referral', step: active, date: fuAddDays(today, 1), hold: true };
+      }
+      let bucket = 'upcoming';
+      if (active.date < today) bucket = 'overdue';
+      else if (active.date === today) bucket = 'today';
+      return { bucket: bucket, group: 'referral', step: active, date: active.date, hold: false };
+    }
 
     function fuStepLabel(step) {
       if (!step) return '';
@@ -4598,6 +4683,7 @@
     }
 
     function fuPlan(lead, touches, today) {
+      if (lead && lead.status === 'sold') return fuReferralPlan(lead, touches, today);
       if (!lead || lead.status !== 'not_sold' || lead.is_cancelled) return null;
       const reason = lead.reasonLabel || '';
       if (fuNoTextReason(reason)) return null;
@@ -4658,20 +4744,22 @@
       return product === 'roofline' ? 'permanent lighting' : 'LeafFilter';
     }
 
-    function fillFuMsg(tpl, fullName, repName, product) {
+    function fillFuMsg(tpl, fullName, repName, product, referralLink) {
       const first = smsFirstName(fullName);
       const rep = repName && repName !== 'Your Rep' ? repName : 'Steve';
       let text = String(tpl || '');
-      if (first) text = text.replace(/\[Name\]/g, first);
+      const nameToken = /\[(?:Name|First name)\]/g;
+      if (first) text = text.replace(nameToken, first);
       else {
-        text = text.replace(/[ \t]*\[Name\][ \t]*/g, ' ');
+        text = text.replace(/[ \t]*\[(?:Name|First name)\][ \t]*/g, ' ');
         text = text.replace(/[ \t][ \t]+/g, ' ');
         text = text.replace(/[ \t]+([,!.?;:])/g, '$1');
         text = text.replace(/^[ \t]+/, '');
         text = text.replace(/^[ \t]*,[ \t]*/, '');
       }
-      text = text.replace(/\[Product\]/g, fuProductLabel(product));
-      return text.replace(/\[RepName\]/g, rep);
+      text = text.split('[Product]').join(fuProductLabel(product));
+      text = text.split('[Referral link]').join(fuReferralLinkValue(referralLink));
+      return text.split('[RepName]').join(rep);
     }
 
     function fuProductKey(product) {
@@ -4682,6 +4770,8 @@
       const opt = FU_OPT_OUT;
       const sign = '– [RepName]';
       const t = (body) => body + '\n' + sign;
+      const referralInstall = "Hi [First name], it's Steve from LeafFilter. How did the install go? I hope your new [Product] looks great! Quick favor: if you know anyone who could use it, grab the referral app here [Referral link] and share your link. You get $250 for every friend whose project over $1,000 gets installed, no limit.";
+      const referralReminder = "Hi [First name], Steve from LeafFilter. Hope you're loving your new [Product]! Quick reminder: your referral link pays you $250 for every friend whose project over $1,000 gets installed, no limit. Get the app here: [Referral link]. Fall is when neighbors notice their gutters, so it's a great time to share it.";
       return {
         price: {
           leaffilter: {
@@ -4734,6 +4824,10 @@
             day1: t("Hi [Name], it's [RepName]. Sorry I missed you — want to reschedule? I was there to show the permanent roofline lighting. " + opt),
             day7: t("Hi [Name], [RepName] again. Still happy to reschedule the lighting visit if you want. If now isn't a good time, just let me know and I won't keep texting.")
           }
+        },
+        referral: {
+          leaffilter: { referral_install: referralInstall, referral_reminder: referralReminder },
+          roofline: { referral_install: referralInstall, referral_reminder: referralReminder }
         }
       };
     }
@@ -4756,7 +4850,8 @@
       { key: 'price', title: 'Price — Too much / Shop around', steps: ['day2', 'day7', 'day30', 'seasonal'] },
       { key: 'decision', title: "Decision — Spouse not home / Wouldn't commit / Think about", steps: ['day2', 'day7', 'day30', 'seasonal'] },
       { key: 'other', title: 'Other — Other Projects / Other', steps: ['day2', 'day7', 'day30', 'seasonal'] },
-      { key: 'noshow', title: 'No show / No one home', steps: ['day1', 'day7'] }
+      { key: 'noshow', title: 'No show / No one home', steps: ['day1', 'day7'] },
+      { key: 'referral', title: 'Sold — referral ask', steps: ['referral_install', 'referral_reminder'] }
     ];
 
     // Previous step-1 texts. Used only to notice a customized cc_fu_msgs value. Not shown.
@@ -4773,6 +4868,7 @@
     let FU_TEMPLATES = defaultFuTemplates();
     let _fuLead = null;
     let _fuCache = [];
+    let _fuBackfill = {};
     let _fuSending = false;
     let _userId = null;
 
@@ -4878,7 +4974,9 @@
         followup_done: lead.followup_done,
         followup_status: lead.followup_status,
         followup_stopped_reason: lead.followup_stopped_reason,
-        is_cancelled: lead.is_cancelled
+        is_cancelled: lead.is_cancelled,
+        install_date: lead.install_date || '',
+        referral_backfill_on: lead.referral_backfill_on || ''
       }, (touches || []).map(t => ({ step_key: t.step_key, sent_on: t.sent_on || sentOnEt(t.sent_at) })), today);
       if (!plan) return null;
       const stepLabel = plan.step ? fuStepLabel(plan.step) : (FU_STOP_LABELS[plan.stoppedReason] || 'Done');
@@ -4888,14 +4986,52 @@
         name: person || 'Customer',
         smsName: person,
         phone: leadPhoneDigits(lead),
-        reason: reason || 'No reason',
+        reason: plan.group === 'referral' ? 'Sold' : (reason || 'No reason'),
         address: lead.customer_address || '',
         notes: lead.notes || '',
         product: leadProductKey(lead.product),
         salesDate: lead.sales_date || '',
+        installDate: lead.install_date || '',
+        referralBackfillOn: lead.referral_backfill_on || '',
         plan: plan,
         stepLabel: stepLabel
       };
+    }
+
+    function activeReferralLink() {
+      try {
+        const saved = localStorage.getItem('fu_referral_link');
+        if (saved && String(saved).trim()) return String(saved).trim();
+      } catch (e) {}
+      return fuReferralLinkValue(null);
+    }
+
+    function rememberReferralLink(obj) {
+      if (!obj || typeof obj.referralLink !== 'string' || !obj.referralLink.trim()) return;
+      const link = obj.referralLink.trim();
+      try { localStorage.setItem('fu_referral_link', link); } catch (e) {}
+      const input = document.getElementById('fuReferralLink');
+      if (input) input.value = link;
+    }
+
+    function withReferralLink(templates) {
+      const payload = JSON.parse(JSON.stringify(templates || {}));
+      payload.referralLink = activeReferralLink();
+      return payload;
+    }
+
+    function loadReferralLinkField() {
+      const input = document.getElementById('fuReferralLink');
+      if (input) input.value = activeReferralLink();
+    }
+
+    async function saveReferralLinkSetting() {
+      const input = document.getElementById('fuReferralLink');
+      const link = fuReferralLinkValue(input && input.value);
+      if (input) input.value = link;
+      try { localStorage.setItem('fu_referral_link', link); } catch (e) {}
+      const saved = await saveFuTemplatesRemote(withReferralLink(FU_TEMPLATES));
+      toast(saved ? 'Referral link saved to your account' : 'Referral link saved on this phone', saved ? 'ok' : 'err');
     }
 
     function messageForRow(row, nameOverride) {
@@ -4903,7 +5039,7 @@
       if (!step || (row && fuNoTextReason(row.reason))) return '';
       const tpl = fuTemplateText(row.plan.group, row.product, step.key);
       const source = nameOverride != null ? nameOverride : (row && row.smsName != null ? row.smsName : (row && row.name) || '');
-      return fillFuMsg(tpl, source, _repName, row && row.product);
+      return fillFuMsg(tpl, source, _repName, row && row.product, activeReferralLink());
     }
 
     async function saveFuTemplatesRemote(templates) {
@@ -4921,6 +5057,7 @@
       FU_TEMPLATES = defaults;
       try {
         const cached = JSON.parse(localStorage.getItem('cc_fu_templates') || 'null');
+        rememberReferralLink(cached);
         if (cached && cached.price) FU_TEMPLATES = mergeFuTemplates(defaults, cached);
       } catch (e) {}
       let remote = null;
@@ -4931,6 +5068,7 @@
         }
       } catch (e) {}
       if (remote) {
+        rememberReferralLink(remote);
         FU_TEMPLATES = mergeFuTemplates(defaults, remote);
         try { localStorage.setItem('cc_fu_templates', JSON.stringify(FU_TEMPLATES)); } catch (e) {}
         return;
@@ -4943,7 +5081,7 @@
           FU_TEMPLATES = mergeFuTemplates(migrated, cached);
         }
       }
-      const saved = await saveFuTemplatesRemote(FU_TEMPLATES);
+      const saved = await saveFuTemplatesRemote(withReferralLink(FU_TEMPLATES));
       if (saved) {
         try { localStorage.setItem('cc_fu_msgs_migrated', '1'); } catch (e) {}
       }
@@ -4982,7 +5120,7 @@
       } else {
         ctx.style.display = 'none';
       }
-      _fuLead = { id: leadId, reason: reasonLabel || '', notes: notes || '', product: leadProductKey(product), view: null };
+      _fuLead = { id: leadId, reason: reasonLabel || '', notes: notes || '', product: leadProductKey(product), view: cached || null };
       document.getElementById('fuMsg').value = '';
       document.getElementById('fuOverlay').classList.add('open');
       updateFuSendButton();
@@ -4991,6 +5129,7 @@
       if (!leadId || !sb) return;
       const { data } = await sb.from('leads').select('*, not_sold_reasons(label)').eq('id', leadId).maybeSingle();
       if (!data || document.getElementById('fuLeadId').value !== leadId) return;
+      if (!data.referral_backfill_on && _fuBackfill && _fuBackfill[data.id]) data.referral_backfill_on = _fuBackfill[data.id];
       const person = leadPersonName(data) || name || '';
       const ph = leadPhoneRaw(data) || phone || '';
       document.getElementById('fuName').value = person;
@@ -5098,15 +5237,16 @@
         return;
       }
       const view = _fuLead && _fuLead.view;
-      const group = (view && view.plan && view.plan.group) || fuGroupKey(_fuLead && _fuLead.reason, _fuLead && _fuLead.notes) || 'other';
+      const isReferral = !!(view && view.plan && view.plan.group === 'referral');
+      const group = isReferral ? 'referral' : ((view && view.plan && view.plan.group) || fuGroupKey(_fuLead && _fuLead.reason, _fuLead && _fuLead.notes) || 'other');
       const product = (_fuLead && _fuLead.product) || 'leaffilter';
       let step = view && view.plan && view.plan.step;
-      if (!step) {
+      if (!step && !isReferral) {
         const close = (view && view.salesDate) || todayEtKey();
         step = fuSchedule(group, close, product)[0] || null;
       }
       const tpl = step ? fuTemplateText(group, product, step.key) : '';
-      document.getElementById('fuMsg').value = fillFuMsg(tpl, fullName, _repName, product);
+      document.getElementById('fuMsg').value = fillFuMsg(tpl, fullName, _repName, product, activeReferralLink());
       const label = document.getElementById('fuStepLabel');
       if (label) label.textContent = step ? fuStepLabel(step) : '';
     }
@@ -5170,7 +5310,14 @@
         toast('Text opened, but the touch did not save', 'err');
         return false;
       }
-      const steps = fuSchedule(row.plan.group, row.salesDate, row.product);
+      const steps = row.plan.group === 'referral'
+        ? fuReferralSteps({
+          status: 'sold',
+          sales_date: row.salesDate,
+          install_date: row.installDate,
+          referral_backfill_on: row.referralBackfillOn
+        })
+        : fuSchedule(row.plan.group, row.salesDate, row.product);
       const next = steps.find(s => s.num > step.num);
       const patch = next
         ? { followup_date: next.date, followup_status: 'active', followup_done: false, followup_stopped_reason: null }
@@ -5232,7 +5379,18 @@
       if (row) {
         row = Object.assign({}, row, { phone: phone || row.phone, name: name || row.name });
       } else if (leadId) {
-        row = { id: leadId, phone: phone, name: name, plan: _fuLead && _fuLead.view && _fuLead.view.plan, product: _fuLead && _fuLead.product, salesDate: '', reason: _fuLead && _fuLead.reason, notes: _fuLead && _fuLead.notes };
+        row = {
+          id: leadId,
+          phone: phone,
+          name: name,
+          plan: _fuLead && _fuLead.view && _fuLead.view.plan,
+          product: _fuLead && _fuLead.product,
+          salesDate: (_fuLead && _fuLead.view && _fuLead.view.salesDate) || '',
+          installDate: (_fuLead && _fuLead.view && _fuLead.view.installDate) || '',
+          referralBackfillOn: (_fuLead && _fuLead.view && _fuLead.view.referralBackfillOn) || '',
+          reason: _fuLead && _fuLead.reason,
+          notes: _fuLead && _fuLead.notes
+        };
       }
       if (!row) { toast('Open a follow-up first', 'err'); return; }
       if (phone) {
@@ -5347,18 +5505,24 @@
       if (!sb) return [];
       await ensureUserId();
       const today = todayEtKey();
-      const cols = 'id,user_id,status,sales_date,notes,product,customer_name,customer_phone,customer_address,followup_name,followup_phone,followup_date,followup_done,followup_status,followup_stopped_reason,is_cancelled,not_sold_reasons(label)';
-      const shortCols = 'id,user_id,status,sales_date,notes,product,customer_name,customer_phone,customer_address,followup_name,followup_phone,followup_date,followup_done,is_cancelled,not_sold_reasons(label)';
-      let q = sb.from('leads').select(cols).eq('status', 'not_sold');
-      if (_userId) q = q.eq('user_id', _userId);
-      let res = await q;
-      if (res.error && /followup_status|followup_stopped_reason/i.test(res.error.message || '')) {
-        q = sb.from('leads').select(shortCols).eq('status', 'not_sold');
+      const tail = 'is_cancelled,install_date,not_sold_reasons(label)';
+      const cols = 'id,user_id,status,sales_date,notes,product,customer_name,customer_phone,customer_address,followup_name,followup_phone,followup_date,followup_done,followup_status,followup_stopped_reason,referral_backfill_on,' + tail;
+      const noBackfill = 'id,user_id,status,sales_date,notes,product,customer_name,customer_phone,customer_address,followup_name,followup_phone,followup_date,followup_done,followup_status,followup_stopped_reason,' + tail;
+      const shortCols = 'id,user_id,status,sales_date,notes,product,customer_name,customer_phone,customer_address,followup_name,followup_phone,followup_date,followup_done,' + tail;
+      const run = (list) => {
+        let q = sb.from('leads').select(list).in('status', ['not_sold', 'sold']);
         if (_userId) q = q.eq('user_id', _userId);
-        res = await q;
-      }
+        return q;
+      };
+      let res = await run(cols);
+      if (res.error && /referral_backfill_on/i.test(res.error.message || '')) res = await run(noBackfill);
+      if (res.error && /followup_status|followup_stopped_reason/i.test(res.error.message || '')) res = await run(shortCols);
       if (res.error) throw res.error;
       const leads = res.data || [];
+      _fuBackfill = fuReferralBackfillMap(leads);
+      leads.forEach(l => {
+        if (!l.referral_backfill_on && _fuBackfill[l.id]) l.referral_backfill_on = _fuBackfill[l.id];
+      });
       const ids = leads.map(l => l.id);
       let touches = [];
       if (ids.length) {
@@ -5406,7 +5570,7 @@
       el.innerHTML = '<div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:14px;padding:12px 14px">'
         + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
         + '<div style="min-width:0"><div style="font-size:13px;font-weight:800;color:#92400E">Text today</div>'
-        + '<div style="font-size:11px;color:#B45309">No-sales due or overdue · LF ' + dueLf + ' · LTG ' + dueLtg + '</div></div>'
+        + '<div style="font-size:11px;color:#B45309">No-sales and referral asks due or overdue · LF ' + dueLf + ' · LTG ' + dueLtg + '</div></div>'
         + '<div style="display:flex;align-items:center;gap:8px">'
         + '<button type="button" onclick="openFollowUps()" style="background:transparent;border:none;color:#92400E;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer">See all</button>'
         + '<div style="background:#F59E0B;color:#fff;font-size:12px;font-weight:900;padding:4px 10px;border-radius:20px">' + due.length + '</div>'
@@ -5429,7 +5593,7 @@
       });
       const total = groups.overdue.length + groups.today.length + groups.upcoming.length + groups.done.length;
       if (!total) {
-        list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">No follow-ups yet.<br><span style="font-size:11px;opacity:.7">A no-sale with a phone shows up here on its own.</span></div>';
+        list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">No follow-ups yet.<br><span style="font-size:11px;opacity:.7">A no-sale, or a sold job once it has an install date, shows up here on its own.</span></div>';
         return;
       }
       const open = smsWindowOpen();
@@ -6139,6 +6303,7 @@
     let esCustomerAddress = null;
     let esOriginalNsDate = null;
     let esInitialStatus = 'sold';
+    let esFollowupStoppedReason = '';
     let esSelReason = null;
     let esQuoteItems = null;
     let esCustomerNameLoaded = '';
@@ -6305,6 +6470,7 @@
 
       esInitialStatus = l.status;
       esStatus = l.status;
+      esFollowupStoppedReason = l.followup_stopped_reason || '';
       esCustomerAddress = l.customer_address || null;
       const esAddrRow = document.getElementById('esAddressRow');
       if (esAddrRow) {
@@ -6527,7 +6693,7 @@
         payload.followup_phone = contact.phone;
         if (contact.phone) payload.customer_phone = contact.phone;
         if (contact.name) payload.customer_name = contact.name;
-        if (!esCancelled && !esBtd) {
+        if (!esCancelled && !esBtd && (!esFollowupStoppedReason || esFollowupStoppedReason === 'sold')) {
           payload.followup_status = 'stopped';
           payload.followup_stopped_reason = 'sold';
           payload.followup_done = true;
@@ -6701,6 +6867,7 @@
       await loadRepProfile();
       loadBaselines();
       loadQuoteSettings();
+      loadReferralLinkField();
       gcalLoadSettingsUI();
       loadMileageSettingsUI();
       await loadReasons(); // still needed by the Edit Sale modal for viewing old not-sold records
@@ -7409,9 +7576,12 @@
       container.innerHTML = '';
       const hint = document.createElement('div');
       hint.style.cssText = 'font-size:12px;color:var(--muted);line-height:1.45;margin-bottom:12px';
-      hint.textContent = 'Use [Name] for the first name, [RepName] for yours, and [Product] for the product (LeafFilter or permanent lighting). The first text in each sequence should include: If you\'d rather I not follow up, just let me know.';
+      hint.textContent = 'Use [Name] or [First name] for the customer\'s first name, [RepName] for yours, [Product] for LeafFilter or permanent lighting, and [Referral link] for the referral app link in SMS settings. No-sale first texts should include: If you\'d rather I not follow up, just let me know.';
       container.appendChild(hint);
-      const stepNames = { day1: 'Day 1 — sorry I missed you', day2: 'Day 1', day7: 'Day 7', day30: 'Day 30', seasonal: 'Seasonal' };
+      const stepNames = {
+        day1: 'Day 1 — sorry I missed you', day2: 'Day 1', day7: 'Day 7', day30: 'Day 30', seasonal: 'Seasonal',
+        referral_install: 'Referral: after install', referral_reminder: 'Referral: reminder'
+      };
       ['leaffilter', 'roofline'].forEach(product => {
         const head = document.createElement('div');
         head.style.cssText = 'font-size:15px;font-weight:800;margin:14px 0 8px';
@@ -7449,8 +7619,9 @@
 
     async function saveFuTemplates() {
       FU_TEMPLATES = JSON.parse(JSON.stringify(_localFuMsgs));
+      delete FU_TEMPLATES.referralLink;
       try { localStorage.setItem('cc_fu_templates', JSON.stringify(FU_TEMPLATES)); } catch (e) {}
-      const saved = await saveFuTemplatesRemote(FU_TEMPLATES);
+      const saved = await saveFuTemplatesRemote(withReferralLink(FU_TEMPLATES));
       toast(saved ? 'Templates saved to your account' : 'Templates saved on this phone', saved ? 'ok' : 'err');
       closePriceListEditor();
       document.querySelector('#priceListOverlay .es-title').textContent = '🏷️ Edit Price List';
