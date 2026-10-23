@@ -6944,6 +6944,11 @@
       if (v > 0) { localStorage.setItem('commGoal', v); loadComm(); syncSettingsToSupabase(); }
     }
 
+    function commFundedTextColor(job) {
+      if (!job || !job.is_funded || job.commission_paid) return '';
+      return '#1565c0';
+    }
+
     async function loadComm() {
       // Restore saved goal
       const savedGoal = parseFloat(localStorage.getItem('commGoal') || '5000');
@@ -6952,15 +6957,21 @@
       const el = document.getElementById('commList');
       el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
-      // Fetch all unpaid sold leads with install dates — exclude cancelled
-      const { data: leads, error } = await sb
+      // Fetch all unpaid sold leads with install dates — exclude cancelled.
+      // is_funded is optional until the additive migration is applied.
+      const commBaseCols = 'id,job_number,install_date,sales_date,commission_amount,commission_paid,sale_amount,is_cancelled,is_btd,pay_push_weeks';
+      const commQuery = (cols) => sb
         .from('leads')
-        .select('id,job_number,install_date,sales_date,commission_amount,commission_paid,sale_amount,is_cancelled,is_btd,pay_push_weeks')
+        .select(cols)
         .eq('status', 'sold')
         .neq('is_cancelled', true)
         .not('install_date', 'is', null)
         .eq('commission_paid', false)
         .order('install_date', { ascending: true });
+      let commRes = await commQuery(commBaseCols + ',is_funded');
+      if (commRes.error && /is_funded/i.test(commRes.error.message || '')) commRes = await commQuery(commBaseCols);
+      const leads = commRes.data;
+      const error = commRes.error;
 
       if (error) { el.innerHTML = '<p style="color:var(--red);padding:12px">Error loading</p>'; return; }
       if (!leads || !leads.length) {
@@ -7024,16 +7035,16 @@
         <span>INSTALL / SALE DATE</span><span>JOB #</span><span style="text-align:right">COMMISSION</span><span style="text-align:center">PAID</span>
       </div>
       <!-- Jobs -->
-      ${w.jobs.map(j => { const pushWeeks = j.pay_push_weeks || 0; return `
+      ${w.jobs.map(j => { const pushWeeks = j.pay_push_weeks || 0; const fundedColor = commFundedTextColor(j); return `
       <div style="display:grid;grid-template-columns:100px 1fr 90px 44px;padding:10px 12px;border-bottom:1px solid #F9FAFB;align-items:center" id="cr-${j.id}">
         <span style="font-size:13px;color:var(--muted);line-height:1.5">${fmtInstall(j.install_date)}${fmtSalesDate(j.sales_date) ? `<br><span style="font-size:10px;color:#9CA3AF">Sold ${fmtSalesDate(j.sales_date)}</span>` : ''}</span>
         <span>
-          <span onclick="openLeadEdit('${j.id}')" style="font-size:13px;font-weight:700;color:var(--green-dark);text-decoration:underline;text-underline-offset:2px;cursor:pointer">${j.job_number || '<span style="color:var(--muted);font-weight:400;text-decoration:none">tap to edit</span>'}</span>
+          <span onclick="openLeadEdit('${j.id}')" style="font-size:13px;font-weight:700;color:${fundedColor || 'var(--green-dark)'};text-decoration:underline;text-underline-offset:2px;cursor:pointer">${j.job_number || '<span style="color:var(--muted);font-weight:400;text-decoration:none">tap to edit</span>'}</span>
           ${pushWeeks > 0
             ? `<div style="font-size:9px;font-weight:700;color:#9333EA;margin-top:2px">⏭️ Pushed +${pushWeeks} cycle${pushWeeks > 1 ? 's' : ''} &nbsp;<span onclick="pushCommCycle('${j.id}',${pushWeeks},'${j.install_date}')" style="text-decoration:underline;cursor:pointer;color:#9333EA;font-weight:700">push again</span> &nbsp;<span onclick="resetCommPush('${j.id}')" style="text-decoration:underline;cursor:pointer;color:var(--muted);font-weight:600">undo</span></div>`
             : `<div style="margin-top:2px"><span onclick="pushCommCycle('${j.id}',${pushWeeks},'${j.install_date}')" style="font-size:9px;font-weight:700;color:#9333EA;text-decoration:underline;cursor:pointer">⏭️ Push to next cycle</span></div>`}
         </span>
-        <span style="font-size:13px;font-weight:700;text-align:right;color:${j.commission_amount ? 'var(--text)' : 'var(--muted)'}">${fmtMoney(j.commission_amount)}</span>
+        <span style="font-size:13px;font-weight:700;text-align:right;color:${fundedColor || (j.commission_amount ? 'var(--text)' : 'var(--muted)')}">${fmtMoney(j.commission_amount)}</span>
         <div style="display:flex;justify-content:center">
           <div onclick="toggleCommPaid('${j.id}',${!j.commission_paid})" style="width:20px;height:20px;border-radius:5px;border:2px solid ${j.commission_paid ? 'var(--green)' : 'var(--border)'};background:${j.commission_paid ? 'var(--green)' : '#fff'};cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0">
             ${j.commission_paid ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
