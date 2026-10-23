@@ -444,3 +444,21 @@ test('past sold installs are staggered about five reminders a day', () => {
   assert.equal(map.nophone, undefined);
   assert.equal(map.future, undefined);
 });
+
+test('unpaid funded commission jobs use blue text', () => {
+  const commFundedTextColor = new Function(
+    extractFunction(html, 'commFundedTextColor') + '\nreturn commFundedTextColor;'
+  )();
+  assert.equal(commFundedTextColor({ is_funded: true, commission_paid: false }), '#1565c0');
+  assert.equal(commFundedTextColor({ is_funded: true, commission_paid: true }), '');
+  assert.equal(commFundedTextColor({ is_funded: false, commission_paid: false }), '');
+  assert.equal(commFundedTextColor(null), '');
+  assert.equal(html.includes('const fundedColor = commFundedTextColor(j)'), true);
+  assert.equal(html.includes('Blue = funded'), false);
+  assert.equal(html.includes('Funded (being paid)'), false);
+  assert.equal(html.includes('esFunded'), false);
+  const sql = fs.readFileSync(path.join(__dirname, '..', 'migrations', '2026-10-23_add_funded_flag.sql'), 'utf8');
+  assert.equal(sql.includes('add column if not exists is_funded boolean not null default false'), true);
+  assert.equal(sql.includes('add column if not exists funded_at date'), true);
+  assert.equal(/drop table/i.test(sql), false);
+});
