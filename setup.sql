@@ -47,6 +47,7 @@ create table if not exists public.leads (
   created_at        timestamptz default now(),
   status            text        not null check (status in ('sold', 'not_sold', 'pending')),
   sale_amount       numeric(10,2),
+  lighting_amount   numeric(10,2),
   reason_id         uuid        references public.not_sold_reasons(id) on delete set null,
   notes             text,
   sale_type         text        check (sale_type in ('single','combo')),
@@ -70,6 +71,9 @@ create table if not exists public.leads (
 do $$ begin
   if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='sale_type') then
     alter table public.leads add column sale_type text check (sale_type in ('single','combo'));
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='lighting_amount') then
+    alter table public.leads add column lighting_amount numeric(10,2);
   end if;
   if not exists (select 1 from information_schema.columns where table_name='leads' and column_name='lead_type') then
     alter table public.leads add column lead_type text check (lead_type in ('company','rehash','self_gen'));

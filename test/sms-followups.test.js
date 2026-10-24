@@ -196,6 +196,7 @@ test('an unsent first text is due the day after the appointment', () => {
 test('[Product] is filled from the lead product and literal LeafFilter is left alone', () => {
   assert.equal(fuProductLabel('leaffilter'), 'LeafFilter');
   assert.equal(fuProductLabel('roofline'), 'permanent lighting');
+  assert.equal(fuProductLabel('combo'), 'LeafFilter and permanent lighting');
   assert.equal(fuProductLabel(undefined), 'LeafFilter');
   const defaults = defaultFuTemplates();
   ['price', 'decision', 'other', 'noshow'].forEach(group => {
