@@ -2929,11 +2929,26 @@
             <input type="hidden" id="calCustAddr">
             <input type="hidden" id="calCustPhone">
             <input type="hidden" id="calLeadCode">
-            <div class="chk-row" style="margin-bottom:10px">
-              <div class="chk-box" id="chkCombo" onclick="toggleChk('chkCombo')">
-                <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Combo</span></div>
-                <div class="chk-sub">Gutter + LeafFilter</div>
+            <div class="chk-box" id="chkCombo" onclick="toggleLightingCombo('log')" style="margin-bottom:10px">
+              <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Combo: LeafFilter + Lighting</span></div>
+              <div class="chk-sub">One job number and one commission</div>
+            </div>
+            <div id="comboAmtBox" style="display:none;background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:10px;padding:10px 12px;margin-bottom:10px">
+              <div style="font-size:10px;font-weight:800;color:#0369A1;letter-spacing:.4px;margin-bottom:8px">ONE SALE · BOTH PRODUCTS</div>
+              <div class="fg2" style="margin-bottom:6px">
+                <div>
+                  <label class="fl">LeafFilter $</label>
+                  <input type="number" class="fi" id="comboLfAmt" inputmode="decimal" step="0.01" placeholder="0.00" style="font-size:16px;padding:11px 13px" oninput="updateComboTotal('log')">
+                </div>
+                <div>
+                  <label class="fl">Lighting $</label>
+                  <input type="number" class="fi" id="comboLtgAmt" inputmode="decimal" step="0.01" placeholder="0.00" style="font-size:16px;padding:11px 13px" oninput="updateComboTotal('log')">
+                </div>
               </div>
+              <div style="font-size:14px;font-weight:800;color:#0C4A6E">Combined total <span id="comboTotal">$0.00</span></div>
+              <div style="font-size:10px;color:#0369A1;margin-top:2px">Counts as one sale. Commission below is the job total.</div>
+            </div>
+            <div class="chk-row" style="margin-bottom:10px">
               <div class="chk-box" id="chkRehash" onclick="toggleChk('chkRehash');toggleRehashLookup()">
                 <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Rehash</span></div>
                 <div class="chk-sub">Not in SLG%</div>
@@ -3467,18 +3482,34 @@
             <div id="esSoldFootageRead"></div>
           </div>
           <input type="hidden" id="esSoldRetail">
-          <div class="fg">
+          <div class="fg" id="esSingleSaleWrap">
             <label class="fl">Sale Amount</label>
             <div class="amt-wrap"><span class="amt-pre">$</span><input type="number" class="fi" id="esSaleAmt"
                 placeholder="0.00" inputmode="decimal" step="0.01"></div>
           </div>
-          <div class="chk-row">
-            <div class="chk-box" id="esChkCombo" onclick="toggleChk('esChkCombo')">
-              <div class="chk-top">
-                <div class="chk-mark"></div><span class="chk-lbl">Combo</span>
-              </div>
-              <div class="chk-sub">Gutter + LeafFilter</div>
+          <div class="chk-box" id="esChkCombo" onclick="toggleLightingCombo('edit')" style="margin-bottom:10px">
+            <div class="chk-top">
+              <div class="chk-mark"></div><span class="chk-lbl">Combo: LeafFilter + Lighting</span>
             </div>
+            <div class="chk-sub">One job number and one commission</div>
+          </div>
+          <div id="esComboAmtBox" style="display:none;background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:10px;padding:10px 12px;margin-bottom:10px">
+            <div style="font-size:10px;font-weight:800;color:#0369A1;letter-spacing:.4px;margin-bottom:8px">ONE SALE · BOTH PRODUCTS</div>
+            <div class="fg2" style="margin-bottom:6px">
+              <div>
+                <label class="fl">LeafFilter $</label>
+                <input type="number" class="fi" id="esComboLfAmt" inputmode="decimal" step="0.01" placeholder="0.00" style="font-size:16px;padding:11px 13px" oninput="updateComboTotal('edit')">
+              </div>
+              <div>
+                <label class="fl">Lighting $</label>
+                <input type="number" class="fi" id="esComboLtgAmt" inputmode="decimal" step="0.01" placeholder="0.00" style="font-size:16px;padding:11px 13px" oninput="updateComboTotal('edit')">
+              </div>
+            </div>
+            <div style="font-size:14px;font-weight:800;color:#0C4A6E">Combined total <span id="esComboTotal">$0.00</span></div>
+            <div id="esComboLegacyNote" style="display:none;font-size:10px;color:#92400E;margin-top:4px;line-height:1.4">Older combo saved as one combined amount. Leave Lighting blank to keep it that way.</div>
+            <div style="font-size:10px;color:#0369A1;margin-top:2px">Counts as one sale. Commission below is the job total.</div>
+          </div>
+          <div class="chk-row">
             <div class="chk-box" id="esChkRehash" onclick="toggleChk('esChkRehash')">
               <div class="chk-top">
                 <div class="chk-mark"></div><span class="chk-lbl">Rehash</span>
@@ -3493,7 +3524,7 @@
             </div>
           </div>
           <div class="fg2">
-            <div><label class="fl">Job #</label><input type="text" class="fi" id="esJobNum" placeholder="Job number"
+            <div><label class="fl">Job # <span id="esJobNumLtgHint" style="display:none;color:#B45309;font-weight:800">+ LTG</span></label><input type="text" class="fi" id="esJobNum" placeholder="Job number"
                 style="font-size:14px;padding:11px 13px"></div>
             <div><label class="fl">Sales Date</label><input type="date" class="fi" id="esSalesDate"
                 style="font-size:13px;padding:11px 13px"></div>
@@ -4202,17 +4233,95 @@
       return { appts: 0, sold: 0, noShows: 0, saleSum: 0, saleCount: 0 };
     }
 
+    // LeafFilter + Lighting is one leads row: sale_type 'combo', sale_amount is the
+    // combined total, lighting_amount is the lighting portion only. Older gutter
+    // combos are sale_type 'combo' with no lighting_amount and stay one LeafFilter amount.
+    function roundMoney(n) {
+      const v = typeof n === 'number' ? n : parseFloat(n);
+      if (!isFinite(v)) return 0;
+      return Math.round(v * 100) / 100;
+    }
+
+    function isLightingCombo(lead) {
+      if (!lead || lead.sale_type !== 'combo') return false;
+      const n = parseFloat(lead.lighting_amount);
+      return isFinite(n) && n > 0;
+    }
+
+    function lightingComboParts(lead) {
+      const total = roundMoney(lead && lead.sale_amount);
+      const lighting = isLightingCombo(lead) ? roundMoney(lead.lighting_amount) : 0;
+      const leaffilter = roundMoney(total - lighting);
+      return { total, leaffilter: leaffilter > 0 ? leaffilter : 0, lighting };
+    }
+
+    function formatComboMoney(n) {
+      return '$' + (roundMoney(n)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function leadInProductFilter(lead, filter) {
+      if (!filter || filter === 'all') return true;
+      if (isLightingCombo(lead)) return filter === 'leaffilter' || filter === 'roofline';
+      return (lead && lead.product) === 'roofline' ? filter === 'roofline' : filter === 'leaffilter';
+    }
+
+    // Single sale fields, or a lighting combo (one row, combined total, one commission).
+    // legacy keeps an older gutter combo that has no lighting split.
+    function comboSaveFields(combo, jobNumber, product, singleAmount) {
+      if (!combo || !combo.active) {
+        return {
+          sale_type: 'single',
+          product: product === 'roofline' ? 'roofline' : 'leaffilter',
+          sale_amount: singleAmount,
+          lighting_amount: null,
+          job_number: tagJobNum(jobNumber, product)
+        };
+      }
+      if (combo.legacy) {
+        return {
+          sale_type: 'combo',
+          product: product === 'roofline' ? 'roofline' : 'leaffilter',
+          sale_amount: combo.leaffilter,
+          lighting_amount: null,
+          job_number: tagJobNum(jobNumber, product)
+        };
+      }
+      return {
+        sale_type: 'combo',
+        product: 'leaffilter',
+        sale_amount: combo.total,
+        lighting_amount: combo.lighting,
+        job_number: tagJobNum(jobNumber, 'roofline')
+      };
+    }
+
     function closeRateStats(leads, win) {
       const stats = { leaffilter: crEmptyBucket(), roofline: crEmptyBucket() };
       (leads || []).forEach(lead => {
         if (!lead || lead.status === 'pending' || crIsCancelled(lead)) return;
         if (!crInWindow(lead.sales_date, win)) return;
-        const bucket = stats[crProductKey(lead.product)];
-        if (!bucket) return;
         if (crIsNoShow(lead)) {
-          bucket.noShows += 1;
+          const nsBucket = stats[crProductKey(lead.product)];
+          if (nsBucket) nsBucket.noShows += 1;
           return;
         }
+        // One visit sold both products: each product gets the close and its own dollars.
+        if (lead.status === 'sold' && isLightingCombo(lead)) {
+          const parts = lightingComboParts(lead);
+          ['leaffilter', 'roofline'].forEach(key => {
+            const bucket = stats[key];
+            bucket.sold += 1;
+            bucket.appts += 1;
+            const amt = key === 'roofline' ? parts.lighting : parts.leaffilter;
+            if (amt > 0) {
+              bucket.saleSum += amt;
+              bucket.saleCount += 1;
+            }
+          });
+          return;
+        }
+        const bucket = stats[crProductKey(lead.product)];
+        if (!bucket) return;
         if (lead.status === 'sold') {
           bucket.sold += 1;
           bucket.appts += 1;
@@ -4289,13 +4398,16 @@
       const el = document.getElementById('closeRateCard');
       if (!el) return;
       try {
-        const { data, error } = await sb.from('leads')
-          .select('status,product,sale_amount,is_cancelled,sales_date,not_sold_reasons(label)')
+        const base = 'status,product,sale_amount,sale_type,is_cancelled,sales_date,not_sold_reasons(label)';
+        const closeQuery = (cols) => sb.from('leads')
+          .select(cols)
           .neq('status', 'pending')
           .not('sales_date', 'is', null)
           .gte('sales_date', CLOSE_RATE_START);
-        if (error) throw error;
-        el.innerHTML = renderCloseRateCard(data || [], new Date());
+        let res = await closeQuery(base + ',lighting_amount');
+        if (res.error && /lighting_amount/i.test(res.error.message || '')) res = await closeQuery(base);
+        if (res.error) throw res.error;
+        el.innerHTML = renderCloseRateCard(res.data || [], new Date());
       } catch (err) {
         console.error('Close rate card:', err);
         el.innerHTML = '<div class="cr-head"><div class="cr-title">Close rate by product</div><div class="cr-sub">Could not load close rates.</div></div>';
@@ -4741,7 +4853,9 @@
     }
 
     function fuProductLabel(product) {
-      return product === 'roofline' ? 'permanent lighting' : 'LeafFilter';
+      if (product === 'roofline') return 'permanent lighting';
+      if (product === 'combo') return 'LeafFilter and permanent lighting';
+      return 'LeafFilter';
     }
 
     function fillFuMsg(tpl, fullName, repName, product, referralLink) {
@@ -4990,6 +5104,7 @@
         address: lead.customer_address || '',
         notes: lead.notes || '',
         product: leadProductKey(lead.product),
+        lightingCombo: isLightingCombo(lead),
         salesDate: lead.sales_date || '',
         installDate: lead.install_date || '',
         referralBackfillOn: lead.referral_backfill_on || '',
@@ -5039,7 +5154,8 @@
       if (!step || (row && fuNoTextReason(row.reason))) return '';
       const tpl = fuTemplateText(row.plan.group, row.product, step.key);
       const source = nameOverride != null ? nameOverride : (row && row.smsName != null ? row.smsName : (row && row.name) || '');
-      return fillFuMsg(tpl, source, _repName, row && row.product, activeReferralLink());
+      const labelProduct = row && row.lightingCombo ? 'combo' : (row && row.product);
+      return fillFuMsg(tpl, source, _repName, labelProduct, activeReferralLink());
     }
 
     async function saveFuTemplatesRemote(templates) {
@@ -5246,7 +5362,8 @@
         step = fuSchedule(group, close, product)[0] || null;
       }
       const tpl = step ? fuTemplateText(group, product, step.key) : '';
-      document.getElementById('fuMsg').value = fillFuMsg(tpl, fullName, _repName, product, activeReferralLink());
+      const labelProduct = view && view.lightingCombo ? 'combo' : product;
+      document.getElementById('fuMsg').value = fillFuMsg(tpl, fullName, _repName, labelProduct, activeReferralLink());
       const label = document.getElementById('fuStepLabel');
       if (label) label.textContent = step ? fuStepLabel(step) : '';
     }
@@ -5506,7 +5623,7 @@
       await ensureUserId();
       const today = todayEtKey();
       const tail = 'is_cancelled,install_date,not_sold_reasons(label)';
-      const cols = 'id,user_id,status,sales_date,notes,product,customer_name,customer_phone,customer_address,followup_name,followup_phone,followup_date,followup_done,followup_status,followup_stopped_reason,referral_backfill_on,' + tail;
+      const cols = 'id,user_id,status,sales_date,notes,product,sale_type,lighting_amount,customer_name,customer_phone,customer_address,followup_name,followup_phone,followup_date,followup_done,followup_status,followup_stopped_reason,referral_backfill_on,' + tail;
       const noBackfill = 'id,user_id,status,sales_date,notes,product,customer_name,customer_phone,customer_address,followup_name,followup_phone,followup_date,followup_done,followup_status,followup_stopped_reason,' + tail;
       const shortCols = 'id,user_id,status,sales_date,notes,product,customer_name,customer_phone,customer_address,followup_name,followup_phone,followup_date,followup_done,' + tail;
       const run = (list) => {
@@ -5515,6 +5632,7 @@
         return q;
       };
       let res = await run(cols);
+      if (res.error && /lighting_amount/i.test(res.error.message || '')) res = await run(cols.replace(',lighting_amount', ''));
       if (res.error && /referral_backfill_on/i.test(res.error.message || '')) res = await run(noBackfill);
       if (res.error && /followup_status|followup_stopped_reason/i.test(res.error.message || '')) res = await run(shortCols);
       if (res.error) throw res.error;
@@ -5553,7 +5671,7 @@
           const late = r.plan.bucket === 'overdue';
           return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #FDE68A">'
             + '<div style="flex:1;min-width:0">'
-            + '<div style="display:flex;align-items:center;gap:6px;min-width:0">' + productBadgeHtml(r.product) + '<div style="font-size:14px;font-weight:800;color:#1F2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(r.name) + '</div></div>'
+            + '<div style="display:flex;align-items:center;gap:6px;min-width:0">' + productBadgeHtml(r.product, { combo: r.lightingCombo }) + (r.lightingCombo ? comboBadgeHtml() : '') + '<div style="font-size:14px;font-weight:800;color:#1F2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(r.name) + '</div></div>'
             + '<div style="font-size:11px;color:#92400E">' + escHtml(r.reason) + ' · ' + escHtml(r.stepLabel) + (late ? ' · overdue' : '') + '</div>'
             + '</div>'
             + '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">'
@@ -5613,7 +5731,7 @@
             const tel = digits10(r.phone);
             const doNotText = r.plan.bucket === 'done' && r.plan.stoppedReason === 'Do not text';
             return '<div class="fup-card ' + statusClass + '" onclick="openFu(\'' + r.id + '\')" style="cursor:pointer">'
-              + '<div class="fup-top"><div class="fup-name" style="display:flex;align-items:center;gap:6px">' + productBadgeHtml(r.product) + '<span>' + escHtml(r.name) + '</span></div>'
+              + '<div class="fup-top"><div class="fup-name" style="display:flex;align-items:center;gap:6px">' + productBadgeHtml(r.product, { combo: r.lightingCombo }) + (r.lightingCombo ? comboBadgeHtml() : '') + '<span>' + escHtml(r.name) + '</span></div>'
               + '<div style="font-size:11px;font-weight:700;color:var(--muted)">' + escHtml(dateLabel) + '</div></div>'
               + '<div class="fup-reason" style="margin-bottom:8px">' + meta + '</div>'
               + (r.address ? '<div style="font-size:11px;color:var(--muted);margin:-2px 0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + mapsDirLink(r.address) + '</div>' : '')
@@ -5753,6 +5871,90 @@
     function toggleChk(id) {
       document.getElementById(id).classList.toggle('active');
     }
+
+    function readComboForm(which) {
+      const edit = which === 'edit';
+      const box = document.getElementById(edit ? 'esChkCombo' : 'chkCombo');
+      const on = !!(box && box.classList.contains('active'));
+      const lf = roundMoney(parseFloat(document.getElementById(edit ? 'esComboLfAmt' : 'comboLfAmt')?.value) || 0);
+      const ltgRaw = parseFloat(document.getElementById(edit ? 'esComboLtgAmt' : 'comboLtgAmt')?.value);
+      const ltg = isFinite(ltgRaw) && ltgRaw > 0 ? roundMoney(ltgRaw) : 0;
+      return {
+        active: on,
+        legacy: !!(edit && on && ltg <= 0 && lf > 0),
+        leaffilter: lf,
+        lighting: ltg > 0 ? ltg : null,
+        total: roundMoney(lf + ltg)
+      };
+    }
+
+    function comboFormError(combo, opts) {
+      if (!combo || !combo.active) return '';
+      if (combo.legacy && opts && opts.allowLegacy) return '';
+      if (!(combo.leaffilter > 0) || !(combo.lighting > 0)) return 'Enter both the LeafFilter and Lighting amounts';
+      return '';
+    }
+
+    function comboSplitDropped(payload, saved) {
+      if (!payload || payload.lighting_amount == null) return false;
+      return !saved || !Object.prototype.hasOwnProperty.call(saved, 'lighting_amount');
+    }
+
+    function updateComboTotal(which) {
+      const edit = which === 'edit';
+      const lf = parseFloat(document.getElementById(edit ? 'esComboLfAmt' : 'comboLfAmt')?.value) || 0;
+      const ltg = parseFloat(document.getElementById(edit ? 'esComboLtgAmt' : 'comboLtgAmt')?.value) || 0;
+      const totalEl = document.getElementById(edit ? 'esComboTotal' : 'comboTotal');
+      if (totalEl) totalEl.textContent = formatComboMoney(lf + ltg);
+      const on = document.getElementById(edit ? 'esChkCombo' : 'chkCombo')?.classList.contains('active');
+      if (edit) {
+        const hint = document.getElementById('esJobNumLtgHint');
+        if (hint) hint.style.display = on && ltg > 0 ? 'inline' : 'none';
+        const sale = document.getElementById('esSaleAmt');
+        if (sale && on && (lf > 0 || ltg > 0)) sale.value = roundMoney(lf + ltg).toFixed(2);
+        const note = document.getElementById('esComboLegacyNote');
+        if (note && on) note.style.display = (note.dataset.legacy === '1' && !(ltg > 0)) ? 'block' : 'none';
+        if (typeof refreshSoldReadout === 'function') refreshSoldReadout();
+      } else if (typeof updateQcProductButtons === 'function') {
+        updateQcProductButtons();
+      }
+    }
+
+    function syncComboPanel(which) {
+      const edit = which === 'edit';
+      const on = document.getElementById(edit ? 'esChkCombo' : 'chkCombo')?.classList.contains('active');
+      const box = document.getElementById(edit ? 'esComboAmtBox' : 'comboAmtBox');
+      if (box) box.style.display = on ? 'block' : 'none';
+      const saleWrap = document.getElementById('esSingleSaleWrap');
+      if (edit && saleWrap) saleWrap.style.display = on ? 'none' : '';
+      updateComboTotal(which);
+    }
+
+    function toggleLightingCombo(which) {
+      const edit = which === 'edit';
+      const chk = document.getElementById(edit ? 'esChkCombo' : 'chkCombo');
+      if (!chk) return;
+      chk.classList.toggle('active');
+      if (chk.classList.contains('active')) {
+        if (!edit) {
+          const soldAt = parseFloat(document.getElementById('qcSoldAt')?.value) || 0;
+          if (soldAt > 0) {
+            const targetId = _qcProduct === 'roofline' ? 'comboLtgAmt' : 'comboLfAmt';
+            const target = document.getElementById(targetId);
+            if (target && !target.value) target.value = soldAt;
+          }
+        } else {
+          const lf = document.getElementById('esComboLfAmt');
+          const ltg = document.getElementById('esComboLtgAmt');
+          const sale = parseFloat(document.getElementById('esSaleAmt')?.value) || 0;
+          if (sale > 0 && lf && ltg && !lf.value && !ltg.value) {
+            if (esProduct === 'roofline') ltg.value = sale;
+            else lf.value = sale;
+          }
+        }
+      }
+      syncComboPanel(which);
+    }
     function togglePaid() {
       isPaid = !isPaid;
       document.getElementById('paidChk').classList.toggle('on', isPaid);
@@ -5834,16 +6036,20 @@
           phoneEl: document.getElementById('soldCustPhone')
         });
         if (!contact) return false;
-        const isCombo = document.getElementById('chkCombo').classList.contains('active');
+        const combo = readComboForm('log');
+        const comboErr = comboFormError(combo, { allowLegacy: false });
+        if (comboErr) { toast(comboErr, 'err'); return false; }
+        const savedCombo = comboSaveFields(combo, document.getElementById('jobNum').value, _qcProduct, amt);
         const isRehash = document.getElementById('chkRehash').classList.contains('active');
         const isSelfGen = document.getElementById('chkSelfGen').classList.contains('active');
         const payload = {
           status: 'sold',
-          sale_amount: amt,
-          product: _qcProduct,
-          sale_type: isCombo ? 'combo' : 'single',
+          sale_amount: savedCombo.sale_amount,
+          product: savedCombo.product,
+          sale_type: savedCombo.sale_type,
+          lighting_amount: savedCombo.lighting_amount,
           lead_type: isRehash ? 'rehash' : isSelfGen ? 'self_gen' : 'company',
-          job_number: tagJobNum(document.getElementById('jobNum').value, _qcProduct),
+          job_number: savedCombo.job_number,
           sales_date: document.getElementById('salesDate').value || null,
           install_date: document.getElementById('installDate').value || null,
           commission_amount: parseFloat(document.getElementById('commAmt').value) || null,
@@ -5870,11 +6076,14 @@
         const writeSold = (row) => quotingAppt
           ? sb.from('leads').update(row).eq('id', quotingAppt.id).eq('status', 'pending').select().single()
           : sb.from('leads').insert(row).select().single();
-        let { data, error } = await writeLeadTolerant(writeSold, payload, ['product']);
+        let { data, error, saved } = await writeLeadTolerant(writeSold, payload, ['product']);
         if (error) {
           toast('Save failed: ' + (error.message || 'unknown error'), 'err');
           console.error('[sold save]', error);
           return false;
+        }
+        if (comboSplitDropped(payload, saved)) {
+          toast('Sale saved as one job. The lighting split needs the database update before it is stored separately.', 'err');
         }
         if (quotingAppt) {
           lastUndo = { mode: 'revert', id: quotingAppt.id, restore, mileageDate };
@@ -5885,9 +6094,10 @@
         lastId = data.id;
         saveLocationForLead(data.id, document.getElementById('calCustAddr').value || null);
 
+        const loggedAmt = payload.sale_amount;
         showUndo(quotingAppt
-          ? 'Sale of $' + amt.toLocaleString() + ' saved on the appointment'
-          : 'Sale of $' + amt.toLocaleString() + ' logged!');
+          ? 'Sale of $' + loggedAmt.toLocaleString() + ' saved on the appointment'
+          : 'Sale of $' + loggedAmt.toLocaleString() + ' logged!');
         scheduleMileageRecalc(mileageDate);
         try { await stopOpenFollowupsForSale(contact.phone || payload.customer_phone); } catch (e) {}
         loadAppointments();
@@ -5975,7 +6185,7 @@
           const msg = error.message || '';
           const next = Object.assign({}, attempt);
           let stripped = false;
-          ['drove_there', 'followup_status', 'followup_stopped_reason', 'footage', 'quote_items', 'retail_price', 'par_price'].forEach(col => {
+          ['drove_there', 'followup_status', 'followup_stopped_reason', 'footage', 'quote_items', 'retail_price', 'par_price', 'lighting_amount'].forEach(col => {
             if (new RegExp(col, 'i').test(msg) && Object.prototype.hasOwnProperty.call(next, col)) {
               delete next[col];
               stripped = true;
@@ -6114,15 +6324,20 @@
       return product === 'roofline' ? 'roofline' : 'leaffilter';
     }
 
-    function productBadgeHtml(product) {
+    function productBadgeHtml(product, opts) {
+      if (opts && opts.combo) return '<span class="hbadge lf">LF</span><span class="hbadge ltg">LTG</span>';
       const ltg = leadProductKey(product) === 'roofline';
       return '<span class="hbadge ' + (ltg ? 'ltg' : 'lf') + '">' + (ltg ? 'LTG' : 'LF') + '</span>';
+    }
+
+    function comboBadgeHtml() {
+      return '<span style="font-size:9px;font-weight:700;background:#E0F4FF;color:#0077A8;border-radius:4px;padding:1px 5px">COMBO</span>';
     }
 
     function applyHistProduct(leads) {
       const rows = leads || [];
       if (histProductFilter === 'all') return rows;
-      return rows.filter(l => leadProductKey(l.product) === histProductFilter);
+      return rows.filter(l => leadInProductFilter(l, histProductFilter));
     }
 
     function setHistProduct(p, btn) {
@@ -6235,7 +6450,7 @@
         const noteLine = escHtml(((l.notes || '').split('\n').map(s => s.trim()).filter(Boolean)[0]) || '');
         const main = sold ? '$' + (parseFloat(l.sale_amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 0 }) : (l.not_sold_reasons?.label || noteLine || 'No reason');
         const tags = [];
-        if (l.sale_type === 'combo') tags.push('<span style="font-size:9px;font-weight:700;background:#E0F4FF;color:#0077A8;border-radius:4px;padding:1px 5px">COMBO</span>');
+        if (l.sale_type === 'combo') tags.push(comboBadgeHtml());
         if (l.lead_type === 'rehash') tags.push('<span style="font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 5px">REHASH</span>');
         if (l.lead_type === 'self_gen') tags.push('<span style="font-size:9px;font-weight:700;background:var(--green-light);color:var(--green-dark);border-radius:4px;padding:1px 5px">SELF GEN</span>');
         if (l.commission_paid) tags.push('<span style="font-size:9px;font-weight:700;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 5px">COMM PAID</span>');
@@ -6264,11 +6479,12 @@
         <div class="hcard-top">
           <span style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
             <span class="hbadge ${sold ? 'sold' : 'ns'}">${sold ? 'SOLD' : 'NOT SOLD'}</span>
-            ${productBadgeHtml(l.product)}
+            ${productBadgeHtml(l.product, { combo: isLightingCombo(l) })}
           </span>
           <span class="hcard-time">${displayDate}</span>
         </div>
         <div class="hcard-main ${sold ? 'g' : ''}">${main}</div>
+        ${isLightingCombo(l) ? `<div class="hcard-note">LeafFilter $${Math.round(lightingComboParts(l).leaffilter).toLocaleString('en-US')} · Lighting $${Math.round(lightingComboParts(l).lighting).toLocaleString('en-US')}</div>` : ''}
         ${tags.length ? '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">' + tags.join('') + '</div>' : ''}
         ${sold && l.retail_percentage ? `<div style="font-size:11px;color:var(--text);margin-top:4px">Retail: <strong>${parseFloat(l.retail_percentage).toFixed(1)}%</strong> &nbsp; Comm: <strong>${parseFloat(l.commission_percentage || 0).toFixed(1)}%</strong></div>` : ''}
         ${l.customer_address ? `<div class="hcard-note">${mapsDirLink(l.customer_address)}</div>` : ''}
@@ -6441,9 +6657,13 @@
     }
 
     // Unknown footage/quote_items (and other optional columns) are dropped and the write is retried.
+    // lighting_amount is added by a migration. Until that column exists, remember the miss
+    // so later saves in this session don't repeat the failed request.
+    let lightingAmountColumnMissing = false;
     async function writeLeadTolerant(writeFn, payload, extraCols) {
-      const optional = ['footage', 'quote_items', 'par_price', 'retail_price', 'followup_status', 'followup_stopped_reason', 'drove_there'].concat(extraCols || []);
+      const optional = ['footage', 'quote_items', 'par_price', 'retail_price', 'followup_status', 'followup_stopped_reason', 'drove_there', 'lighting_amount'].concat(extraCols || []);
       let row = Object.assign({}, payload);
+      if (lightingAmountColumnMissing) delete row.lighting_amount;
       let result = await writeFn(row);
       for (let n = 0; result && result.error && n < optional.length; n++) {
         const msg = String(result.error.message || '').toLowerCase();
@@ -6453,6 +6673,7 @@
           if (Object.prototype.hasOwnProperty.call(next, col) && msg.includes(String(col).toLowerCase())) {
             delete next[col];
             stripped = true;
+            if (col === 'lighting_amount') lightingAmountColumnMissing = true;
           }
         });
         if (!stripped) break;
@@ -6474,7 +6695,11 @@
       const retEl = document.getElementById('esSoldRetailRead');
       const ftEl = document.getElementById('esSoldFootageRead');
       if (addrEl) addrEl.innerHTML = esCustomerAddress ? mapsDirLink(esCustomerAddress) : '';
-      if (prodEl) prodEl.textContent = 'Product: ' + productReadLabel(esProduct);
+      if (prodEl) {
+        const comboOn = document.getElementById('esChkCombo')?.classList.contains('active');
+        const ltg = parseFloat(document.getElementById('esComboLtgAmt')?.value) || 0;
+        prodEl.textContent = comboOn && ltg > 0 ? 'Product: LeafFilter + Lighting' : ('Product: ' + productReadLabel(esProduct));
+      }
       const retail = parseFloat(document.getElementById('esSoldRetail')?.value) || parseFloat(document.getElementById('esNsRetail')?.value) || 0;
       if (retEl) retEl.textContent = retail > 0 ? 'Retail: $' + moneyLabel(retail) : '';
       const feet = footageNumber(document.getElementById('esNsFootage')?.value);
@@ -6541,8 +6766,21 @@
       esBtd = l.is_btd || false;
       document.getElementById('esBtdChk').classList.toggle('on', esBtd);
 
-      // Checkboxes
+      // Checkboxes. Lighting combos split the one sale_amount. Older combos keep the combined amount in LeafFilter and leave Lighting blank.
       document.getElementById('esChkCombo').classList.toggle('active', l.sale_type === 'combo');
+      const lightCombo = isLightingCombo(l);
+      const legacyCombo = l.sale_type === 'combo' && !lightCombo;
+      const parts = lightCombo ? lightingComboParts(l) : null;
+      const lfInput = document.getElementById('esComboLfAmt');
+      const ltgInput = document.getElementById('esComboLtgAmt');
+      if (lfInput) lfInput.value = lightCombo ? parts.leaffilter : (legacyCombo ? (l.sale_amount || '') : '');
+      if (ltgInput) ltgInput.value = lightCombo ? parts.lighting : '';
+      const legacyNote = document.getElementById('esComboLegacyNote');
+      if (legacyNote) {
+        legacyNote.dataset.legacy = legacyCombo ? '1' : '';
+        legacyNote.style.display = legacyCombo ? 'block' : 'none';
+      }
+      syncComboPanel('edit');
       document.getElementById('esChkRehash').classList.toggle('active', l.lead_type === 'rehash');
       document.getElementById('esChkSelfGen').classList.toggle('active', l.lead_type === 'self_gen');
 
@@ -6706,19 +6944,26 @@
       if (!editLeadId) return;
       const payload = { status: esStatus, product: leadProductKey(esProduct) };
       if (esStatus === 'sold') {
-        const amt = parseFloat(document.getElementById('esSaleAmt').value);
+        const combo = readComboForm('edit');
+        const comboErr = comboFormError(combo, { allowLegacy: true });
+        if (comboErr) { toast(comboErr, 'err'); return; }
+        const singleAmt = parseFloat(document.getElementById('esSaleAmt').value);
+        const savedCombo = comboSaveFields(combo, document.getElementById('esJobNum').value, esProduct, singleAmt);
+        const amt = savedCombo.sale_amount;
         if (!amt || amt <= 0) { toast('Enter a valid sale amount', 'err'); return; }
         const contact = validateSoldContact({
           nameEl: document.getElementById('esSoldCustName'),
           phoneEl: document.getElementById('esSoldCustPhone')
         });
         if (!contact) return;
-        payload.sale_amount = amt;
-        payload.sale_type = document.getElementById('esChkCombo').classList.contains('active') ? 'combo' : 'single';
+        payload.sale_amount = savedCombo.sale_amount;
+        payload.sale_type = savedCombo.sale_type;
+        payload.lighting_amount = savedCombo.lighting_amount;
+        payload.product = savedCombo.product;
         const isRehash = document.getElementById('esChkRehash').classList.contains('active');
         const isSelfGen = document.getElementById('esChkSelfGen').classList.contains('active');
         payload.lead_type = isRehash ? 'rehash' : isSelfGen ? 'self_gen' : 'company';
-        payload.job_number = tagJobNum(document.getElementById('esJobNum').value, esProduct);
+        payload.job_number = savedCombo.job_number;
         payload.sales_date = document.getElementById('esSalesDate').value || null;
         payload.install_date = document.getElementById('esInstallDate').value || null;
         payload.commission_amount = parseFloat(document.getElementById('esCommAmt').value) || null;
@@ -6768,6 +7013,7 @@
         if (Array.isArray(esQuoteItems)) payload.quote_items = esQuoteItems;
         payload.commission_amount = null;
         payload.commission_paid = false;
+        payload.lighting_amount = null;
 
         const editReason = reasons.find(r => String(r.id) === String(esSelReason))?.label || '';
         const doneChecked = document.getElementById('esNsFuDone').checked;
@@ -6832,8 +7078,11 @@
       payload.notes = soldNotes || null;
       const soldPhone = payload.customer_phone || payload.followup_phone;
       const soldLeadId = editLeadId;
-      let { error } = await writeLeadTolerant((row) => sb.from('leads').update(row).eq('id', soldLeadId), payload);
+      let { error, saved } = await writeLeadTolerant((row) => sb.from('leads').update(row).eq('id', soldLeadId), payload);
       if (error) { toast('Error saving', 'err'); console.error(error); return; }
+      if (comboSplitDropped(payload, saved)) {
+        toast('Lead saved. The lighting split needs the database update before it is stored separately.', 'err');
+      }
       if (!esCancelled && !esBtd) {
         try { await stopOpenFollowupsForSale(soldPhone); } catch (e) {}
       }
@@ -6998,7 +7247,7 @@
 
       // Fetch all unpaid sold leads with install dates — exclude cancelled.
       // is_funded is optional until the additive migration is applied.
-      const commBaseCols = 'id,job_number,install_date,sales_date,commission_amount,commission_paid,sale_amount,is_cancelled,is_btd,pay_push_weeks';
+      const commBaseCols = 'id,job_number,install_date,sales_date,commission_amount,commission_paid,sale_amount,is_cancelled,is_btd,pay_push_weeks,sale_type';
       const commQuery = (cols) => sb
         .from('leads')
         .select(cols)
@@ -7007,7 +7256,8 @@
         .not('install_date', 'is', null)
         .eq('commission_paid', false)
         .order('install_date', { ascending: true });
-      let commRes = await commQuery(commBaseCols + ',is_funded');
+      let commRes = await commQuery(commBaseCols + ',is_funded,lighting_amount');
+      if (commRes.error && /lighting_amount/i.test(commRes.error.message || '')) commRes = await commQuery(commBaseCols + ',is_funded');
       if (commRes.error && /is_funded/i.test(commRes.error.message || '')) commRes = await commQuery(commBaseCols);
       const leads = commRes.data;
       const error = commRes.error;
@@ -7079,6 +7329,7 @@
         <span style="font-size:13px;color:var(--muted);line-height:1.5">${fmtInstall(j.install_date)}${fmtSalesDate(j.sales_date) ? `<br><span style="font-size:10px;color:#9CA3AF">Sold ${fmtSalesDate(j.sales_date)}</span>` : ''}</span>
         <span>
           <span onclick="openLeadEdit('${j.id}')" style="font-size:13px;font-weight:700;color:${fundedColor || 'var(--green-dark)'};text-decoration:underline;text-underline-offset:2px;cursor:pointer">${j.job_number || '<span style="color:var(--muted);font-weight:400;text-decoration:none">tap to edit</span>'}</span>
+          ${j.sale_type === 'combo' ? '<div style="margin-top:2px">' + comboBadgeHtml() + (isLightingCombo(j) ? '<span style="font-size:9px;font-weight:700;color:#0369A1;margin-left:4px">LF ' + fmtMoney(lightingComboParts(j).leaffilter) + ' · LTG ' + fmtMoney(lightingComboParts(j).lighting) + '</span>' : '') + '</div>' : ''}
           ${pushWeeks > 0
             ? `<div style="font-size:9px;font-weight:700;color:#9333EA;margin-top:2px">⏭️ Pushed +${pushWeeks} cycle${pushWeeks > 1 ? 's' : ''} &nbsp;<span onclick="pushCommCycle('${j.id}',${pushWeeks},'${j.install_date}')" style="text-decoration:underline;cursor:pointer;color:#9333EA;font-weight:700">push again</span> &nbsp;<span onclick="resetCommPush('${j.id}')" style="text-decoration:underline;cursor:pointer;color:var(--muted);font-weight:600">undo</span></div>`
             : `<div style="margin-top:2px"><span onclick="pushCommCycle('${j.id}',${pushWeeks},'${j.install_date}')" style="font-size:9px;font-weight:700;color:#9333EA;text-decoration:underline;cursor:pointer">⏭️ Push to next cycle</span></div>`}
@@ -7157,7 +7408,7 @@
 
       const { data: leads, error } = await sb
         .from('leads')
-        .select('id,job_number,install_date,sale_amount,commission_amount,commission_paid,retail_percentage,commission_percentage,is_cancelled')
+        .select('id,job_number,install_date,sale_amount,commission_amount,commission_paid,retail_percentage,commission_percentage,is_cancelled,sale_type')
         .eq('status', 'sold')
         .neq('is_cancelled', true)
         .not('install_date', 'is', null)
@@ -7267,7 +7518,7 @@
             ${w.leads.map(j => `
             <div style="display:grid;grid-template-columns:88px 1fr 72px 80px;padding:9px 12px;border-top:1px solid #F3F4F6;align-items:center">
               <span style="font-size:12px;color:var(--muted)">${fmtInstall(j.install_date)}</span>
-              <span onclick="event.stopPropagation();openLeadEdit('${j.id}')" style="font-size:12px;font-weight:700;color:var(--green-dark);text-decoration:underline;text-underline-offset:2px;cursor:pointer">${j.job_number || '<span style="color:var(--muted);font-weight:400;text-decoration:none">tap to edit</span>'}</span>
+              <span onclick="event.stopPropagation();openLeadEdit('${j.id}')" style="font-size:12px;font-weight:700;color:var(--green-dark);text-decoration:underline;text-underline-offset:2px;cursor:pointer">${j.job_number || '<span style="color:var(--muted);font-weight:400;text-decoration:none">tap to edit</span>'}${j.sale_type === 'combo' ? ' ' + comboBadgeHtml() : ''}</span>
               <span style="font-size:12px;font-weight:600;text-align:right;color:var(--text)">${j.sale_amount ? fmtMoney(j.sale_amount) : '—'}</span>
               <span style="font-size:12px;font-weight:700;text-align:right;color:var(--green-dark)">${fmtMoney(j.commission_amount)}</span>
             </div>`).join('')}
@@ -8024,6 +8275,11 @@
       document.getElementById('paidChk').classList.remove('on');
       ['chkCombo', 'chkRehash', 'chkSelfGen'].forEach(id =>
         document.getElementById(id).classList.remove('active'));
+      ['comboLfAmt', 'comboLtgAmt'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      syncComboPanel('log');
       document.getElementById('ccNotNotes').value = '';
       document.getElementById('ccNotSoldDate').value = today;
       document.getElementById('ccNotLeftAt').value = '';
@@ -8081,12 +8337,20 @@
 
     async function submitLeadFromCalc(type) {
       if (type === 'sold') {
-        const soldAt = parseFloat(document.getElementById('qcSoldAt').value);
-        if (!soldAt || soldAt <= 0) { toast('Enter a sale price in "Sold At $"', 'err'); return; }
-        document.getElementById('saleAmt').value = soldAt.toFixed(2);
-        
+        const combo = readComboForm('log');
+        const comboErr = comboFormError(combo, { allowLegacy: false });
+        if (comboErr) { toast(comboErr, 'err'); return; }
+        if (combo.active) {
+          document.getElementById('saleAmt').value = combo.total.toFixed(2);
+        } else {
+          const soldAt = parseFloat(document.getElementById('qcSoldAt').value);
+          if (!soldAt || soldAt <= 0) { toast('Enter a sale price in "Sold At $"', 'err'); return; }
+          document.getElementById('saleAmt').value = soldAt.toFixed(2);
+        }
+
         const commAmtVal = parseFloat(document.getElementById('commAmt').value);
-        if (isNaN(commAmtVal)) {
+        // Combo commission is the one job total Steve types. Don't copy the single-product calculator into it.
+        if (!combo.active && isNaN(commAmtVal)) {
            const commTotal = parseFloat(document.getElementById('qcComm').textContent.replace(/[$,]/g, '')) || 0;
            document.getElementById('commAmt').value = commTotal.toFixed(2);
         }
@@ -8322,6 +8586,7 @@
         commission_percentage: null,
         retail_price: null,
         par_price: null,
+        lighting_amount: null,
         footage: null,
         quote_items: null,
         draw_sheet_url: null,
@@ -8614,7 +8879,8 @@
       if (lf) lf.classList.toggle('active', _qcProduct === 'leaffilter');
       if (rl) rl.classList.toggle('active', _qcProduct === 'roofline');
       const ltg = document.getElementById('jobNumLtgHint');
-      if (ltg) ltg.style.display = _qcProduct === 'roofline' ? 'inline' : 'none';
+      const comboOn = document.getElementById('chkCombo')?.classList.contains('active');
+      if (ltg) ltg.style.display = (_qcProduct === 'roofline' || comboOn) ? 'inline' : 'none';
       const hint = document.getElementById('ccNotProductHint');
       if (hint) {
         const lighting = _qcProduct === 'roofline';
