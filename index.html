@@ -6344,6 +6344,45 @@
       }, 0);
     }
 
+    function isLeafFilterInstallSection(section) {
+      return /leaffilter installation/i.test(String(section || ''));
+    }
+
+    /** "1st Floor – 5\"" -> "1st floor". Null when the line is not a story. */
+    function floorNameFromLabel(label) {
+      const m = String(label || '').match(/^\s*(\d+)(st|nd|rd|th)\s+floor\b/i);
+      if (!m) return null;
+      return m[1] + m[2].toLowerCase() + ' floor';
+    }
+
+    /**
+     * Per-floor linear feet from LeafFilter Installation rows only.
+     * Multiple sizes on one story (5", 6", Versa Max) add together.
+     * Extras, gutters, and lighting are ignored. Floors stay in price-list order.
+     */
+    function leafFilterFloorFootage(items) {
+      const order = [];
+      const totals = Object.create(null);
+      (items || []).forEach(item => {
+        if (!item || !isFootageUnit(item.u) || !isLeafFilterInstallSection(item.s)) return;
+        const name = floorNameFromLabel(item.l);
+        if (!name) return;
+        const qty = parseFloat(item.qty);
+        if (!(qty > 0)) return;
+        if (!Object.prototype.hasOwnProperty.call(totals, name)) {
+          totals[name] = 0;
+          order.push(name);
+        }
+        totals[name] += qty;
+      });
+      const floors = order.map(name => ({
+        name: name,
+        feet: Math.round(totals[name] * 100) / 100
+      }));
+      const total = Math.round(floors.reduce((sum, floor) => sum + floor.feet, 0) * 100) / 100;
+      return { floors: floors, total: total };
+    }
+
     function quoteItemsFromPriceList(list, qtyAt) {
       const items = [];
       (list || []).forEach((item, i) => {
@@ -8584,10 +8623,41 @@
       }
     }
 
+    function qcFloorTotalsShell() {
+      return `<div id="qcFloorTotals" aria-live="polite" style="display:none;margin:4px 0 8px;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:10px;padding:10px 12px">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.6px;color:#166534;text-transform:uppercase;margin-bottom:4px">Footage by floor</div>
+        <div id="qcFloorTotalsBody"></div>
+      </div>`;
+    }
+
+    function updateQcFloorTotals() {
+      const box = document.getElementById('qcFloorTotals');
+      const body = document.getElementById('qcFloorTotalsBody');
+      if (!box || !body) return;
+      const summary = leafFilterFloorFootage(currentQuoteItems());
+      if (!summary.floors.length) {
+        box.style.display = 'none';
+        body.innerHTML = '';
+        return;
+      }
+      const row = (label, feet, isTotal) => {
+        const rule = isTotal ? 'margin-top:4px;padding-top:6px;border-top:1px solid #BBF7D0;' : '';
+        const spoken = escHtml(label) + ': ' + escHtml(formatFootageQty(feet)) + ' ft';
+        return `<div class="qc-floor-row" data-floor="${escHtml(isTotal ? 'total' : label)}" aria-label="${spoken}" style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:${isTotal ? '15px' : '14px'};font-weight:${isTotal ? '800' : '700'};color:${isTotal ? '#166534' : 'var(--text)'};line-height:1.5;${rule}"><span>${escHtml(label)}</span><span>${escHtml(formatFootageQty(feet))} ft</span></div>`;
+      };
+      let html = summary.floors.map(floor => row(floor.name, floor.feet, false)).join('');
+      if (summary.floors.length > 1) html += row('Total', summary.total, true);
+      body.innerHTML = html;
+      box.style.display = '';
+    }
+
     function renderQCItems() {
       const container = document.getElementById('qcItems');
       let html = '';
       let curSection = '';
+      const lastLfInstall = PRICE_LIST.reduce((idx, item, i) => (
+        isLeafFilterInstallSection(item.s) ? i : idx
+      ), -1);
       PRICE_LIST.forEach((item, i) => {
         if (item.s !== curSection) {
           curSection = item.s;
@@ -8608,8 +8678,10 @@
           oninput="calcQuote()" id="qc_${i}">
         <div id="qc_ext_${i}" style="font-size:12px;font-weight:700;text-align:right;color:var(--green-dark)">$0</div>
       </div>`;
+        if (i === lastLfInstall) html += qcFloorTotalsShell();
       });
       container.innerHTML = html;
+      updateQcFloorTotals();
     }
 
     function toggleQcOverage() {
@@ -8744,6 +8816,7 @@
       if (ftInput && ftInput.dataset.touched !== '1') {
         ftInput.value = quotedFeet > 0 ? formatFootageQty(quotedFeet) : '';
       }
+      updateQcFloorTotals();
       
       // Auto-update Log Outcome sold inputs
       const qcSold = document.getElementById('qcSoldAt').value;

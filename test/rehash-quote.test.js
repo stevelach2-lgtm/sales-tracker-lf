@@ -244,3 +244,79 @@ test('converting a not-sold lead shows the quote and saves that same row', async
     window.toast = origToast;
   }
 });
+
+test('leafFilterFloorFootage sums each story and skips extras and lighting', () => {
+  const summary = window.leafFilterFloorFootage([
+    { s: 'LeafFilter Installation', l: '1st Floor – 5"', u: 'ft', qty: 50, p: 39 },
+    { s: 'LeafFilter Installation', l: '1st Floor – 6"', u: 'ft', qty: 35, p: 40 },
+    { s: 'LeafFilter Installation', l: '1st Floor – Versa Max', u: 'ft', qty: 0, p: 50 },
+    { s: 'LeafFilter Installation', l: '2nd Floor – 5"', u: 'ft', qty: 60, p: 41 },
+    { s: 'LeafFilter Installation', l: '3rd Floor – 6"', u: 'ft', qty: '', p: 44 },
+    { s: 'LeafFilter Extras', l: 'Remove gutter protection', u: 'ft', qty: 15, p: 3 },
+    { s: 'Roof Line Lighting Installation', l: 'Installed Lighting (All Stories)', u: 'ft', qty: 40, p: 44 }
+  ]);
+  assert.deepEqual(JSON.parse(JSON.stringify(summary)), {
+    floors: [
+      { name: '1st floor', feet: 85 },
+      { name: '2nd floor', feet: 60 }
+    ],
+    total: 145
+  });
+  assert.equal(window.floorNameFromLabel('4th Floor – 5"'), '4th floor');
+  assert.equal(window.floorNameFromLabel('Inside/Outside Mitres'), null);
+});
+
+test('quote calculator shows live per-floor totals under LeafFilter Installation', () => {
+  window.setQcProduct('leaffilter');
+  window.renderQCItems();
+  const items = document.getElementById('qcItems');
+  const box = document.getElementById('qcFloorTotals');
+  assert.ok(box);
+  assert.equal(box.style.display, 'none');
+
+  const children = Array.from(items.children);
+  const lastInstall = document.getElementById('qc_6').parentElement;
+  const extrasHeader = children.find(el => /LeafFilter Extras/i.test(el.textContent) && !el.querySelector('input'));
+  assert.ok(extrasHeader);
+  assert.equal(lastInstall.nextElementSibling, box);
+  assert.equal(box.nextElementSibling, extrasHeader);
+
+  const retailBefore = document.getElementById('qcRetailHidden').value;
+  document.getElementById('qc_0').value = '50';
+  document.getElementById('qc_1').value = '35';
+  document.getElementById('qc_3').value = '60';
+  document.getElementById('qc_7').value = '15';
+  window.calcQuote();
+
+  function floorText(name) {
+    const row = box.querySelector('[data-floor="' + name + '"]');
+    return row ? row.getAttribute('aria-label') : '';
+  }
+  assert.equal(box.style.display, '');
+  assert.equal(floorText('1st floor'), '1st floor: 85 ft');
+  assert.equal(floorText('2nd floor'), '2nd floor: 60 ft');
+  assert.equal(floorText('3rd floor'), '');
+  assert.equal(floorText('total'), 'Total: 145 ft');
+  assert.equal(document.getElementById('qcRetailHidden').value, (50 * 39 + 35 * 40 + 60 * 41 + 15 * 3).toFixed(2));
+  assert.notEqual(document.getElementById('qcRetailHidden').value, retailBefore);
+
+  document.getElementById('qc_3').value = '';
+  document.getElementById('qc_5').value = '10.5';
+  window.calcQuote();
+  assert.equal(floorText('2nd floor'), '');
+  assert.equal(floorText('3rd floor'), '3rd floor: 10.5 ft');
+  assert.equal(floorText('total'), 'Total: 95.5 ft');
+
+  document.getElementById('qc_0').value = '';
+  document.getElementById('qc_1').value = '';
+  document.getElementById('qc_5').value = '';
+  window.calcQuote();
+  assert.equal(box.style.display, 'none');
+  assert.equal(box.querySelector('.qc-floor-row'), null);
+
+  window.setQcProduct('roofline');
+  assert.equal(document.getElementById('qcFloorTotals'), null);
+  assert.match(document.getElementById('qcItems').textContent, /Installed Lighting/);
+  window.setQcProduct('leaffilter');
+  window.renderQCItems();
+});
