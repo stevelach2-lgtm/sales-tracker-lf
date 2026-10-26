@@ -424,6 +424,12 @@ do $$ begin
   if not exists (select 1 from information_schema.columns where table_name='app_settings' and column_name='admin_in_opening') then
     alter table public.app_settings add column admin_in_opening boolean default false;
   end if;
+  if not exists (select 1 from information_schema.columns where table_name='app_settings' and column_name='overage_pct_leaffilter') then
+    alter table public.app_settings add column overage_pct_leaffilter numeric default 40;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='app_settings' and column_name='overage_pct_roofline') then
+    alter table public.app_settings add column overage_pct_roofline numeric default 40;
+  end if;
 end $$;
 
 -- ============================================================
