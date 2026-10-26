@@ -7408,9 +7408,20 @@
       { s: 'Gutter Extras', l: 'Outside Vendor (materials × 3.5)', u: '$mat', p: 3.5 },
     ];
 
+    const ROOFLINE_PRICE_LIST_KEY = 'cc_price_list_roofline';
+    // Set the first time the roofline list is loaded after this price change.
+    // Later edits are left alone, even if someone sets a price back to $44 or $800.
+    const ROOFLINE_PRICE_MIGRATION_KEY = 'cc_roofline_price_migrated_48_850';
+    const ROOFLINE_INSTALLED_LABEL = 'Installed Lighting (All Stories)';
+    const ROOFLINE_CONTROL_BOX_LABEL = 'Control Box (1 required per job, powers up to 225\')';
+    const ROOFLINE_PRICE_BUMPS = [
+      { l: ROOFLINE_INSTALLED_LABEL, from: 44, to: 48 },
+      { l: ROOFLINE_CONTROL_BOX_LABEL, from: 800, to: 850 }
+    ];
+
     const DEFAULT_ROOFLINE_PRICE_LIST = [
-      { s: 'Roof Line Lighting Installation', l: 'Installed Lighting (All Stories)', u: 'ft', p: 44 },
-      { s: 'Roof Line Lighting Add-Ons', l: 'Control Box (1 required per job, powers up to 225\')', u: 'ea', p: 800 },
+      { s: 'Roof Line Lighting Installation', l: ROOFLINE_INSTALLED_LABEL, u: 'ft', p: 48 },
+      { s: 'Roof Line Lighting Add-Ons', l: ROOFLINE_CONTROL_BOX_LABEL, u: 'ea', p: 850 },
       { s: 'Roof Line Lighting Add-Ons', l: 'Booster Box (1 per additional 225\')', u: 'ea', p: 600 },
       { s: 'Roof Line Lighting Add-Ons', l: 'Wifi Extender', u: 'ea', p: 150 },
       { s: 'Roof Line Lighting Add-Ons', l: 'Electrical Outlet (outside vendor)', u: 'ea', p: 875 },
@@ -7439,14 +7450,45 @@
     }
 
     function qcPriceListKey() {
-      return _qcProduct === 'roofline' ? 'cc_price_list_roofline' : 'cc_price_list';
+      return _qcProduct === 'roofline' ? ROOFLINE_PRICE_LIST_KEY : 'cc_price_list';
     }
     function qcDefaultPriceList() {
       return _qcProduct === 'roofline' ? DEFAULT_ROOFLINE_PRICE_LIST : DEFAULT_LEAFFILTER_PRICE_LIST;
     }
+    function rooflinePriceIs(price, expected) {
+      if (typeof price === 'number') return price === expected;
+      if (typeof price === 'string' && price.trim() !== '') return Number(price) === expected;
+      return false;
+    }
+    // Bump only the previous default prices. Custom prices and every other row stay.
+    function migrateSavedRooflinePrices(list) {
+      if (!Array.isArray(list)) return { list: list, changed: false };
+      let changed = false;
+      const next = list.map(item => {
+        if (!item || typeof item !== 'object') return item;
+        const bump = ROOFLINE_PRICE_BUMPS.find(row => row.l === item.l && rooflinePriceIs(item.p, row.from));
+        if (!bump) return item;
+        changed = true;
+        return Object.assign({}, item, { p: bump.to });
+      });
+      return { list: changed ? next : list, changed };
+    }
+    function applyRooflinePriceMigration(stored) {
+      let done = false;
+      try { done = localStorage.getItem(ROOFLINE_PRICE_MIGRATION_KEY) === '1'; } catch (e) { done = false; }
+      if (done) return stored;
+      const migrated = migrateSavedRooflinePrices(stored);
+      if (migrated.changed) {
+        try { localStorage.setItem(ROOFLINE_PRICE_LIST_KEY, JSON.stringify(migrated.list)); }
+        catch (e) { return migrated.list; }
+      }
+      try { localStorage.setItem(ROOFLINE_PRICE_MIGRATION_KEY, '1'); } catch (e) {}
+      return migrated.changed ? migrated.list : stored;
+    }
     function qcLoadPriceList() {
       let stored = null;
       try { stored = JSON.parse(localStorage.getItem(qcPriceListKey())); } catch (e) { stored = null; }
+      if (_qcProduct === 'roofline') stored = applyRooflinePriceMigration(stored);
       PRICE_LIST = (Array.isArray(stored) && stored.length) ? stored : qcDefaultPriceList();
     }
 

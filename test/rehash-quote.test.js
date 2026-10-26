@@ -320,3 +320,129 @@ test('quote calculator shows live per-floor totals under LeafFilter Installation
   window.setQcProduct('leaffilter');
   window.renderQCItems();
 });
+
+const ROOFLINE_PRICE_KEY = 'cc_price_list_roofline';
+const ROOFLINE_MIGRATION_KEY = 'cc_roofline_price_migrated_48_850';
+const LIGHTING_LABEL = 'Installed Lighting (All Stories)';
+const CONTROL_BOX_LABEL = "Control Box (1 required per job, powers up to 225')";
+
+function qcRows() {
+  return Array.from(document.querySelectorAll('#qcItems input[id^="qc_"]')).map(input => {
+    const row = input.parentElement;
+    const label = row.children[0].children[0].textContent;
+    const unitPrice = row.children[0].children[1].textContent;
+    const ext = document.getElementById('qc_ext_' + input.id.slice(3));
+    return { label, unitPrice, qty: input.value, ext: ext ? ext.textContent : '' };
+  });
+}
+
+function rowByLabel(label) {
+  return qcRows().find(row => row.label === label);
+}
+
+function showRooflineQuote() {
+  window.setQcProduct('leaffilter');
+  window.setQcProduct('roofline');
+  window.calcQuote();
+}
+
+function savedRooflineList(overrides) {
+  const list = [
+    { s: 'Roof Line Lighting Installation', l: LIGHTING_LABEL, u: 'ft', p: 44 },
+    { s: 'Roof Line Lighting Add-Ons', l: CONTROL_BOX_LABEL, u: 'ea', p: 800 },
+    { s: 'Roof Line Lighting Add-Ons', l: 'Booster Box (1 per additional 225\')', u: 'ea', p: 600 },
+    { s: 'Roof Line Lighting Add-Ons', l: 'Wifi Extender', u: 'ea', p: 150 },
+    { s: 'Custom', l: 'My labor', u: 'hr', p: 90, note: 'keep-me' }
+  ];
+  (overrides || []).forEach(change => {
+    const item = list.find(row => row.l === change.l);
+    if (!item) list.push(change);
+    else Object.assign(item, change);
+  });
+  return list;
+}
+
+function resetRooflineStorage(list) {
+  window.localStorage.removeItem(ROOFLINE_MIGRATION_KEY);
+  if (list) window.localStorage.setItem(ROOFLINE_PRICE_KEY, JSON.stringify(list));
+  else window.localStorage.removeItem(ROOFLINE_PRICE_KEY);
+}
+
+test('fresh device shows roofline defaults of $48/ft and $850 control box', () => {
+  resetRooflineStorage(null);
+  showRooflineQuote();
+  const lighting = rowByLabel(LIGHTING_LABEL);
+  const control = rowByLabel(CONTROL_BOX_LABEL);
+  assert.ok(lighting);
+  assert.ok(control);
+  assert.equal(lighting.unitPrice, '$48/ft');
+  assert.equal(control.label, CONTROL_BOX_LABEL);
+  assert.equal(control.unitPrice, '$850/ea');
+  assert.equal(control.qty, '1');
+  assert.equal(control.ext, '$850.00');
+  assert.equal(window.localStorage.getItem(ROOFLINE_PRICE_KEY), null);
+  assert.equal(window.localStorage.getItem(ROOFLINE_MIGRATION_KEY), '1');
+  window.setQcProduct('leaffilter');
+});
+
+test('saved roofline defaults of $44/ft and $800 bump once and custom rows stay', () => {
+  const saved = savedRooflineList([
+    { l: 'Wifi Extender', p: 175 },
+    { l: 'Shorter Control Box', s: 'Custom', u: 'ea', p: 800 },
+    { l: 'Installed Lighting', s: 'Custom', u: 'ft', p: 44 }
+  ]);
+  resetRooflineStorage(saved);
+  showRooflineQuote();
+
+  assert.equal(rowByLabel(LIGHTING_LABEL).unitPrice, '$48/ft');
+  assert.equal(rowByLabel(CONTROL_BOX_LABEL).unitPrice, '$850/ea');
+  assert.equal(rowByLabel(CONTROL_BOX_LABEL).qty, '1');
+  assert.equal(rowByLabel(CONTROL_BOX_LABEL).ext, '$850.00');
+  assert.equal(rowByLabel('Wifi Extender').unitPrice, '$175/ea');
+  assert.equal(rowByLabel('Booster Box (1 per additional 225\')').unitPrice, '$600/ea');
+  assert.equal(rowByLabel('My labor').unitPrice, '$90/hr');
+  assert.equal(rowByLabel('Shorter Control Box').unitPrice, '$800/ea');
+  assert.equal(rowByLabel('Installed Lighting').unitPrice, '$44/ft');
+
+  const stored = JSON.parse(window.localStorage.getItem(ROOFLINE_PRICE_KEY));
+  assert.equal(stored.find(item => item.l === LIGHTING_LABEL).p, 48);
+  assert.equal(stored.find(item => item.l === CONTROL_BOX_LABEL).p, 850);
+  assert.equal(stored.find(item => item.l === 'Wifi Extender').p, 175);
+  assert.equal(stored.find(item => item.l === 'My labor').note, 'keep-me');
+  assert.equal(stored.find(item => item.l === 'My labor').p, 90);
+  assert.equal(stored.find(item => item.l === 'Shorter Control Box').p, 800);
+  assert.equal(stored.find(item => item.l === 'Installed Lighting').p, 44);
+  assert.equal(stored.length, saved.length);
+  assert.deepEqual(stored.map(item => item.l), saved.map(item => item.l));
+  assert.equal(window.localStorage.getItem(ROOFLINE_MIGRATION_KEY), '1');
+
+  stored.find(item => item.l === LIGHTING_LABEL).p = 44;
+  stored.find(item => item.l === CONTROL_BOX_LABEL).p = 800;
+  window.localStorage.setItem(ROOFLINE_PRICE_KEY, JSON.stringify(stored));
+  showRooflineQuote();
+  assert.equal(rowByLabel(LIGHTING_LABEL).unitPrice, '$44/ft');
+  assert.equal(rowByLabel(CONTROL_BOX_LABEL).unitPrice, '$800/ea');
+  assert.equal(rowByLabel('Wifi Extender').unitPrice, '$175/ea');
+
+  window.localStorage.removeItem(ROOFLINE_PRICE_KEY);
+  window.setQcProduct('leaffilter');
+});
+
+test('a roofline row already off the old default price is left alone', () => {
+  const saved = savedRooflineList([
+    { l: LIGHTING_LABEL, p: '44' },
+    { l: CONTROL_BOX_LABEL, p: 775 },
+    { l: 'Booster Box (1 per additional 225\')', p: 625 }
+  ]);
+  resetRooflineStorage(saved);
+  showRooflineQuote();
+  assert.equal(rowByLabel(LIGHTING_LABEL).unitPrice, '$48/ft');
+  assert.equal(rowByLabel(CONTROL_BOX_LABEL).unitPrice, '$775/ea');
+  assert.equal(rowByLabel('Booster Box (1 per additional 225\')').unitPrice, '$625/ea');
+  const stored = JSON.parse(window.localStorage.getItem(ROOFLINE_PRICE_KEY));
+  assert.equal(stored.find(item => item.l === LIGHTING_LABEL).p, 48);
+  assert.equal(stored.find(item => item.l === CONTROL_BOX_LABEL).p, 775);
+  assert.equal(stored.find(item => item.l === 'Booster Box (1 per additional 225\')').p, 625);
+  window.localStorage.removeItem(ROOFLINE_PRICE_KEY);
+  window.setQcProduct('leaffilter');
+});
