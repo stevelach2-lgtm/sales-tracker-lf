@@ -2645,18 +2645,18 @@
             <span id="overageIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
           </div>
           <div id="overageSection" style="display:none">
-            <div class="s-sub" style="margin-bottom:12px">Percent of the dollars above par that is paid as commission. Par stays 65% of retail, and par commission stays 8%. Each saved sale keeps the commission already stored on it.</div>
+            <div class="s-sub" style="margin-bottom:12px">One percentage per product. The quote opening price is retail × (1 + this %), and commission on the dollars above par uses the same percent. Par stays 65% of retail, and par commission stays 8%. Each saved sale keeps the commission already stored on it.</div>
             <div style="margin-bottom:12px">
               <label class="fl">LeafFilter overage (%)</label>
               <input type="number" class="fi" id="overageLf" placeholder="40" inputmode="decimal" min="0" max="100" step="0.1"
                 onchange="saveOveragePct('leaffilter', this.value)">
-              <div style="font-size:11px;color:var(--muted);margin-top:3px">LeafFilter quotes and the commission calculator. 40% until you change it.</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:3px">Shown on LeafFilter quotes and used in the commission calculator. 40% until you change it.</div>
             </div>
             <div style="margin-bottom:4px">
               <label class="fl">Lighting overage (%)</label>
               <input type="number" class="fi" id="overageLtg" placeholder="40" inputmode="decimal" min="0" max="100" step="0.1"
                 onchange="saveOveragePct('roofline', this.value)">
-              <div style="font-size:11px;color:var(--muted);margin-top:3px">Permanent lighting quotes and the commission calculator. 40% until you change it.</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:3px">Shown on lighting quotes and used in the commission calculator. 40% until you change it.</div>
             </div>
           </div>
         </div>
@@ -2670,39 +2670,12 @@
             <span id="calcIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
           </div>
           <div id="calcConfigSection" style="display:none">
-            <div class="s-sub" style="margin-bottom:10px">Manage your custom price list and quote settings.</div>
-            <div style="margin-bottom:12px">
+            <div class="s-sub" style="margin-bottom:10px">Manage your custom price list.</div>
+            <div style="margin-bottom:4px">
               <button onclick="openPriceListEditor()"
                 style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
                 🏷️ Edit Prices
               </button>
-            </div>
-            <div style="background:#FEF9C3;border:1.5px solid #FDE047;border-radius:12px;padding:14px;margin-bottom:4px">
-              <div style="font-size:12px;font-weight:800;color:#713F12;margin-bottom:10px;display:flex;align-items:center;gap:6px">💰 Quote Calculator Settings</div>
-              <label class="fl">Opening Price % Over Retail</label>
-              <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
-                <input type="number" class="fi" id="openingPricePct" min="0" max="200" step="0.1"
-                  placeholder="e.g. 15" inputmode="decimal" style="flex:1">
-                <button onclick="saveOpeningPricePct(document.getElementById('openingPricePct').value)"
-                  style="padding:10px 16px;background:#FACC15;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:12px;font-weight:800;color:#713F12;cursor:pointer;white-space:nowrap;flex-shrink:0">
-                  Save %
-                </button>
-              </div>
-              <div style="font-size:11px;color:#A16207;margin-bottom:12px">Opening Price = Retail × (1 + this %)</div>
-              <div onclick="toggleAdminDefault()" style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #FDE047;border-radius:9px;padding:10px 12px;cursor:pointer;user-select:none;margin-bottom:8px">
-                <div id="adminDefaultChk" style="width:20px;height:20px;border:2px solid #FDE047;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;transition:.15s"></div>
-                <div>
-                  <div style="font-size:12px;font-weight:700;color:#713F12">Admin in PAR minimum (default on)</div>
-                  <div style="font-size:10px;color:#A16207">Quote calc starts with $500 factored into PAR min</div>
-                </div>
-              </div>
-              <div onclick="toggleAdminInOpeningDefault()" style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #FDE047;border-radius:9px;padding:10px 12px;cursor:pointer;user-select:none">
-                <div id="adminInOpeningChk" style="width:20px;height:20px;border:2px solid #FDE047;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;transition:.15s"></div>
-                <div>
-                  <div style="font-size:12px;font-weight:700;color:#713F12">Add $500 admin to opening price (default)</div>
-                  <div style="font-size:10px;color:#A16207">Opening price = Retail × (1 + %) + $500</div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -2905,7 +2878,7 @@
           <div id="qcOverageChk" style="width:20px;height:20px;border:2px solid var(--border);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;transition:.15s"></div>
           <div>
             <div style="font-size:12px;font-weight:700;color:var(--text)">Include Overage Markup</div>
-            <div style="font-size:10px;color:var(--muted)">Apply opening % markup to opening price</div>
+            <div id="qcOverageHint" style="font-size:10px;color:var(--muted)">Apply this product's overage % to the opening price</div>
           </div>
         </button>
         <!-- Min-to-PAR indicator -->
@@ -8801,7 +8774,9 @@
         if (extEl) extEl.textContent = ext > 0 ? fmt(ext) : '$0';
       });
 
-      const openingPct = parseFloat(localStorage.getItem('cc_opening_pct')) || 0;
+      const openingPct = overagePctFor(_qcProduct);
+      const productName = leadProductKey(_qcProduct) === 'roofline' ? 'Lighting' : 'LeafFilter';
+      const pctLabel = formatOveragePct(openingPct) + '%';
       const par = retail * 0.65;
       const parPlusAdmin = par + 500;
       const adminAdd = qcAdminInOpening ? 500 : 0;
@@ -8812,12 +8787,21 @@
       const openingLabelEl = document.getElementById('qcOpeningLabel');
       if (openingLabelEl) {
         openingLabelEl.textContent = (qcOverageEnabled && openingPct > 0)
-          ? `OPENING PRICE (+${openingPct % 1 === 0 ? openingPct : openingPct.toFixed(1)}%)`
+          ? `OPENING PRICE (+${pctLabel})`
           : 'OPENING PRICE';
       }
+      const overageHint = document.getElementById('qcOverageHint');
+      if (overageHint) {
+        overageHint.textContent = qcOverageEnabled
+          ? `${productName} opening price includes ${pctLabel} over retail`
+          : `${productName} ${pctLabel} overage is not included in this opening price`;
+      }
       document.getElementById('qcOpening').textContent = retail > 0 ? fmt(openingPrice) : '$0.00';
+      const retailLine = `retail ${fmt(retail)}${adminAdd ? ' + $500 admin' : ''}`;
       document.getElementById('qcOpeningPct').textContent = retail > 0
-        ? `retail ${fmt(retail)}${adminAdd ? ' + $500 admin' : ''}`
+        ? (qcOverageEnabled && openingPct > 0
+          ? `${productName} overage ${pctLabel} · ${retailLine}`
+          : (!qcOverageEnabled ? `${productName} overage ${pctLabel} not included · ${retailLine}` : retailLine))
         : '';
       document.getElementById('qcParAdmin').textContent = retail > 0 ? fmt(parPlusAdmin) : '$0.00';
 
@@ -8985,6 +8969,23 @@
       if (ltg) ltg.value = formatOveragePct(overagePctFor('roofline'));
     }
 
+    // The retired single opening-price percent is copied onto a product only
+    // while that product is still on the untouched 40% default. 0 is the old
+    // control's own default, so it must not replace 40% or a saved percent.
+    function adoptOpeningPctWhenOverageUntouched(openingPct) {
+      const opening = clampOveragePct(openingPct);
+      if (opening == null || opening === 0 || opening === 40) return false;
+      let changed = false;
+      ['leaffilter', 'roofline'].forEach(product => {
+        const raw = localStorage.getItem(overageStorageKey(product));
+        const untouched = raw == null || String(raw).trim() === '' || clampOveragePct(raw) === 40;
+        if (!untouched) return;
+        localStorage.setItem(overageStorageKey(product), String(opening));
+        changed = true;
+      });
+      return changed;
+    }
+
     function saveOveragePct(product, val) {
       const key = leadProductKey(product) === 'roofline' ? 'roofline' : 'leaffilter';
       const input = document.getElementById(key === 'roofline' ? 'overageLtg' : 'overageLf');
@@ -9129,7 +9130,13 @@
         if (data.admin_in_opening != null) localStorage.setItem('cc_admin_in_opening', data.admin_in_opening ? 'true' : 'false');
         if (data.overage_pct_leaffilter != null) localStorage.setItem('cc_overage_pct_leaffilter', String(data.overage_pct_leaffilter));
         if (data.overage_pct_roofline != null) localStorage.setItem('cc_overage_pct_roofline', String(data.overage_pct_roofline));
+        const migrated = adoptOpeningPctWhenOverageUntouched(data.opening_price_pct);
+        if (migrated) {
+          localStorage.setItem('cc_opening_retired', '1');
+          localStorage.removeItem('cc_opening_pct');
+        }
         loadQuoteSettings();
+        if (migrated) await syncSettingsToSupabase();
       } catch (e) { /* silent — localStorage defaults still apply */ }
     }
 
@@ -9149,7 +9156,9 @@
           daily_sales: parseFloat(localStorage.getItem('bl_dailySales')) || 2,
           weekly_rev: parseFloat(localStorage.getItem('bl_weeklyRev')) || 5000,
           comm_goal: parseFloat(localStorage.getItem('commGoal')) || 5000,
-          opening_price_pct: parseFloat(localStorage.getItem('cc_opening_pct')) || 0,
+          opening_price_pct: localStorage.getItem('cc_opening_retired') === '1'
+            ? null
+            : (parseFloat(localStorage.getItem('cc_opening_pct')) || 0),
           admin_default: localStorage.getItem('cc_admin_default') !== 'false',
           admin_in_opening: localStorage.getItem('cc_admin_in_opening') === 'true',
           overage_pct_leaffilter: overagePctFor('leaffilter'),
