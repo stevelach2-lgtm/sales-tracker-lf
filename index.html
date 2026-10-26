@@ -2638,6 +2638,31 @@
 
         <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
 
+        <div class="settings-wrap" style="padding-top:0">
+          <div class="s-title" onclick="toggleSetSec('overageSection', 'overageIcon')"
+            style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; font-size:14px; color:var(--text)">
+            <span>💵 Overage</span>
+            <span id="overageIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
+          </div>
+          <div id="overageSection" style="display:none">
+            <div class="s-sub" style="margin-bottom:12px">Percent of the dollars above par that is paid as commission. Par stays 65% of retail, and par commission stays 8%. Each saved sale keeps the commission already stored on it.</div>
+            <div style="margin-bottom:12px">
+              <label class="fl">LeafFilter overage (%)</label>
+              <input type="number" class="fi" id="overageLf" placeholder="40" inputmode="decimal" min="0" max="100" step="0.1"
+                onchange="saveOveragePct('leaffilter', this.value)">
+              <div style="font-size:11px;color:var(--muted);margin-top:3px">LeafFilter quotes and the commission calculator. 40% until you change it.</div>
+            </div>
+            <div style="margin-bottom:4px">
+              <label class="fl">Lighting overage (%)</label>
+              <input type="number" class="fi" id="overageLtg" placeholder="40" inputmode="decimal" min="0" max="100" step="0.1"
+                onchange="saveOveragePct('roofline', this.value)">
+              <div style="font-size:11px;color:var(--muted);margin-top:3px">Permanent lighting quotes and the commission calculator. 40% until you change it.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
+
         <div class="settings-wrap" style="padding-top:0;margin-bottom:12px">
           <div class="s-title" onclick="toggleSetSec('calcConfigSection', 'calcIcon')"
             style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; font-size:14px; color:var(--muted)">
@@ -3349,7 +3374,7 @@
                 style="font-weight:700;color:#B45309">−$0.00</span></div>
             <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Overage (sold −
                 admin − fin. − par)</span><span id="ccOverage" style="font-weight:700">$0.00</span></div>
-            <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Overage Commission
+            <div style="display:flex;justify-content:space-between"><span id="ccOverCommLabel" style="color:var(--muted)">Overage Commission
                 (40%)</span><span id="ccOverComm" style="font-weight:700">$0.00</span></div>
           </div>
           <!-- Under-par rows -->
@@ -7708,6 +7733,78 @@
       container.innerHTML = html;
     }
 
+    function overageStorageKey(product) {
+      return leadProductKey(product) === 'roofline' ? 'cc_overage_pct_roofline' : 'cc_overage_pct_leaffilter';
+    }
+
+    function clampOveragePct(val) {
+      const n = parseFloat(val);
+      if (!isFinite(n)) return null;
+      return Math.round(Math.min(100, Math.max(0, n)) * 10) / 10;
+    }
+
+    function overagePctFor(product) {
+      const raw = localStorage.getItem(overageStorageKey(product));
+      if (raw == null || String(raw).trim() === '') return 40;
+      const n = clampOveragePct(raw);
+      return n == null ? 40 : n;
+    }
+
+    function formatOveragePct(n) {
+      const v = Math.round(Number(n) * 10) / 10;
+      if (!isFinite(v)) return '40';
+      return Math.abs(v - Math.round(v)) < 1e-6 ? String(Math.round(v)) : v.toFixed(1);
+    }
+
+    // At/above par: 8% of par (65% of retail) plus the product overage percent of
+    // (sold − $500 admin − finance − par). Under par keeps the flat tiers.
+    function saleCommission({ retail, sold, financeRatePct, overagePct }) {
+      const retailN = parseFloat(retail) || 0;
+      const soldN = parseFloat(sold) || 0;
+      const finRate = parseFloat(financeRatePct) || 0;
+      const clamped = clampOveragePct(overagePct);
+      const ratePct = clamped == null ? 40 : clamped;
+      const par = retailN * 0.65;
+      const finCharge = soldN * (finRate / 100);
+      const effectiveNet = soldN - 500 - finCharge;
+      const netPct = retailN > 0 ? (effectiveNet / retailN) * 100 : 0;
+      const isUnderPar = soldN > 0 && netPct < 65;
+      let parComm = 0;
+      let overage = 0;
+      let overComm = 0;
+      let rawTotal = 0;
+      let tierDesc = '';
+      let tierLabel = '';
+      if (!isUnderPar) {
+        parComm = par * 0.08;
+        overage = Math.max(0, effectiveNet - par);
+        overComm = overage * (ratePct / 100);
+        rawTotal = parComm + overComm;
+        tierLabel = netPct.toFixed(1) + '% net — at/above par · overage ' + formatOveragePct(ratePct) + '%';
+      } else {
+        let tierRate;
+        if (netPct >= 60) {
+          tierRate = 0.05;
+          tierDesc = 'Tier 1: 60–64.99% of retail (5%)';
+        } else if (netPct >= 55) {
+          tierRate = 0.02;
+          tierDesc = 'Tier 2: 55–59.99% of retail (2%)';
+        } else {
+          tierRate = 0.01;
+          tierDesc = 'Tier 3: Below 55% of retail (1%)';
+        }
+        rawTotal = effectiveNet * tierRate;
+        tierLabel = 'Net ' + netPct.toFixed(1) + '% → ' + tierDesc;
+      }
+      const finalComm = Math.max(0, rawTotal);
+      const finalCommPct = effectiveNet > 0 ? (finalComm / effectiveNet * 100) : 0;
+      return {
+        par, finCharge, effectiveNet, netPct, isUnderPar,
+        parComm, overage, overComm, tierDesc, tierLabel,
+        rawTotal, total: finalComm, finalCommPct, overagePct: ratePct
+      };
+    }
+
     function calcComm() {
       let retail = 0;
       PRICE_LIST.forEach((item, i) => {
@@ -7718,29 +7815,33 @@
         const extEl = document.getElementById('cc_ext_' + i);
         if (extEl) extEl.textContent = ext > 0 ? '$' + ext.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '$0';
       });
-      const par = retail * 0.65;
-      const parComm = par * 0.08;
       const soldRaw = parseFloat(document.getElementById('ccSoldAt').value) || 0;
 
       // Finance plan
       const planVal = document.getElementById('ccFinPlan').value;
-      let finCharge = 0, planNum = '', planRate = 0;
+      let planNum = '', planRate = 0;
       if (planVal) {
         const parts = planVal.split('|');
         planNum = parts[0];
         planRate = parseFloat(parts[1]) || 0;
-        finCharge = soldRaw * (planRate / 100);
       }
+      const product = ccTarget === 'edit' ? esProduct : _qcProduct;
+      const priced = saleCommission({
+        retail,
+        sold: soldRaw,
+        financeRatePct: planRate,
+        overagePct: overagePctFor(product)
+      });
+      const par = priced.par;
+      const parComm = priced.parComm;
+      const finCharge = priced.finCharge;
+      const effectiveNet = priced.effectiveNet;
+      const netPct = priced.netPct;
+      const isUnderPar = priced.isUnderPar;
 
       const fmt = v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-      // Net after admin fee + finance charge — this is what determines tier
-      const effectiveNet = soldRaw - 500 - finCharge;
-      // Percentage of retail that the effective net represents
-      const netPct = retail > 0 ? (effectiveNet / retail) * 100 : 0;
-
       // Determine if at/above par or under par
-      const isUnderPar = soldRaw > 0 && netPct < 65;
 
       const atParRows = document.getElementById('ccAtParRows');
       const underParRows = document.getElementById('ccUnderParRows');
@@ -7762,13 +7863,15 @@
           finRow.style.display = 'none';
         }
 
-        const overage = Math.max(0, effectiveNet - par);
-        const overComm = overage * 0.40;
-        total = parComm + overComm;
+        const overage = priced.overage;
+        const overComm = priced.overComm;
+        total = priced.rawTotal;
 
         document.getElementById('ccParComm').textContent = fmt(parComm);
         document.getElementById('ccOverage').textContent = fmt(overage);
         document.getElementById('ccOverComm').textContent = fmt(overComm);
+        const ovLabel = document.getElementById('ccOverCommLabel');
+        if (ovLabel) ovLabel.textContent = 'Overage Commission (' + formatOveragePct(priced.overagePct) + '%)';
 
       } else {
         // ── UNDER PAR ────────────────────────────────────────────
@@ -7784,23 +7887,10 @@
           finRow2.style.display = 'none';
         }
 
-        // Determine tier based on netPct
-        let tierRate, tierLabel;
-        if (netPct >= 60) {
-          tierRate = 0.05;
-          tierLabel = `Tier 1: 60–64.99% of retail (5%)`;
-        } else if (netPct >= 55) {
-          tierRate = 0.02;
-          tierLabel = `Tier 2: 55–59.99% of retail (2%)`;
-        } else {
-          tierRate = 0.01;
-          tierLabel = `Tier 3: Below 55% of retail (1%)`;
-        }
-
-        total = effectiveNet * tierRate;
+        total = priced.rawTotal;
 
         document.getElementById('ccUnderNet').textContent = fmt(effectiveNet);
-        document.getElementById('ccTierLabel').textContent = tierLabel;
+        document.getElementById('ccTierLabel').textContent = priced.tierDesc;
         document.getElementById('ccTierPct').textContent = `Net ${netPct.toFixed(1)}% → ${fmt(total)}`;
       }
 
@@ -8746,34 +8836,19 @@
       const commBox = document.getElementById('qcCommBox');
       if (soldRaw > 0 && retail > 0) {
         commBox.style.display = '';
-        // Recompute finCharge using soldRaw (matches calcComm exactly)
-        const qcFinCharge = soldRaw * (planRate / 100);
-        const effectiveNet = soldRaw - 500 - qcFinCharge;
-        const netPct = retail > 0 ? (effectiveNet / retail) * 100 : 0;
-        const isUnderPar = soldRaw > 0 && netPct < 65;
-        let commTotal = 0, tierLabel = '';
-        if (!isUnderPar) {
-          const parComm = par * 0.08;
-          const overage = Math.max(0, effectiveNet - par);
-          const overComm = overage * 0.40;
-          commTotal = parComm + overComm;
-          tierLabel = `${netPct.toFixed(1)}% net — at/above par`;
-        } else {
-          let tierRate, tierDesc;
-          if (netPct >= 60) {
-            tierRate = 0.05; tierDesc = `Tier 1: 60–64.99% of retail (5%)`;
-          } else if (netPct >= 55) {
-            tierRate = 0.02; tierDesc = `Tier 2: 55–59.99% of retail (2%)`;
-          } else {
-            tierRate = 0.01; tierDesc = `Tier 3: Below 55% of retail (1%)`;
-          }
-          commTotal = effectiveNet * tierRate;
-          tierLabel = `Net ${netPct.toFixed(1)}% → ${tierDesc}`;
-        }
-        const finalComm = Math.max(0, commTotal);
+        const priced = saleCommission({
+          retail,
+          sold: soldRaw,
+          financeRatePct: planRate,
+          overagePct: overagePctFor(_qcProduct)
+        });
+        const effectiveNet = priced.effectiveNet;
+        const netPct = priced.netPct;
+        const isUnderPar = priced.isUnderPar;
+        const finalComm = priced.total;
         document.getElementById('qcComm').textContent = fmt(finalComm);
         document.getElementById('qcComm').style.color = isUnderPar ? 'var(--red)' : 'var(--green-dark)';
-        document.getElementById('commPct').value = (netPct > 0 ? (finalComm / effectiveNet) * 100 : 0).toFixed(1);
+        document.getElementById('commPct').value = (netPct > 0 ? priced.finalCommPct : 0).toFixed(1);
         document.getElementById('retailPct').value = netPct.toFixed(1);
         
         const gap = effectiveNet - par;
@@ -8785,7 +8860,7 @@
           gapEl.style.color = 'var(--red)';
           gapEl.textContent = `▼ $${Math.abs(gap).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} below PAR`;
         }
-        document.getElementById('qcCommTier').textContent = tierLabel;
+        document.getElementById('qcCommTier').textContent = priced.tierLabel;
       } else {
         commBox.style.display = 'none';
       }
@@ -8903,12 +8978,32 @@
       chk.style.borderColor = on ? '#EAB308' : '#FDE047';
     }
 
+    function loadOverageSettings() {
+      const lf = document.getElementById('overageLf');
+      const ltg = document.getElementById('overageLtg');
+      if (lf) lf.value = formatOveragePct(overagePctFor('leaffilter'));
+      if (ltg) ltg.value = formatOveragePct(overagePctFor('roofline'));
+    }
+
+    function saveOveragePct(product, val) {
+      const key = leadProductKey(product) === 'roofline' ? 'roofline' : 'leaffilter';
+      const input = document.getElementById(key === 'roofline' ? 'overageLtg' : 'overageLf');
+      const parsed = clampOveragePct(val);
+      const n = parsed == null ? overagePctFor(key) : parsed;
+      localStorage.setItem(overageStorageKey(key), String(n));
+      if (input) input.value = formatOveragePct(n);
+      syncSettingsToSupabase();
+      try { calcQuote(); } catch (e) { /* quote tab may not be filled in yet */ }
+      toast('Overage saved', 'ok');
+    }
+
     function loadQuoteSettings() {
       const pct = localStorage.getItem('cc_opening_pct');
       const el = document.getElementById('openingPricePct');
       if (el) el.value = pct !== null ? pct : '';
       updateAdminDefaultChk();
       updateAdminInOpeningChk();
+      loadOverageSettings();
     }
 
     // ─────────────────────────────────────────
@@ -9032,6 +9127,8 @@
         if (data.opening_price_pct != null) localStorage.setItem('cc_opening_pct', data.opening_price_pct);
         if (data.admin_default != null) localStorage.setItem('cc_admin_default', data.admin_default ? 'true' : 'false');
         if (data.admin_in_opening != null) localStorage.setItem('cc_admin_in_opening', data.admin_in_opening ? 'true' : 'false');
+        if (data.overage_pct_leaffilter != null) localStorage.setItem('cc_overage_pct_leaffilter', String(data.overage_pct_leaffilter));
+        if (data.overage_pct_roofline != null) localStorage.setItem('cc_overage_pct_roofline', String(data.overage_pct_roofline));
         loadQuoteSettings();
       } catch (e) { /* silent — localStorage defaults still apply */ }
     }
@@ -9042,7 +9139,7 @@
         const { data: { session } } = await sb.auth.getSession();
         if (!session) return;
 
-        await sb.from('app_settings').upsert({
+        const row = {
           id: session.user.id,
           user_id: session.user.id,
           nvpil: parseFloat(localStorage.getItem('bl_nvpil')) || 2000,
@@ -9055,8 +9152,29 @@
           opening_price_pct: parseFloat(localStorage.getItem('cc_opening_pct')) || 0,
           admin_default: localStorage.getItem('cc_admin_default') !== 'false',
           admin_in_opening: localStorage.getItem('cc_admin_in_opening') === 'true',
+          overage_pct_leaffilter: overagePctFor('leaffilter'),
+          overage_pct_roofline: overagePctFor('roofline'),
           updated_at: new Date().toISOString()
-        });
+        };
+        // New overage columns may not be migrated yet. Drop whichever the
+        // database rejects and save the rest, leaving the phone on the defaults.
+        const optional = ['overage_pct_leaffilter', 'overage_pct_roofline'];
+        let payload = row;
+        let result = await sb.from('app_settings').upsert(payload);
+        for (let n = 0; result && result.error && n < optional.length; n++) {
+          const msg = String(result.error.message || '').toLowerCase();
+          const next = Object.assign({}, payload);
+          let stripped = false;
+          optional.forEach(col => {
+            if (Object.prototype.hasOwnProperty.call(next, col) && msg.includes(col)) {
+              delete next[col];
+              stripped = true;
+            }
+          });
+          if (!stripped) break;
+          payload = next;
+          result = await sb.from('app_settings').upsert(payload);
+        }
       } catch (e) { /* silent — change already saved to localStorage */ }
     }
 
