@@ -409,7 +409,7 @@ test('sold referral texts follow the install date and saved templates', () => {
   assert.equal(html.includes('Referral: reminder'), true);
   assert.equal(html.includes('id="fuReferralLink"'), true);
   assert.equal(html.includes('function saveReferralLinkSetting'), true);
-  assert.equal(html.includes(".in('status', ['not_sold', 'sold'])"), true);
+  assert.equal(html.includes(".in('status', ['not_sold', 'sold', 'pending'])"), true);
 
   const sql = fs.readFileSync(path.join(__dirname, '..', 'migrations', '2026-10-22_referral_backfill.sql'), 'utf8');
   assert.equal(sql.includes('add column if not exists referral_backfill_on'), true);
