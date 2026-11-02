@@ -42,6 +42,7 @@ const names = [
   'fillConfirmProduct',
   'fuConfirmPhone',
   'fuConfirmPlan',
+  'fuIsDoNotText',
   'fillApptConfirm',
   'fuTouchLeadPatch',
   'mergeFuTemplates'

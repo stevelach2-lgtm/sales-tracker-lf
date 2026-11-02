@@ -39,15 +39,21 @@ const names = [
   'fuDontTextPatch',
   'fuResumeTextPatch',
   'fuEnrollPatch',
+  'fuPhoneKey',
+  'fuIsDoNotText',
+  'fuDoNotTextPhones',
+  'fuDueTextRows',
+  'fuFollowUpListRows',
+  'leadSmsSuppressed',
   'defaultFuTemplates'
 ];
 const api = new Function(
   'const FU_OPT_OUT = "If you\'d rather I not follow up, just let me know.";\n' +
   names.map(name => extractFunction(html, name)).join('\n') +
-  '\nreturn { smsFirstName, fuProductLabel, fuReferralLinkValue, fuReferralSteps, fuReferralBackfillMap, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuDontTextPatch, fuResumeTextPatch, fuEnrollPatch, defaultFuTemplates };'
+  '\nreturn { smsFirstName, fuProductLabel, fuReferralLinkValue, fuReferralSteps, fuReferralBackfillMap, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuDontTextPatch, fuResumeTextPatch, fuEnrollPatch, fuPhoneKey, fuIsDoNotText, fuDoNotTextPhones, fuDueTextRows, fuFollowUpListRows, leadSmsSuppressed, defaultFuTemplates };'
 )();
 
-const { smsFirstName, fuProductLabel, fuReferralLinkValue, fuReferralSteps, fuReferralBackfillMap, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuDontTextPatch, fuResumeTextPatch, fuEnrollPatch, defaultFuTemplates } = api;
+const { smsFirstName, fuProductLabel, fuReferralLinkValue, fuReferralSteps, fuReferralBackfillMap, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuDontTextPatch, fuResumeTextPatch, fuEnrollPatch, fuPhoneKey, fuIsDoNotText, fuDoNotTextPhones, fuDueTextRows, fuFollowUpListRows, leadSmsSuppressed, defaultFuTemplates } = api;
 
 const day2 = defaultFuTemplates().price.leaffilter.day2;
 
@@ -225,6 +231,7 @@ test("Don't text stops an active no-sale and resume turns it back on", () => {
   assert.equal(stop.followup_status, 'stopped');
   assert.equal(stop.followup_stopped_reason, 'Do not text');
   assert.equal(stop.followup_done, true);
+  assert.equal(stop.followup_date, null);
   const resume = fuResumeTextPatch();
   assert.equal(resume.followup_status, 'active');
   assert.equal(resume.followup_stopped_reason, null);
@@ -274,6 +281,87 @@ test("Don't text stops an active no-sale and resume turns it back on", () => {
   assert.equal(html.includes('function dontTextLead'), true);
   assert.equal(html.includes('function resumeTexting'), true);
   assert.equal(html.includes('window.confirm'), true);
+
+  const stillQueued = fuPlan({
+    status: 'not_sold',
+    sales_date: '2026-10-01',
+    product: 'leaffilter',
+    notes: '',
+    reasonLabel: 'Too much',
+    followup_done: false,
+    followup_status: 'active',
+    followup_stopped_reason: 'Do not text',
+    followup_date: '2026-10-02',
+    is_cancelled: false
+  }, [], '2026-10-08');
+  assert.equal(stillQueued.bucket, 'done');
+  assert.equal(stillQueued.stoppedReason, 'Do not text');
+  assert.equal(stillQueued.step, undefined);
+});
+
+test('a do-not-text customer is left out of every text list, including ones already queued', () => {
+  assert.equal(fuPhoneKey({ customer_phone: '(555) 555-0100' }), '5555550100');
+  assert.equal(fuPhoneKey({ phone: '15555550100' }), '5555550100');
+  assert.equal(fuIsDoNotText({ followup_stopped_reason: 'Do not text' }), true);
+  assert.equal(fuIsDoNotText({ plan: { stoppedReason: 'Do not text' } }), true);
+  assert.equal(fuIsDoNotText({ followup_stopped_reason: 'sold' }), false);
+
+  const dnt = {
+    id: 'dnt',
+    phone: '5555550100',
+    followup_stopped_reason: 'Do not text',
+    followup_date: '2026-10-02',
+    plan: { bucket: 'done', group: 'price', stoppedReason: 'Do not text' }
+  };
+  const queuedReferral = {
+    id: 'referral',
+    customer_phone: '555-555-0100',
+    plan: { bucket: 'overdue', group: 'referral', step: { key: 'referral_reminder' }, date: '2026-10-22' }
+  };
+  const queuedConfirm = {
+    id: 'confirm',
+    phone: '5555550100',
+    plan: { bucket: 'today', group: 'confirm', step: { key: 'appt_confirm' }, date: '2026-10-30' }
+  };
+  const other = {
+    id: 'other',
+    phone: '5555550199',
+    plan: { bucket: 'today', group: 'price', step: { key: 'day7' }, date: '2026-10-08' }
+  };
+  const due = fuDueTextRows([dnt, queuedReferral, queuedConfirm, other]);
+  assert.deepEqual(due.map(row => row.id), ['other']);
+
+  const listed = fuFollowUpListRows([dnt, queuedReferral, queuedConfirm, other]);
+  assert.deepEqual(listed.map(row => row.id).sort(), ['dnt', 'other']);
+
+  const blocked = fuDoNotTextPhones([dnt]);
+  assert.equal(leadSmsSuppressed({ followup_stopped_reason: 'Do not text', followup_date: '2026-10-02' }, blocked), true);
+  assert.equal(leadSmsSuppressed({ customer_phone: '5555550100', followup_date: '2026-11-02', status: 'sold' }, blocked), true);
+  assert.equal(leadSmsSuppressed({ customer_phone: '5555550199', followup_stopped_reason: 'sold' }, blocked), false);
+
+  const resumed = fuResumeTextPatch();
+  const back = fuPlan({
+    status: 'not_sold',
+    sales_date: '2026-10-01',
+    product: 'leaffilter',
+    notes: '',
+    reasonLabel: 'Too much',
+    followup_done: resumed.followup_done,
+    followup_status: resumed.followup_status,
+    followup_stopped_reason: resumed.followup_stopped_reason,
+    is_cancelled: false
+  }, [], '2026-10-02');
+  assert.equal(back.bucket, 'today');
+  assert.deepEqual(fuDueTextRows([
+    { id: 'referral', phone: '5555550100', plan: queuedReferral.plan },
+    { id: 'other', phone: '5555550199', plan: other.plan }
+  ]).map(row => row.id).sort(), ['other', 'referral']);
+
+  assert.equal(html.includes('fuDueTextRows(rows)'), true);
+  assert.equal(html.includes('fuFollowUpListRows(rows)'), true);
+  assert.equal(html.includes('leadSmsSuppressed(l, dntPhones)'), true);
+  assert.equal(html.includes('leadSmsSuppressed(row,'), true);
+  assert.equal(html.includes("esFollowupStoppedReason === 'Do not text'"), true);
 });
 
 const referralInstall = "Hi [First name], it's Steve from LeafFilter. How did the install go? I hope your new [Product] looks great! Quick favor: if you know anyone who could use it, grab the referral app here [Referral link] and share your link. You get $250 for every friend whose project over $1,000 gets installed, no limit.";
