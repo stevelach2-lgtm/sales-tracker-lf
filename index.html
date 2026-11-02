@@ -4638,6 +4638,16 @@
       });
     }
 
+    function fuTextTodayShown(rows, limit) {
+      const cap = limit == null ? 12 : limit;
+      const due = (Array.isArray(rows) ? rows : []).filter(row => row && row.plan);
+      const byDateName = (a, b) => String(a.plan.date).localeCompare(String(b.plan.date)) || String(a.name || '').localeCompare(String(b.name || ''));
+      const confirms = due.filter(row => row.plan.group === 'confirm').sort(byDateName);
+      const rest = due.filter(row => row.plan.group !== 'confirm').sort(byDateName);
+      if (confirms.length >= cap) return confirms;
+      return confirms.concat(rest.slice(0, cap - confirms.length));
+    }
+
     function fuFollowUpListRows(rows) {
       const blocked = fuDoNotTextPhones(rows);
       return (Array.isArray(rows) ? rows : []).filter(row => {
@@ -5788,11 +5798,10 @@
       const el = document.getElementById('dashTextToday');
       if (!el) return;
       const due = fuDueTextRows(rows);
-      due.sort((a, b) => String(a.plan.date).localeCompare(String(b.plan.date)) || a.name.localeCompare(b.name));
       const tracked = due.filter(r => !(r.plan && r.plan.group === 'confirm'));
       const dueLf = tracked.filter(r => leadProductKey(r.product) !== 'roofline').length;
       const dueLtg = tracked.filter(r => leadProductKey(r.product) === 'roofline').length;
-      const shown = due.slice(0, 12);
+      const shown = fuTextTodayShown(due);
       const open = smsWindowOpen();
       const btnLabel = open ? 'Text' : 'Text after 8 AM';
       let body;
