@@ -3204,7 +3204,7 @@
 
       <div
         style="position:absolute; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--border); padding:12px 16px 20px; display:flex; flex-direction:column; gap:8px">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%">
+        <div id="fuSendRow" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%">
           <button onclick="sendFuSMS()" id="fuSendBtn"
             style="padding:13px; border:none; border-radius:12px; background:var(--blue); color:#fff; font-size:14px; font-weight:800; cursor:pointer">📱 Text</button>
           <button onclick="copyFuMsg()"
@@ -4602,6 +4602,61 @@
       return raw.replace(/\D/g, '').length >= 10;
     }
 
+    function fuPhoneKey(lead) {
+      const raw = String((lead && (lead.phone || lead.customer_phone || lead.followup_phone)) || '');
+      let digits = raw.replace(/\D/g, '');
+      if (digits.length === 11 && digits.charAt(0) === '1') digits = digits.slice(1);
+      return digits.length >= 10 ? digits.slice(-10) : '';
+    }
+
+    function fuIsDoNotText(lead) {
+      if (!lead) return false;
+      if (lead.followup_stopped_reason === 'Do not text') return true;
+      return !!(lead.plan && lead.plan.stoppedReason === 'Do not text');
+    }
+
+    function fuDoNotTextPhones(rows) {
+      const blocked = {};
+      (Array.isArray(rows) ? rows : []).forEach(row => {
+        if (!fuIsDoNotText(row)) return;
+        const phone = fuPhoneKey(row);
+        if (phone) blocked[phone] = true;
+      });
+      return blocked;
+    }
+
+    function fuDueTextRows(rows) {
+      const blocked = fuDoNotTextPhones(rows);
+      return (Array.isArray(rows) ? rows : []).filter(row => {
+        if (!row || !row.plan) return false;
+        const bucket = row.plan.bucket;
+        if (bucket !== 'today' && bucket !== 'overdue') return false;
+        if (fuIsDoNotText(row)) return false;
+        const phone = fuPhoneKey(row);
+        if (phone && blocked[phone]) return false;
+        return true;
+      });
+    }
+
+    function fuFollowUpListRows(rows) {
+      const blocked = fuDoNotTextPhones(rows);
+      return (Array.isArray(rows) ? rows : []).filter(row => {
+        if (!row || !row.plan) return false;
+        if (fuIsDoNotText(row)) return true;
+        const phone = fuPhoneKey(row);
+        if (phone && blocked[phone]) return false;
+        return true;
+      });
+    }
+
+    function leadSmsSuppressed(lead, blocked) {
+      if (!lead) return false;
+      if (lead.followup_stopped_reason === 'Do not text') return true;
+      if (lead.plan && lead.plan.stoppedReason === 'Do not text') return true;
+      const phone = fuPhoneKey(lead);
+      return !!(phone && blocked && blocked[phone]);
+    }
+
     function fuReferralLinkValue(override) {
       const fallback = 'https://gtrfl.us/TNCz3q';
       if (override == null) return fallback;
@@ -4771,8 +4826,8 @@
       if (!group) return null;
       const stopped = lead.followup_status === 'stopped' || lead.followup_status === 'completed';
       const doneFlag = !!lead.followup_done && lead.followup_status !== 'active';
-      if (stopped || doneFlag) {
-        return { bucket: 'done', group: group, stoppedReason: lead.followup_stopped_reason || 'completed' };
+      if (fuIsDoNotText(lead) || stopped || doneFlag) {
+        return { bucket: 'done', group: group, stoppedReason: fuIsDoNotText(lead) ? 'Do not text' : (lead.followup_stopped_reason || 'completed') };
       }
       const sent = (Array.isArray(touches) ? touches : []).filter(t => !(t && t.step_key === 'appt_confirm'));
       if (sent.length >= 5) return { bucket: 'done', group: group, stoppedReason: 'completed' };
@@ -4996,6 +5051,7 @@
     let FU_TEMPLATES = defaultFuTemplates();
     let _fuLead = null;
     let _fuCache = [];
+    let _fuDoNotTextPhones = {};
     let _fuBackfill = {};
     let _fuSending = false;
     let _userId = null;
@@ -5184,6 +5240,7 @@
     }
 
     function messageForRow(row, nameOverride) {
+      if (leadSmsSuppressed(row, _fuDoNotTextPhones || {})) return '';
       const step = row && row.plan && row.plan.step;
       if (!step || (row && fuNoTextReason(row.reason))) return '';
       const tpl = fuTemplateText(row.plan.group, row.product, step.key);
@@ -5298,6 +5355,7 @@
       let touches = [];
       const tRes = await sb.from('followup_touches').select('step_key,sent_at').eq('lead_id', leadId);
       if (!tRes.error) touches = tRes.data || [];
+      await ensureDoNotTextPhones();
       const view = fuView(data, touches, todayEtKey());
       _fuLead = { id: leadId, reason: reason, notes: data.notes || '', product: leadProductKey(data.product), view: view, raw: data };
       const due = view && view.plan && view.plan.date;
@@ -5313,9 +5371,12 @@
       if (!stopBtn || !resumeBtn) return;
       const plan = row && row.plan;
       const stopped = !!(plan && plan.bucket === 'done' && plan.stoppedReason === 'Do not text');
-      const canStop = !!(plan && plan.bucket && plan.bucket !== 'done');
+      const suppressed = stopped || leadSmsSuppressed(row, _fuDoNotTextPhones || {});
+      const canStop = !!(plan && plan.bucket && plan.bucket !== 'done') && !suppressed;
       stopBtn.style.display = canStop ? 'block' : 'none';
       resumeBtn.style.display = stopped ? 'block' : 'none';
+      const sendRow = document.getElementById('fuSendRow');
+      if (sendRow) sendRow.style.display = suppressed ? 'none' : 'grid';
     }
 
     let fuUndoId = null;
@@ -5387,6 +5448,13 @@
     function refreshFuMsg() {
       const fullName = document.getElementById('fuName').value.trim();
       const reason = (_fuLead && _fuLead.reason) || '';
+      const current = (_fuLead && (_fuLead.raw || _fuLead.view)) || null;
+      if (leadSmsSuppressed(current, _fuDoNotTextPhones || {})) {
+        document.getElementById('fuMsg').value = '';
+        const blocked = document.getElementById('fuStepLabel');
+        if (blocked) blocked.textContent = "Don't text";
+        return;
+      }
       if (fuNoTextReason(reason)) {
         document.getElementById('fuMsg').value = '';
         const blocked = document.getElementById('fuStepLabel');
@@ -5455,6 +5523,11 @@
     }
 
     function copyFuMsg() {
+      const current = (_fuLead && (_fuLead.raw || _fuLead.view)) || null;
+      if (leadSmsSuppressed(current, _fuDoNotTextPhones || {})) {
+        toast('Texts are off for this customer', 'err');
+        return;
+      }
       const msg = document.getElementById('fuMsg').value;
       const done = () => toast(smsWindowOpen() ? 'Message copied' : 'Text after 8 AM — message copied', 'ok');
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -5488,6 +5561,10 @@
 
     async function sendFollowUpRow(row, msgOverride) {
       if (!row || _fuSending) return;
+      if (leadSmsSuppressed(row, _fuDoNotTextPhones || {})) {
+        toast('Texts are off for this customer', 'err');
+        return;
+      }
       if (fuNoTextReason(row.reason)) {
         toast('No follow-up text for this reason', 'err');
         return;
@@ -5596,7 +5673,7 @@
     }
 
     function fuDontTextPatch() {
-      return { followup_status: 'stopped', followup_stopped_reason: 'Do not text', followup_done: true };
+      return { followup_status: 'stopped', followup_stopped_reason: 'Do not text', followup_done: true, followup_date: null };
     }
 
     function fuResumeTextPatch() {
@@ -5656,6 +5733,16 @@
       return _userId;
     }
 
+    async function ensureDoNotTextPhones() {
+      if (!sb) return _fuDoNotTextPhones;
+      await ensureUserId();
+      let q = sb.from('leads').select('customer_phone,followup_phone,followup_stopped_reason').eq('followup_stopped_reason', 'Do not text');
+      if (_userId) q = q.eq('user_id', _userId);
+      const { data, error } = await q;
+      if (!error && data) _fuDoNotTextPhones = fuDoNotTextPhones(data);
+      return _fuDoNotTextPhones;
+    }
+
     async function loadFollowUpRows() {
       if (!sb) return [];
       await ensureUserId();
@@ -5676,6 +5763,7 @@
       if (res.error && /followup_status|followup_stopped_reason/i.test(res.error.message || '')) res = await run(shortCols);
       if (res.error) throw res.error;
       const leads = res.data || [];
+      _fuDoNotTextPhones = fuDoNotTextPhones(leads);
       _fuBackfill = fuReferralBackfillMap(leads);
       leads.forEach(l => {
         if (!l.referral_backfill_on && _fuBackfill[l.id]) l.referral_backfill_on = _fuBackfill[l.id];
@@ -5688,14 +5776,18 @@
       }
       const byLead = {};
       touches.forEach(t => { (byLead[t.lead_id] || (byLead[t.lead_id] = [])).push(t); });
-      _fuCache = leads.map(l => fuView(l, byLead[l.id] || [], today)).filter(Boolean);
+      _fuCache = leads.map(l => fuView(l, byLead[l.id] || [], today)).filter(Boolean).filter(row => {
+        if (fuIsDoNotText(row)) return true;
+        const phone = fuPhoneKey(row);
+        return !(phone && _fuDoNotTextPhones[phone]);
+      });
       return _fuCache;
     }
 
     function renderTextTodayCard(rows) {
       const el = document.getElementById('dashTextToday');
       if (!el) return;
-      const due = (rows || []).filter(r => r.plan && (r.plan.bucket === 'today' || r.plan.bucket === 'overdue'));
+      const due = fuDueTextRows(rows);
       due.sort((a, b) => String(a.plan.date).localeCompare(String(b.plan.date)) || a.name.localeCompare(b.name));
       const tracked = due.filter(r => !(r.plan && r.plan.group === 'confirm'));
       const dueLf = tracked.filter(r => leadProductKey(r.product) !== 'roofline').length;
@@ -5740,6 +5832,7 @@
     function renderFollowUpList(rows) {
       const list = document.getElementById('fuList');
       if (!list) return;
+      rows = fuFollowUpListRows(rows);
       const showDone = document.getElementById('fuShowDone') && document.getElementById('fuShowDone').checked;
       const groups = { overdue: [], today: [], upcoming: [], done: [] };
       (rows || []).forEach(r => {
@@ -5797,10 +5890,14 @@
         + renderGroup('Done', groups.done, 'var(--muted)', '✅');
     }
 
-    function refreshFuViews() {
+    async function refreshFuViews() {
       const fuOpen = document.getElementById('histFuSection') && document.getElementById('histFuSection').style.display !== 'none';
-      if (fuOpen) loadFollowUps();
-      else loadTextToday();
+      if (fuOpen) await loadFollowUps();
+      else await loadTextToday();
+      const hist = document.getElementById('n-hist');
+      const leadsSection = document.getElementById('histLeadsSection');
+      const histLeadsOpen = hist && hist.classList.contains('active') && leadsSection && leadsSection.style.display !== 'none';
+      if (histLeadsOpen && window._lastHistArgs) await filterHist(...window._lastHistArgs);
     }
 
     async function loadTextToday() {
@@ -5873,6 +5970,10 @@
     }
 
     function sendInstallCheckSMS(phone, name, leadId) {
+      if (leadSmsSuppressed({ customer_phone: phone }, _fuDoNotTextPhones || {})) {
+        toast('Texts are off for this customer', 'err');
+        return;
+      }
       const clean = (phone || '').replace(/\D/g, '');
       if (clean.length < 10) {
         toast('Add customer phone in edit to send SMS', 'err');
@@ -6263,6 +6364,7 @@
 
       const { data: d, error } = await query;
       if (error) { el.innerHTML = '<p style="color:var(--red);padding:12px">Error loading</p>'; return; }
+      await ensureDoNotTextPhones();
       window._histLeadsRaw = sortByDate((d || []).filter(l => l.status !== 'pending'));
       window._currentHistLeads = applyHistProduct(window._histLeadsRaw);
       renderHist(window._currentHistLeads);
@@ -6355,6 +6457,7 @@
 
     function renderHist(leads) {
       leads = (leads || []).filter(l => l.status !== 'pending');
+      const dntPhones = Object.assign({}, _fuDoNotTextPhones || {}, fuDoNotTextPhones(leads));
       const el = document.getElementById('histList');
       if (!leads.length) {
         const emptyLabel = histProductFilter === 'roofline' ? 'Lighting' : histProductFilter === 'leaffilter' ? 'LeafFilter' : '';
@@ -6387,7 +6490,8 @@
         const installComplete = sold && !l.is_cancelled && !!l.install_date && l.install_date <= todayStr;
         const custPhone = (l.customer_phone || l.followup_phone || '').replace(/\D/g, '');
         const custName = l.customer_name || l.followup_name || '';
-        const skipFollowupText = !sold && !!fuNoTextReason(l.not_sold_reasons?.label || '');
+        const textsOff = leadSmsSuppressed(l, dntPhones);
+        const skipFollowupText = textsOff || (!sold && !!fuNoTextReason(l.not_sold_reasons?.label || ''));
         // Top-right: show sales_date
         const displayDate = l.sales_date
           ? new Date(l.sales_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -6412,7 +6516,7 @@
           ? buildSmsHref(custPhone, buildInstallCheckMsg(custName))
           : '';
         const installSmsHrefAttr = installSmsHref.replace(/&/g, '&amp;');
-        const installCheckControl = !installComplete
+        const installCheckControl = textsOff || !installComplete
           ? ''
           : installSmsHref
             ? `<a href="${installSmsHrefAttr}" data-no-card-toggle onclick="event.stopPropagation()" style="${installCheckStyle}">📱 How did the install go?</a>`
@@ -6444,8 +6548,8 @@
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;align-items:center">
         <button class="edit-btn" onclick="openLeadEdit('${l.id}')">✏️</button>
-        ${installComplete ? (installSmsHref ? `<a class="edit-btn" href="${installSmsHrefAttr}" data-no-card-toggle onclick="event.stopPropagation()" style="font-size:12px;text-decoration:none" title="How did install go?">🛠️</a>` : `<button class="edit-btn" data-no-card-toggle onclick="event.stopPropagation(); sendInstallCheckSMS(${JSON.stringify(custPhone)}, ${JSON.stringify(custName)}, ${JSON.stringify(l.id)})" style="font-size:12px" title="How did install go?">🛠️</button>`) : ''}
-        ${sold ? `<button class="edit-btn" onclick="event.stopPropagation(); sendReviewSMS()" style="font-size:12px" title="Request Google Review">⭐</button>` : (skipFollowupText ? '' : `<button class="edit-btn" data-id="${l.id}" data-reason="${escHtml(l.not_sold_reasons?.label || '')}" data-name="${escHtml(custName)}" data-phone="${escHtml(custPhone)}" data-notes="${escHtml(l.notes || '')}" data-product="${escHtml(l.product || 'leaffilter')}" onclick="event.stopPropagation(); openFuFromBtn(this)" style="font-size:12px" title="Text follow-up">📞</button>`)}
+        ${textsOff || !installComplete ? '' : (installSmsHref ? `<a class="edit-btn" href="${installSmsHrefAttr}" data-no-card-toggle onclick="event.stopPropagation()" style="font-size:12px;text-decoration:none" title="How did install go?">🛠️</a>` : `<button class="edit-btn" data-no-card-toggle onclick="event.stopPropagation(); sendInstallCheckSMS(${JSON.stringify(custPhone)}, ${JSON.stringify(custName)}, ${JSON.stringify(l.id)})" style="font-size:12px" title="How did install go?">🛠️</button>`)}
+        ${textsOff ? '' : (sold ? `<button class="edit-btn" onclick="event.stopPropagation(); sendReviewSMS()" style="font-size:12px" title="Request Google Review">⭐</button>` : (skipFollowupText ? '' : `<button class="edit-btn" data-id="${l.id}" data-reason="${escHtml(l.not_sold_reasons?.label || '')}" data-name="${escHtml(custName)}" data-phone="${escHtml(custPhone)}" data-notes="${escHtml(l.notes || '')}" data-product="${escHtml(l.product || 'leaffilter')}" onclick="event.stopPropagation(); openFuFromBtn(this)" style="font-size:12px" title="Text follow-up">📞</button>`))}
       </div>
     </div>`;
 
@@ -6936,7 +7040,13 @@
         payload.followup_name = contact.fuName || null;
         if (contact.fuPhone) payload.customer_phone = contact.fuPhone;
         if (contact.fuName) payload.customer_name = contact.fuName;
-        if (stoppedReason) {
+        if (esFollowupStoppedReason === 'Do not text') {
+          const stop = fuDontTextPatch();
+          payload.followup_done = stop.followup_done;
+          payload.followup_status = stop.followup_status;
+          payload.followup_stopped_reason = stop.followup_stopped_reason;
+          payload.followup_date = stop.followup_date;
+        } else if (stoppedReason) {
           const enroll = fuEnrollPatch(editReason, '', payload.sales_date || todayEtKey(), esProduct, contact.fuPhone, contact.fuName);
           payload.followup_done = enroll.followup_done;
           payload.followup_status = enroll.followup_status;
