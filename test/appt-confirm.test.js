@@ -43,6 +43,9 @@ const names = [
   'fuConfirmPhone',
   'fuPhoneKey',
   'fuIsDoNotText',
+  'fuDoNotTextPhones',
+  'fuDueTextRows',
+  'fuFollowUpListRows',
   'leadSmsSuppressed',
   'fuConfirmPlan',
   'fuApptConfirmState',
@@ -55,7 +58,7 @@ const names = [
 const api = new Function(
   'const FU_OPT_OUT = "If you\'d rather I not follow up, just let me know.";\n' +
   names.map(name => extractFunction(html, name)).join('\n') +
-  '\nreturn { fuProductLabel, fuPlan, fillFuMsg, defaultFuTemplates, fuStreetAddress, fuEtParts, fuConfirmProductLabel, fillConfirmProduct, fuConfirmPlan, fuApptConfirmState, fuTextTodayShown, fillApptConfirm, fuTouchLeadPatch, mergeFuTemplates };'
+  '\nreturn { fuProductLabel, fuPlan, fillFuMsg, defaultFuTemplates, fuStreetAddress, fuEtParts, fuConfirmProductLabel, fillConfirmProduct, fuConfirmPlan, fuApptConfirmState, fuDueTextRows, fuFollowUpListRows, fuTextTodayShown, fillApptConfirm, fuTouchLeadPatch, mergeFuTemplates };'
 )();
 
 const {
@@ -69,6 +72,8 @@ const {
   fillConfirmProduct,
   fuConfirmPlan,
   fuApptConfirmState,
+  fuDueTextRows,
+  fuFollowUpListRows,
   fuTextTodayShown,
   fillApptConfirm,
   fuTouchLeadPatch,
@@ -238,44 +243,37 @@ test('upcoming card confirmation matches Text today eligibility', () => {
   assert.equal(html.includes("markApptConfirmSent(row.id)"), true);
 });
 
-test('today confirmations stay on the Text today card when older texts fill it', () => {
+test('Text today lists follow-ups only and leaves confirmations off the card', () => {
   const overdue = [];
   for (let i = 0; i < 12; i++) {
     const day = String(i + 1).padStart(2, '0');
     overdue.push({
       id: 'overdue-' + day,
       name: 'Overdue ' + day,
-      product: 'leaffilter',
-      plan: { bucket: 'overdue', group: 'price', date: '2026-10-' + day }
+      product: i % 2 ? 'roofline' : 'leaffilter',
+      plan: { bucket: 'overdue', group: i % 2 ? 'referral' : 'price', date: '2026-10-' + day }
     });
   }
   const confirms = [
-    { id: 'joan', name: 'Joan Connor', product: null, plan: { bucket: 'today', group: 'confirm', date: '2026-11-02', timeLabel: '11:00 AM' } },
-    { id: 'catharina', name: 'Catharina Schimert', product: '', plan: { bucket: 'today', group: 'confirm', date: '2026-11-02', timeLabel: '1:00 PM' } },
-    { id: 'mary', name: 'Mary Powell', product: null, plan: { bucket: 'today', group: 'confirm', date: '2026-11-02', timeLabel: '3:00 PM' } },
-    { id: 'sonia', name: 'Sonia Brown', product: null, plan: { bucket: 'today', group: 'confirm', date: '2026-11-02', timeLabel: '5:00 PM' } }
+    { id: 'joan', name: 'Joan Connor', phone: '2153624042', product: null, plan: { bucket: 'today', group: 'confirm', date: '2026-11-02', timeLabel: '11:00 AM' } },
+    { id: 'catharina', name: 'Catharina Schimert', phone: '6098823229', product: '', plan: { bucket: 'today', group: 'confirm', date: '2026-11-02', timeLabel: '1:00 PM' } },
+    { id: 'mary', name: 'Mary Powell', phone: '6108478519', product: null, plan: { bucket: 'today', group: 'confirm', date: '2026-11-02', timeLabel: '3:00 PM' } },
+    { id: 'sonia', name: 'Sonia Brown', phone: '7325582244', product: null, plan: { bucket: 'today', group: 'confirm', date: '2026-11-02', timeLabel: '5:00 PM' } }
   ];
-  const shown = fuTextTodayShown(overdue.concat(confirms));
-  confirms.forEach(row => {
-    assert.equal(shown.some(item => item.id === row.id), true);
-  });
+  const mixed = overdue.concat(confirms);
+  const due = fuDueTextRows(mixed);
+  assert.deepEqual(due.map(row => row.id), overdue.map(row => row.id));
+  assert.equal(due.some(row => row.plan.group === 'confirm'), false);
+  const shown = fuTextTodayShown(due);
   assert.equal(shown.length, 12);
-  assert.deepEqual(shown.slice(0, 4).map(row => row.id), ['catharina', 'joan', 'mary', 'sonia']);
-  assert.equal(shown.filter(row => row.plan.group !== 'confirm').length, 8);
-
-  const many = [];
-  for (let i = 0; i < 13; i++) {
-    many.push({
-      id: 'confirm-' + i,
-      name: 'Confirm ' + String(i).padStart(2, '0'),
-      plan: { bucket: 'today', group: 'confirm', date: '2026-11-02' }
-    });
-  }
-  many.push({ id: 'late', name: 'Late', plan: { bucket: 'overdue', group: 'price', date: '2026-10-01' } });
-  const allConfirms = fuTextTodayShown(many);
-  assert.equal(allConfirms.length, 13);
-  assert.equal(allConfirms.some(row => row.id === 'late'), false);
+  assert.equal(shown.some(row => row.plan.group === 'confirm'), false);
+  assert.deepEqual(shown.map(row => row.id), overdue.map(row => row.id));
+  const listed = fuFollowUpListRows(mixed);
+  assert.equal(listed.some(row => row.plan.group === 'confirm'), false);
+  assert.equal(html.includes('No-sales, referrals, and appointment confirmations'), false);
+  assert.equal(html.includes('No-sales, referrals · LF '), true);
   assert.equal(html.includes('fuTextTodayShown(due)'), true);
+  assert.equal(html.includes('textAppointmentConfirm('), true);
 });
 
 test('sending a confirmation does not finish the later follow-up sequence', () => {
