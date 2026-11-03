@@ -4632,6 +4632,7 @@
         if (!row || !row.plan) return false;
         const bucket = row.plan.bucket;
         if (bucket !== 'today' && bucket !== 'overdue') return false;
+        if (row.plan.group === 'confirm') return false;
         if (fuIsDoNotText(row)) return false;
         const phone = fuPhoneKey(row);
         if (phone && blocked[phone]) return false;
@@ -4641,18 +4642,16 @@
 
     function fuTextTodayShown(rows, limit) {
       const cap = limit == null ? 12 : limit;
-      const due = (Array.isArray(rows) ? rows : []).filter(row => row && row.plan);
-      const byDateName = (a, b) => String(a.plan.date).localeCompare(String(b.plan.date)) || String(a.name || '').localeCompare(String(b.name || ''));
-      const confirms = due.filter(row => row.plan.group === 'confirm').sort(byDateName);
-      const rest = due.filter(row => row.plan.group !== 'confirm').sort(byDateName);
-      if (confirms.length >= cap) return confirms;
-      return confirms.concat(rest.slice(0, cap - confirms.length));
+      const due = (Array.isArray(rows) ? rows : []).filter(row => row && row.plan && row.plan.group !== 'confirm');
+      due.sort((a, b) => String(a.plan.date).localeCompare(String(b.plan.date)) || String(a.name || '').localeCompare(String(b.name || '')));
+      return due.slice(0, cap);
     }
 
     function fuFollowUpListRows(rows) {
       const blocked = fuDoNotTextPhones(rows);
       return (Array.isArray(rows) ? rows : []).filter(row => {
         if (!row || !row.plan) return false;
+        if (row.plan.group === 'confirm') return fuIsDoNotText(row);
         if (fuIsDoNotText(row)) return true;
         const phone = fuPhoneKey(row);
         if (phone && blocked[phone]) return false;
@@ -5858,7 +5857,7 @@
       el.innerHTML = '<div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:14px;padding:12px 14px">'
         + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
         + '<div style="min-width:0"><div style="font-size:13px;font-weight:800;color:#92400E">Text today</div>'
-        + '<div style="font-size:11px;color:#B45309">No-sales, referrals, and appointment confirmations · LF ' + dueLf + ' · LTG ' + dueLtg + '</div></div>'
+        + '<div style="font-size:11px;color:#B45309">No-sales, referrals · LF ' + dueLf + ' · LTG ' + dueLtg + '</div></div>'
         + '<div style="display:flex;align-items:center;gap:8px">'
         + '<button type="button" onclick="openFollowUps()" style="background:transparent;border:none;color:#92400E;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer">See all</button>'
         + '<div style="background:#F59E0B;color:#fff;font-size:12px;font-weight:900;padding:4px 10px;border-radius:20px">' + due.length + '</div>'
@@ -8610,7 +8609,7 @@
     // PRE-ENTERED APPOINTMENTS
     // status='pending' rows are scheduled visits. They stay out of sales,
     // commission, close rate, history, and the map until quoted.
-    // A confirmation text can still show on Text today the day before and the day of.
+    // Confirmation texts stay on the Upcoming card, not Text today.
     // ─────────────────────────────────────────
     const ET_TZ = 'America/New_York';
 

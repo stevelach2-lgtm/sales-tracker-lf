@@ -330,6 +330,13 @@ test('a do-not-text customer is left out of every text list, including ones alre
   };
   const due = fuDueTextRows([dnt, queuedReferral, queuedConfirm, other]);
   assert.deepEqual(due.map(row => row.id), ['other']);
+  const soloConfirm = {
+    id: 'solo-confirm',
+    phone: '5555550166',
+    plan: { bucket: 'today', group: 'confirm', step: { key: 'appt_confirm' }, date: '2026-11-02' }
+  };
+  assert.deepEqual(fuDueTextRows([other, soloConfirm]).map(row => row.id), ['other']);
+  assert.deepEqual(fuFollowUpListRows([other, soloConfirm]).map(row => row.id), ['other']);
 
   const listed = fuFollowUpListRows([dnt, queuedReferral, queuedConfirm, other]);
   assert.deepEqual(listed.map(row => row.id).sort(), ['dnt', 'other']);
