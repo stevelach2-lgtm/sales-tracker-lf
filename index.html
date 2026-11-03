@@ -3638,6 +3638,7 @@
     let undoTimer = null;
     let activeAppointment = null;
     let pendingAppointments = [];
+    let _apptConfirmTouches = {};
     let leadSaveInFlight = false;
     let locSaveToken = 0;
     let chartInst = null;
@@ -4826,6 +4827,16 @@
       };
     }
 
+    function fuApptConfirmState(lead, touches, today, blocked) {
+      if (!lead || lead.status !== 'pending' || lead.is_cancelled) return '';
+      if (leadSmsSuppressed(lead, blocked || {})) return '';
+      if (!fuConfirmPhone(lead)) return '';
+      const parts = fuEtParts(lead.appointment_at);
+      if (!parts || !parts.dateKey || !fuApptDayWord(parts.dateKey, today)) return '';
+      const sent = (Array.isArray(touches) ? touches : []).some(t => t && t.step_key === 'appt_confirm');
+      return sent ? 'sent' : 'text';
+    }
+
     function fuPlan(lead, touches, today) {
       if (lead && lead.status === 'pending') return fuConfirmPlan(lead, touches, today);
       if (lead && lead.status === 'sold') return fuReferralPlan(lead, touches, today);
@@ -5597,12 +5608,29 @@
       }
       _fuSending = true;
       try {
-        if (row.plan && row.plan.step && row.plan.bucket !== 'done') await logFuTouch(row);
+        let logged = false;
+        if (row.plan && row.plan.step && row.plan.bucket !== 'done') logged = !!(await logFuTouch(row));
         openSmsComposer(phone, msg);
+        if (logged && row.plan.group === 'confirm') markApptConfirmSent(row.id);
         refreshFuViews();
       } finally {
         _fuSending = false;
       }
+    }
+
+    function markApptConfirmSent(id) {
+      if (!id) return;
+      _apptConfirmTouches[id] = [{ step_key: 'appt_confirm' }];
+      renderAppointments();
+    }
+
+    async function textAppointmentConfirm(id) {
+      const appt = (pendingAppointments || []).find(a => a.id === id);
+      if (!appt) return;
+      const cached = (_fuCache || []).find(r => r.id === id && r.plan && r.plan.group === 'confirm' && r.plan.bucket !== 'done');
+      const row = cached || fuView(appt, _apptConfirmTouches[id] || [], todayEtKey());
+      if (!row || !row.plan || row.plan.group !== 'confirm' || row.plan.bucket === 'done') return;
+      await sendFollowUpRow(row);
     }
 
     function textFollowUpById(id) {
@@ -5914,6 +5942,7 @@
       try {
         const rows = await loadFollowUpRows();
         renderTextTodayCard(rows);
+        renderAppointments();
       } catch (err) {
         if (el && !el.innerHTML) {
           renderTextTodayCard([]);
@@ -5928,6 +5957,7 @@
         const rows = await loadFollowUpRows();
         renderFollowUpList(rows);
         renderTextTodayCard(rows);
+        renderAppointments();
       } catch (err) {
         if (list) {
           list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">Could not load follow-ups.<br><span style="font-size:11px;opacity:.7">' + escHtml(err.message || 'Unknown error') + '</span></div>';
@@ -8791,16 +8821,17 @@
           dash.innerHTML = '';
         } else {
           dash.style.display = 'block';
-          const rows = upcoming.map(a =>
-            '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid #E0E7FF">'
+          const rows = upcoming.map(a => {
+            const state = fuApptConfirmState(a, _apptConfirmTouches[a.id] || [], today, _fuDoNotTextPhones);
+            return '<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-top:1px solid #E0E7FF">'
             + '<div style="flex:1;min-width:0">'
             + '<div style="font-size:11px;font-weight:800;color:#4338CA">' + escHtml(apptWhenLabel(a.appointment_at)) + '</div>'
             + '<div style="font-size:13px;font-weight:800;color:#1E1B4B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(a.customer_name || 'No name') + '</div>'
             + '<div style="font-size:10px;color:#6366F1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (a.customer_address ? mapsDirLink(a.customer_address) : '') + '</div>'
             + '</div>'
-            + '<button type="button" onclick="startAppointment(\'' + a.id + '\')" style="background:#fff;color:#166534;border:1.5px solid #86EFAC;border-radius:8px;padding:6px 8px;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0">Quote</button>'
-            + '</div>'
-          ).join('');
+            + dashUpcomingActionsHtml(a, state)
+            + '</div>';
+          }).join('');
           const missedLine = missed.length
             ? '<button type="button" onclick="goTo(\'quote\')" style="margin-top:6px;background:transparent;border:none;padding:0;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:700;color:#92400E;cursor:pointer">' + missed.length + ' missed / not quoted</button>'
             : '';
@@ -8817,21 +8848,44 @@
       renderActiveApptBar();
     }
 
+    function dashUpcomingActionsHtml(appt, state) {
+      const quote = '<button type="button" onclick="startAppointment(\'' + appt.id + '\')" style="background:#fff;color:#166534;border:1.5px solid #86EFAC;border-radius:8px;padding:6px 8px;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Quote</button>';
+      let extra = '';
+      if (state === 'text') {
+        extra = '<button type="button" data-confirm-action="text" onclick="textAppointmentConfirm(\'' + appt.id + '\')" style="background:#fff;color:#1D4ED8;border:1.5px solid #BFDBFE;border-radius:8px;padding:6px 8px;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Text</button>';
+      } else if (state === 'sent') {
+        extra = '<div data-confirm-action="sent" style="font-size:10px;font-weight:800;color:#166534;text-align:center;line-height:1.1;padding:1px 0">Sent ✓</div>';
+      }
+      return '<div style="display:flex;flex-direction:column;align-items:stretch;gap:4px;flex-shrink:0">' + quote + extra + '</div>';
+    }
+
     async function loadAppointments() {
       if (!sb) return;
-      const { data, error } = await sb.from('leads')
-        .select('id,customer_name,customer_address,customer_phone,appointment_at,sf_opportunity_name,notes,status,product,sale_type,lead_type,lead_id,lead_code,pay_push_weeks')
-        .eq('status', 'pending')
-        .order('appointment_at', { ascending: true });
-      if (error) {
-        console.warn('loadAppointments', error);
+      const full = 'id,customer_name,customer_address,customer_phone,appointment_at,sf_opportunity_name,notes,status,product,sale_type,lead_type,lead_id,lead_code,pay_push_weeks,followup_stopped_reason,followup_phone,is_cancelled';
+      const base = 'id,customer_name,customer_address,customer_phone,appointment_at,sf_opportunity_name,notes,status,product,sale_type,lead_type,lead_id,lead_code,pay_push_weeks';
+      const run = (cols) => sb.from('leads').select(cols).eq('status', 'pending').order('appointment_at', { ascending: true });
+      let res = await run(full);
+      if (res.error && /followup_stopped_reason|followup_phone|is_cancelled/i.test(res.error.message || '')) res = await run(base);
+      if (res.error) {
+        console.warn('loadAppointments', res.error);
         const list = document.getElementById('apptList');
         if (list && !pendingAppointments.length) {
           list.innerHTML = '<div style="font-size:12px;color:#991B1B;padding:8px 0">Could not load appointments</div>';
         }
         return;
       }
-      pendingAppointments = data || [];
+      pendingAppointments = res.data || [];
+      const nextTouches = Object.assign({}, _apptConfirmTouches);
+      const ids = pendingAppointments.map(a => a.id).filter(Boolean);
+      if (ids.length) {
+        const touches = await sb.from('followup_touches').select('lead_id,step_key').in('lead_id', ids).eq('step_key', 'appt_confirm');
+        if (!touches.error && touches.data) {
+          touches.data.forEach(row => {
+            if (row && row.lead_id) nextTouches[row.lead_id] = [{ step_key: 'appt_confirm' }];
+          });
+        }
+      }
+      _apptConfirmTouches = nextTouches;
       if (activeAppointment) {
         const fresh = pendingAppointments.find(a => a.id === activeAppointment.id);
         if (fresh) activeAppointment = fresh;
