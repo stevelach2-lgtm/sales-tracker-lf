@@ -41,9 +41,12 @@ const names = [
   'fuConfirmProductLabel',
   'fillConfirmProduct',
   'fuConfirmPhone',
-  'fuConfirmPlan',
-  'fuTextTodayShown',
+  'fuPhoneKey',
   'fuIsDoNotText',
+  'leadSmsSuppressed',
+  'fuConfirmPlan',
+  'fuApptConfirmState',
+  'fuTextTodayShown',
   'fillApptConfirm',
   'fuTouchLeadPatch',
   'mergeFuTemplates'
@@ -52,7 +55,7 @@ const names = [
 const api = new Function(
   'const FU_OPT_OUT = "If you\'d rather I not follow up, just let me know.";\n' +
   names.map(name => extractFunction(html, name)).join('\n') +
-  '\nreturn { fuProductLabel, fuPlan, fillFuMsg, defaultFuTemplates, fuStreetAddress, fuEtParts, fuConfirmProductLabel, fillConfirmProduct, fuConfirmPlan, fuTextTodayShown, fillApptConfirm, fuTouchLeadPatch, mergeFuTemplates };'
+  '\nreturn { fuProductLabel, fuPlan, fillFuMsg, defaultFuTemplates, fuStreetAddress, fuEtParts, fuConfirmProductLabel, fillConfirmProduct, fuConfirmPlan, fuApptConfirmState, fuTextTodayShown, fillApptConfirm, fuTouchLeadPatch, mergeFuTemplates };'
 )();
 
 const {
@@ -65,6 +68,7 @@ const {
   fuConfirmProductLabel,
   fillConfirmProduct,
   fuConfirmPlan,
+  fuApptConfirmState,
   fuTextTodayShown,
   fillApptConfirm,
   fuTouchLeadPatch,
@@ -197,6 +201,41 @@ test('pending appointments today or tomorrow are due once, and only with a phone
   assert.equal(nosale.group, 'price');
   assert.equal(nosale.step.key, 'day2');
   assert.equal(nosale.bucket, 'today');
+});
+
+test('upcoming card confirmation matches Text today eligibility', () => {
+  const todayAppt = { appointment_at: '2026-11-02T16:00:00.000Z' };
+  const due = fuApptConfirmState(lead(Object.assign({ product: null }, todayAppt)), [], '2026-11-02');
+  assert.equal(due, 'text');
+  assert.equal(fuApptConfirmState(lead({
+    appointment_at: '2026-11-03T15:00:00.000Z',
+    product: 'roofline'
+  }), [], '2026-11-02'), 'text');
+  assert.equal(fuApptConfirmState(lead({
+    appointment_at: '2026-11-04T15:00:00.000Z'
+  }), [], '2026-11-02'), '');
+  assert.equal(fuApptConfirmState(lead(Object.assign({ customer_phone: '' }, todayAppt)), [], '2026-11-02'), '');
+  assert.equal(fuApptConfirmState(lead(Object.assign({
+    customer_phone: '',
+    followup_phone: '5555550100'
+  }, todayAppt)), [], '2026-11-02'), '');
+  assert.equal(fuApptConfirmState(lead(Object.assign({
+    followup_stopped_reason: 'Do not text'
+  }, todayAppt)), [], '2026-11-02'), '');
+  assert.equal(fuApptConfirmState(lead(todayAppt), [], '2026-11-02', { '5555550100': true }), '');
+  assert.equal(fuApptConfirmState(lead(Object.assign({ is_cancelled: true }, todayAppt)), [], '2026-11-02'), '');
+  assert.equal(fuApptConfirmState(lead(Object.assign({ status: 'not_sold' }, todayAppt)), [], '2026-11-02'), '');
+  assert.equal(fuApptConfirmState(lead(todayAppt), [{ step_key: 'appt_confirm' }], '2026-11-02'), 'sent');
+  assert.equal(fuApptConfirmState(lead(Object.assign({
+    followup_stopped_reason: 'Do not text'
+  }, todayAppt)), [{ step_key: 'appt_confirm' }], '2026-11-02'), '');
+
+  const plan = fuConfirmPlan(lead(Object.assign({ product: null }, todayAppt)), [], '2026-11-02');
+  assert.equal(plan.group, 'confirm');
+  assert.equal(plan.bucket, 'today');
+  assert.equal(html.includes('fuTextTodayShown(due)'), true);
+  assert.equal(html.includes('textAppointmentConfirm('), true);
+  assert.equal(html.includes("markApptConfirmSent(row.id)"), true);
 });
 
 test('today confirmations stay on the Text today card when older texts fill it', () => {
