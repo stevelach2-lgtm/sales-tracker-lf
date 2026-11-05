@@ -41,7 +41,11 @@ const names = [
   'fuEnrollPatch',
   'fuPhoneKey',
   'fuIsDoNotText',
+  'fuCustomerNameKey',
   'fuDoNotTextPhones',
+  'fuDoNotTextNames',
+  'fuNameSuppressed',
+  'fuSameCustomer',
   'fuDueTextRows',
   'fuFollowUpListRows',
   'leadSmsSuppressed',
@@ -50,10 +54,10 @@ const names = [
 const api = new Function(
   'const FU_OPT_OUT = "If you\'d rather I not follow up, just let me know.";\n' +
   names.map(name => extractFunction(html, name)).join('\n') +
-  '\nreturn { smsFirstName, fuProductLabel, fuReferralLinkValue, fuReferralSteps, fuReferralBackfillMap, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuDontTextPatch, fuResumeTextPatch, fuEnrollPatch, fuPhoneKey, fuIsDoNotText, fuDoNotTextPhones, fuDueTextRows, fuFollowUpListRows, leadSmsSuppressed, defaultFuTemplates };'
+  '\nreturn { smsFirstName, fuProductLabel, fuReferralLinkValue, fuReferralSteps, fuReferralBackfillMap, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuDontTextPatch, fuResumeTextPatch, fuEnrollPatch, fuPhoneKey, fuIsDoNotText, fuDoNotTextPhones, fuDoNotTextNames, fuNameSuppressed, fuSameCustomer, fuDueTextRows, fuFollowUpListRows, leadSmsSuppressed, defaultFuTemplates };'
 )();
 
-const { smsFirstName, fuProductLabel, fuReferralLinkValue, fuReferralSteps, fuReferralBackfillMap, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuDontTextPatch, fuResumeTextPatch, fuEnrollPatch, fuPhoneKey, fuIsDoNotText, fuDoNotTextPhones, fuDueTextRows, fuFollowUpListRows, leadSmsSuppressed, defaultFuTemplates } = api;
+const { smsFirstName, fuProductLabel, fuReferralLinkValue, fuReferralSteps, fuReferralBackfillMap, fillFuMsg, fuNoTextReason, fuGroupKey, fuPlan, fuDontTextPatch, fuResumeTextPatch, fuEnrollPatch, fuPhoneKey, fuIsDoNotText, fuDoNotTextPhones, fuDoNotTextNames, fuNameSuppressed, fuSameCustomer, fuDueTextRows, fuFollowUpListRows, leadSmsSuppressed, defaultFuTemplates } = api;
 
 const day2 = defaultFuTemplates().price.leaffilter.day2;
 
@@ -556,4 +560,91 @@ test('unpaid funded commission jobs use blue text', () => {
   assert.equal(sql.includes('add column if not exists is_funded boolean not null default false'), true);
   assert.equal(sql.includes('add column if not exists funded_at date'), true);
   assert.equal(/drop table/i.test(sql), false);
+});
+
+test('Do not text removes the same customer from every text', () => {
+  assert.equal(fuSameCustomer(
+    { customer_phone: '(555) 555-0100', customer_name: 'Linda Coleman' },
+    { customer_phone: '1-555-555-0100', customer_name: 'Someone Else' }
+  ), true);
+  assert.equal(fuSameCustomer(
+    { customer_phone: '5555550100', customer_name: 'Linda Coleman' },
+    { customer_phone: '5555550199', customer_name: 'Linda Coleman' }
+  ), false);
+  assert.equal(fuSameCustomer(
+    { customer_phone: '', customer_name: '  Linda Coleman ' },
+    { followup_name: 'linda coleman' }
+  ), true);
+  assert.equal(fuSameCustomer({ customer_name: '   ' }, { customer_name: 'Linda' }), false);
+
+  const names = fuDoNotTextNames([
+    { followup_stopped_reason: 'Do not text', customer_name: 'Linda Coleman', customer_phone: '' },
+    { followup_stopped_reason: 'Do not text', customer_name: 'Pat Phone', customer_phone: '5555550100' }
+  ]);
+  assert.equal(names.phoneless['linda coleman'], true);
+  assert.equal(names.phoneless['pat phone'], undefined);
+  assert.equal(names.all['pat phone'], true);
+  assert.equal(fuNameSuppressed({ customer_name: 'Linda Coleman', customer_phone: '5555550199' }, names), true);
+  assert.equal(fuNameSuppressed({ customer_name: 'Pat Phone', customer_phone: '' }, names), true);
+  assert.equal(fuNameSuppressed({ customer_name: 'Pat Phone', customer_phone: '5555550166' }, names), false);
+
+  const sold = {
+    status: 'sold',
+    sales_date: '2026-10-01',
+    install_date: '2026-11-01',
+    followup_stopped_reason: 'sold',
+    followup_done: true,
+    is_cancelled: false
+  };
+  assert.equal(fuPlan(Object.assign({}, sold, {
+    customer_phone: '5555550100',
+    customer_name: 'Pat Phone'
+  }), [], '2026-10-22', { '5555550100': true }, names), null);
+  assert.equal(fuPlan(Object.assign({}, sold, {
+    customer_phone: '',
+    customer_name: 'Pat Phone'
+  }), [], '2026-10-22', {}, names), null);
+  assert.equal(fuPlan(Object.assign({}, sold, {
+    customer_phone: '5555550199',
+    customer_name: 'Linda Coleman'
+  }), [], '2026-10-22', {}, names), null);
+  const kept = fuPlan(Object.assign({}, sold, {
+    customer_phone: '5555550166',
+    customer_name: 'Pat Phone'
+  }), [], '2026-10-22', {}, names);
+  assert.equal(kept && kept.group, 'referral');
+  assert.equal(kept.bucket, 'upcoming');
+
+  const named = {
+    id: 'named-dnt',
+    customer_name: 'Linda Coleman',
+    customer_phone: '',
+    followup_stopped_reason: 'Do not text',
+    plan: { bucket: 'done', group: 'price', stoppedReason: 'Do not text' }
+  };
+  const sameName = {
+    id: 'same-name',
+    customer_name: 'linda coleman',
+    phone: '5555550144',
+    plan: { bucket: 'today', group: 'price', step: { key: 'day7' }, date: '2026-10-08' }
+  };
+  const otherRow = {
+    id: 'other',
+    phone: '5555550199',
+    plan: { bucket: 'today', group: 'price', step: { key: 'day7' }, date: '2026-10-08' }
+  };
+  assert.deepEqual(fuDueTextRows([named, sameName, otherRow]).map(row => row.id), ['other']);
+
+  assert.equal(html.includes('They will be removed from all texts.'), true);
+  assert.equal(html.includes('They will come off Text today.'), false);
+  const stop = extractFunction(html, 'stopOtherTextsForCustomer');
+  assert.ok(stop.indexOf('rememberDoNotText(source)') < stop.indexOf('await ensureUserId()'));
+  assert.equal(stop.includes('fuSameCustomer(source, lead)'), true);
+  assert.equal(stop.includes('fuDontTextPatch()'), true);
+  assert.equal(stop.includes("q.eq('user_id', _userId)"), true);
+  assert.equal(html.includes('await stopOtherTextsForCustomer'), true);
+  const loadAppt = extractFunction(html, 'loadAppointments');
+  assert.ok(loadAppt.indexOf('await ensureDoNotTextPhones()') < loadAppt.lastIndexOf('renderAppointments()'));
+  assert.equal(html.includes("state === 'text' && _fuDoNotTextReady"), true);
+  assert.equal(html.includes('fuApptConfirmState(a, _apptConfirmTouches[a.id] || [], today, _fuDoNotTextPhones, _fuDoNotTextNames)'), true);
 });

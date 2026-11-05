@@ -4626,8 +4626,56 @@
       return blocked;
     }
 
+    function fuCustomerNameKey(lead) {
+      if (!lead) return '';
+      let raw = lead.customer_name;
+      if (raw == null || String(raw).trim() === '') raw = lead.followup_name;
+      if ((raw == null || String(raw).trim() === '') && lead.name && String(lead.name).trim() !== 'Customer') raw = lead.name;
+      return String(raw || '').trim().toLowerCase();
+    }
+
+    function fuDoNotTextNames(rows) {
+      const phoneless = {};
+      const all = {};
+      (Array.isArray(rows) ? rows : []).forEach(row => {
+        if (!fuIsDoNotText(row)) return;
+        const name = fuCustomerNameKey(row);
+        if (!name) return;
+        all[name] = true;
+        if (!fuPhoneKey(row)) phoneless[name] = true;
+      });
+      return { phoneless: phoneless, all: all };
+    }
+
+    function fuNameSuppressed(lead, names) {
+      if (!lead || !names) return false;
+      const name = fuCustomerNameKey(lead);
+      if (!name) return false;
+      const phoneless = names.phoneless;
+      const all = names.all;
+      const flat = !phoneless && !all;
+      if (!fuPhoneKey(lead)) {
+        if (all && all[name]) return true;
+        if (phoneless && phoneless[name]) return true;
+        if (flat && names[name]) return true;
+        return false;
+      }
+      if (phoneless && phoneless[name]) return true;
+      if (flat && names[name]) return true;
+      return false;
+    }
+
+    function fuSameCustomer(source, lead) {
+      if (!source || !lead) return false;
+      const phone = fuPhoneKey(source);
+      if (phone) return fuPhoneKey(lead) === phone;
+      const name = fuCustomerNameKey(source);
+      return !!name && fuCustomerNameKey(lead) === name;
+    }
+
     function fuDueTextRows(rows) {
       const blocked = fuDoNotTextPhones(rows);
+      const names = fuDoNotTextNames(rows);
       return (Array.isArray(rows) ? rows : []).filter(row => {
         if (!row || !row.plan) return false;
         const bucket = row.plan.bucket;
@@ -4636,6 +4684,7 @@
         if (fuIsDoNotText(row)) return false;
         const phone = fuPhoneKey(row);
         if (phone && blocked[phone]) return false;
+        if (fuNameSuppressed(row, names)) return false;
         return true;
       });
     }
@@ -4649,12 +4698,14 @@
 
     function fuFollowUpListRows(rows) {
       const blocked = fuDoNotTextPhones(rows);
+      const names = fuDoNotTextNames(rows);
       return (Array.isArray(rows) ? rows : []).filter(row => {
         if (!row || !row.plan) return false;
         if (row.plan.group === 'confirm') return fuIsDoNotText(row);
         if (fuIsDoNotText(row)) return true;
         const phone = fuPhoneKey(row);
         if (phone && blocked[phone]) return false;
+        if (fuNameSuppressed(row, names)) return false;
         return true;
       });
     }
@@ -4706,7 +4757,7 @@
       return map;
     }
 
-    function fuReferralPlan(lead, touches, today) {
+    function fuReferralPlan(lead, touches, today, blocked, names) {
       if (!lead || lead.status !== 'sold' || lead.is_cancelled) return null;
       const reason = lead.followup_stopped_reason || '';
       const halted = reason === 'Do not text' || (reason && reason !== 'sold' && (
@@ -4715,6 +4766,8 @@
         (lead.followup_done && lead.followup_status !== 'active')
       ));
       if (halted) return { bucket: 'done', group: 'referral', stoppedReason: reason };
+      if (leadSmsSuppressed(lead, blocked || {})) return null;
+      if (fuNameSuppressed(lead, names)) return null;
       const steps = fuReferralSteps(lead);
       if (!steps.length) return null;
       const sent = (Array.isArray(touches) ? touches : []).filter(t => !(t && t.step_key === 'appt_confirm'));
@@ -4803,11 +4856,13 @@
       return out;
     }
 
-    function fuConfirmPlan(lead, touches, today) {
+    function fuConfirmPlan(lead, touches, today, blocked, names) {
       if (!lead || lead.status !== 'pending' || lead.is_cancelled) return null;
       if (lead.followup_stopped_reason === 'Do not text') {
         return { bucket: 'done', group: 'confirm', stoppedReason: 'Do not text' };
       }
+      if (leadSmsSuppressed(lead, blocked || {})) return null;
+      if (fuNameSuppressed(lead, names)) return null;
       if (!fuConfirmPhone(lead)) return null;
       const sent = (Array.isArray(touches) ? touches : []).some(t => t && t.step_key === 'appt_confirm');
       if (sent) return null;
@@ -4826,9 +4881,10 @@
       };
     }
 
-    function fuApptConfirmState(lead, touches, today, blocked) {
+    function fuApptConfirmState(lead, touches, today, blocked, names) {
       if (!lead || lead.status !== 'pending' || lead.is_cancelled) return '';
       if (leadSmsSuppressed(lead, blocked || {})) return '';
+      if (fuNameSuppressed(lead, names)) return '';
       if (!fuConfirmPhone(lead)) return '';
       const parts = fuEtParts(lead.appointment_at);
       if (!parts || !parts.dateKey || !fuApptDayWord(parts.dateKey, today)) return '';
@@ -4836,9 +4892,9 @@
       return sent ? 'sent' : 'text';
     }
 
-    function fuPlan(lead, touches, today) {
-      if (lead && lead.status === 'pending') return fuConfirmPlan(lead, touches, today);
-      if (lead && lead.status === 'sold') return fuReferralPlan(lead, touches, today);
+    function fuPlan(lead, touches, today, blocked, names) {
+      if (lead && lead.status === 'pending') return fuConfirmPlan(lead, touches, today, blocked, names);
+      if (lead && lead.status === 'sold') return fuReferralPlan(lead, touches, today, blocked, names);
       if (!lead || lead.status !== 'not_sold' || lead.is_cancelled) return null;
       const reason = lead.reasonLabel || '';
       if (fuNoTextReason(reason)) return null;
@@ -5072,6 +5128,8 @@
     let _fuLead = null;
     let _fuCache = [];
     let _fuDoNotTextPhones = {};
+    let _fuDoNotTextNames = { phoneless: {}, all: {} };
+    let _fuDoNotTextReady = false;
     let _fuBackfill = {};
     let _fuSending = false;
     let _userId = null;
@@ -5197,8 +5255,11 @@
         install_date: lead.install_date || '',
         referral_backfill_on: lead.referral_backfill_on || '',
         appointment_at: lead.appointment_at || '',
-        customer_phone: lead.customer_phone || ''
-      }, (touches || []).map(t => ({ step_key: t.step_key, sent_on: t.sent_on || sentOnEt(t.sent_at) })), today);
+        customer_phone: lead.customer_phone || '',
+        followup_phone: lead.followup_phone || '',
+        customer_name: lead.customer_name || '',
+        followup_name: lead.followup_name || ''
+      }, (touches || []).map(t => ({ step_key: t.step_key, sent_on: t.sent_on || sentOnEt(t.sent_at) })), today, _fuDoNotTextPhones, _fuDoNotTextNames);
       if (!plan) return null;
       const isConfirm = plan.group === 'confirm';
       const stepLabel = isConfirm && plan.bucket !== 'done'
@@ -5219,7 +5280,9 @@
         installDate: lead.install_date || '',
         referralBackfillOn: lead.referral_backfill_on || '',
         plan: plan,
-        stepLabel: stepLabel
+        stepLabel: stepLabel,
+        customer_name: lead.customer_name || '',
+        followup_name: lead.followup_name || ''
       };
     }
 
@@ -5260,7 +5323,7 @@
     }
 
     function messageForRow(row, nameOverride) {
-      if (leadSmsSuppressed(row, _fuDoNotTextPhones || {})) return '';
+      if (leadSmsSuppressed(row, _fuDoNotTextPhones || {}) || fuNameSuppressed(row, _fuDoNotTextNames)) return '';
       const step = row && row.plan && row.plan.step;
       if (!step || (row && fuNoTextReason(row.reason))) return '';
       const tpl = fuTemplateText(row.plan.group, row.product, step.key);
@@ -5391,7 +5454,7 @@
       if (!stopBtn || !resumeBtn) return;
       const plan = row && row.plan;
       const stopped = !!(plan && plan.bucket === 'done' && plan.stoppedReason === 'Do not text');
-      const suppressed = stopped || leadSmsSuppressed(row, _fuDoNotTextPhones || {});
+      const suppressed = stopped || leadSmsSuppressed(row, _fuDoNotTextPhones || {}) || fuNameSuppressed(row, _fuDoNotTextNames);
       const canStop = !!(plan && plan.bucket && plan.bucket !== 'done') && !suppressed;
       stopBtn.style.display = canStop ? 'block' : 'none';
       resumeBtn.style.display = stopped ? 'block' : 'none';
@@ -5440,13 +5503,21 @@
       id = String(id || '').trim();
       if (!id || !sb) return;
       const row = (_fuCache || []).find(r => String(r.id) === id);
-      const openName = document.getElementById('fuLeadId') && document.getElementById('fuLeadId').value === id
-        ? (document.getElementById('fuName').value || '').trim()
-        : '';
+      const formOpen = !!(document.getElementById('fuLeadId') && document.getElementById('fuLeadId').value === id);
+      const openName = formOpen ? (document.getElementById('fuName').value || '').trim() : '';
       const name = (row && row.name && row.name !== 'Customer' ? row.name : '') || openName || 'this customer';
-      if (!window.confirm("Don't text " + name + "? They will come off Text today.")) return;
+      if (!window.confirm("Don't text " + name + "? They will be removed from all texts.")) return;
       const res = await writeFollowupStatus(id, fuDontTextPatch());
       if (res.error) { toast('Could not stop texts', 'err'); return; }
+      const openPhone = formOpen ? (document.getElementById('fuPhone').value || '').trim() : '';
+      const source = {
+        id: id,
+        customer_phone: (row && (row.customer_phone || row.followup_phone || row.phone)) || openPhone,
+        followup_phone: row && row.followup_phone,
+        customer_name: (row && (row.customer_name || (row.name && row.name !== 'Customer' ? row.name : ''))) || openName,
+        followup_name: (row && row.followup_name) || openName
+      };
+      try { await stopOtherTextsForCustomer(source); } catch (e) {}
       closeFu();
       showFuUndo(name, id);
       refreshFuViews();
@@ -5469,7 +5540,7 @@
       const fullName = document.getElementById('fuName').value.trim();
       const reason = (_fuLead && _fuLead.reason) || '';
       const current = (_fuLead && (_fuLead.raw || _fuLead.view)) || null;
-      if (leadSmsSuppressed(current, _fuDoNotTextPhones || {})) {
+      if (leadSmsSuppressed(current, _fuDoNotTextPhones || {}) || fuNameSuppressed(current, _fuDoNotTextNames)) {
         document.getElementById('fuMsg').value = '';
         const blocked = document.getElementById('fuStepLabel');
         if (blocked) blocked.textContent = "Don't text";
@@ -5544,7 +5615,7 @@
 
     function copyFuMsg() {
       const current = (_fuLead && (_fuLead.raw || _fuLead.view)) || null;
-      if (leadSmsSuppressed(current, _fuDoNotTextPhones || {})) {
+      if (leadSmsSuppressed(current, _fuDoNotTextPhones || {}) || fuNameSuppressed(current, _fuDoNotTextNames)) {
         toast('Texts are off for this customer', 'err');
         return;
       }
@@ -5581,7 +5652,7 @@
 
     async function sendFollowUpRow(row, msgOverride) {
       if (!row || _fuSending) return;
-      if (leadSmsSuppressed(row, _fuDoNotTextPhones || {})) {
+      if (leadSmsSuppressed(row, _fuDoNotTextPhones || {}) || fuNameSuppressed(row, _fuDoNotTextNames)) {
         toast('Texts are off for this customer', 'err');
         return;
       }
@@ -5717,6 +5788,50 @@
       return { followup_status: 'active', followup_stopped_reason: null, followup_done: false };
     }
 
+    function rememberDoNotText(source) {
+      if (!source) return;
+      const phone = fuPhoneKey(source);
+      if (phone) {
+        const next = Object.assign({}, _fuDoNotTextPhones || {});
+        next[phone] = true;
+        _fuDoNotTextPhones = next;
+      }
+      const name = fuCustomerNameKey(source);
+      if (!_fuDoNotTextNames || !_fuDoNotTextNames.all || !_fuDoNotTextNames.phoneless) {
+        _fuDoNotTextNames = { phoneless: {}, all: {} };
+      }
+      if (name) {
+        _fuDoNotTextNames.all[name] = true;
+        if (!phone) _fuDoNotTextNames.phoneless[name] = true;
+      }
+    }
+
+    async function stopOtherTextsForCustomer(source) {
+      rememberDoNotText(source);
+      if (!sb || !source) return;
+      if (!fuPhoneKey(source) && !fuCustomerNameKey(source)) return;
+      await ensureUserId();
+      const full = 'id,customer_phone,followup_phone,customer_name,followup_name';
+      const run = (cols, withUser) => {
+        let q = sb.from('leads').select(cols);
+        if (withUser && _userId) q = q.eq('user_id', _userId);
+        return q;
+      };
+      let res = await run(full, true);
+      if (res.error && /user_id/i.test(res.error.message || '')) res = await run(full, false);
+      if (res.error && /followup_name|followup_phone/i.test(res.error.message || '')) res = await run('id,customer_phone,customer_name', !!_userId);
+      if (res.error || !res.data) return;
+      const sourceId = source.id != null ? String(source.id) : '';
+      const patch = fuDontTextPatch();
+      for (let i = 0; i < res.data.length; i++) {
+        const lead = res.data[i];
+        if (!lead || (sourceId && String(lead.id) === sourceId)) continue;
+        if (!fuSameCustomer(source, lead)) continue;
+        rememberDoNotText(lead);
+        await writeFollowupStatus(lead.id, patch);
+      }
+    }
+
     function fuEnrollPatch(reasonLabel, notes, closeDate, product, phone, name, opts) {
       const stoppedReason = fuNoTextReason(reasonLabel);
       const group = fuGroupKey(reasonLabel, notes);
@@ -5771,12 +5886,27 @@
     }
 
     async function ensureDoNotTextPhones() {
-      if (!sb) return _fuDoNotTextPhones;
-      await ensureUserId();
-      let q = sb.from('leads').select('customer_phone,followup_phone,followup_stopped_reason').eq('followup_stopped_reason', 'Do not text');
-      if (_userId) q = q.eq('user_id', _userId);
-      const { data, error } = await q;
-      if (!error && data) _fuDoNotTextPhones = fuDoNotTextPhones(data);
+      if (!sb) {
+        _fuDoNotTextReady = true;
+        return _fuDoNotTextPhones;
+      }
+      try {
+        await ensureUserId();
+        const run = (cols) => {
+          let q = sb.from('leads').select(cols).eq('followup_stopped_reason', 'Do not text');
+          if (_userId) q = q.eq('user_id', _userId);
+          return q;
+        };
+        let res = await run('customer_phone,followup_phone,customer_name,followup_name,followup_stopped_reason');
+        if (res.error && /followup_name|customer_name/i.test(res.error.message || '')) {
+          res = await run('customer_phone,followup_phone,followup_stopped_reason');
+        }
+        if (!res.error && res.data) {
+          _fuDoNotTextPhones = fuDoNotTextPhones(res.data);
+          _fuDoNotTextNames = fuDoNotTextNames(res.data);
+        }
+      } catch (e) {}
+      _fuDoNotTextReady = true;
       return _fuDoNotTextPhones;
     }
 
@@ -5801,6 +5931,8 @@
       if (res.error) throw res.error;
       const leads = res.data || [];
       _fuDoNotTextPhones = fuDoNotTextPhones(leads);
+      _fuDoNotTextNames = fuDoNotTextNames(leads);
+      _fuDoNotTextReady = true;
       _fuBackfill = fuReferralBackfillMap(leads);
       leads.forEach(l => {
         if (!l.referral_backfill_on && _fuBackfill[l.id]) l.referral_backfill_on = _fuBackfill[l.id];
@@ -5816,7 +5948,9 @@
       _fuCache = leads.map(l => fuView(l, byLead[l.id] || [], today)).filter(Boolean).filter(row => {
         if (fuIsDoNotText(row)) return true;
         const phone = fuPhoneKey(row);
-        return !(phone && _fuDoNotTextPhones[phone]);
+        if (phone && _fuDoNotTextPhones[phone]) return false;
+        if (fuNameSuppressed(row, _fuDoNotTextNames)) return false;
+        return true;
       });
       return _fuCache;
     }
@@ -6008,7 +6142,7 @@
     }
 
     function sendInstallCheckSMS(phone, name, leadId) {
-      if (leadSmsSuppressed({ customer_phone: phone }, _fuDoNotTextPhones || {})) {
+      if (leadSmsSuppressed({ customer_phone: phone, customer_name: name }, _fuDoNotTextPhones || {}) || fuNameSuppressed({ customer_phone: phone, customer_name: name }, _fuDoNotTextNames)) {
         toast('Texts are off for this customer', 'err');
         return;
       }
@@ -6241,6 +6375,15 @@
         }
         lastId = data.id;
         saveGPSForLead(data.id);
+        if (dontTextLogOpt().dontText) {
+          try {
+            await stopOtherTextsForCustomer({
+              id: data.id,
+              customer_phone: contact.fuPhone,
+              customer_name: contact.fuName
+            });
+          } catch (e) {}
+        }
         showUndo(quotingAppt ? 'Appointment marked not sold' : (enroll.followup_status === 'active' ? 'Not sold lead logged + Follow-up scheduled' : 'Not sold lead logged'));
         scheduleMileageRecalc(mileageDate);
         loadAppointments();
@@ -6496,6 +6639,11 @@
     function renderHist(leads) {
       leads = (leads || []).filter(l => l.status !== 'pending');
       const dntPhones = Object.assign({}, _fuDoNotTextPhones || {}, fuDoNotTextPhones(leads));
+      const listedNames = fuDoNotTextNames(leads);
+      const dntNames = {
+        phoneless: Object.assign({}, (_fuDoNotTextNames && _fuDoNotTextNames.phoneless) || {}, listedNames.phoneless),
+        all: Object.assign({}, (_fuDoNotTextNames && _fuDoNotTextNames.all) || {}, listedNames.all)
+      };
       const el = document.getElementById('histList');
       if (!leads.length) {
         const emptyLabel = histProductFilter === 'roofline' ? 'Lighting' : histProductFilter === 'leaffilter' ? 'LeafFilter' : '';
@@ -6528,7 +6676,7 @@
         const installComplete = sold && !l.is_cancelled && !!l.install_date && l.install_date <= todayStr;
         const custPhone = (l.customer_phone || l.followup_phone || '').replace(/\D/g, '');
         const custName = l.customer_name || l.followup_name || '';
-        const textsOff = leadSmsSuppressed(l, dntPhones);
+        const textsOff = leadSmsSuppressed(l, dntPhones) || fuNameSuppressed(l, dntNames);
         const skipFollowupText = textsOff || (!sold && !!fuNoTextReason(l.not_sold_reasons?.label || ''));
         // Top-right: show sales_date
         const displayDate = l.sales_date
@@ -8573,6 +8721,16 @@
         saveLocationForLead(data.id, document.getElementById('calCustAddr').value || null);
         scheduleMileageRecalc(mileageDate);
 
+        if (dontTextLogOpt().dontText) {
+          try {
+            await stopOtherTextsForCustomer({
+              id: data.id,
+              customer_phone: personPhone,
+              customer_name: calName || personName || '',
+              followup_name: personName || calName || ''
+            });
+          } catch (e) {}
+        }
         showUndo(quotingAppt ? 'Appointment marked not sold' : (enroll.followup_status === 'active' ? 'Not sold lead logged + Follow-up scheduled' : 'Not sold lead logged'));
         loadAppointments();
         ccResetLogPanel();
@@ -8821,7 +8979,7 @@
         } else {
           dash.style.display = 'block';
           const rows = upcoming.map(a => {
-            const state = fuApptConfirmState(a, _apptConfirmTouches[a.id] || [], today, _fuDoNotTextPhones);
+            const state = fuApptConfirmState(a, _apptConfirmTouches[a.id] || [], today, _fuDoNotTextPhones, _fuDoNotTextNames);
             return '<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-top:1px solid #E0E7FF">'
             + '<div style="flex:1;min-width:0">'
             + '<div style="font-size:11px;font-weight:800;color:#4338CA">' + escHtml(apptWhenLabel(a.appointment_at)) + '</div>'
@@ -8850,7 +9008,7 @@
     function dashUpcomingActionsHtml(appt, state) {
       const quote = '<button type="button" onclick="startAppointment(\'' + appt.id + '\')" style="background:#fff;color:#166534;border:1.5px solid #86EFAC;border-radius:8px;padding:6px 8px;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Quote</button>';
       let extra = '';
-      if (state === 'text') {
+      if (state === 'text' && _fuDoNotTextReady) {
         extra = '<button type="button" data-confirm-action="text" onclick="textAppointmentConfirm(\'' + appt.id + '\')" style="background:#fff;color:#1D4ED8;border:1.5px solid #BFDBFE;border-radius:8px;padding:6px 8px;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Text</button>';
       } else if (state === 'sent') {
         extra = '<div data-confirm-action="sent" style="font-size:10px;font-weight:800;color:#166534;text-align:center;line-height:1.1;padding:1px 0">Sent ✓</div>';
@@ -8889,6 +9047,7 @@
         const fresh = pendingAppointments.find(a => a.id === activeAppointment.id);
         if (fresh) activeAppointment = fresh;
       }
+      await ensureDoNotTextPhones();
       renderAppointments();
     }
 
