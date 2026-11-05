@@ -164,3 +164,51 @@ test('dashboard Upcoming puts a confirmation Text button under Quote', async () 
   assert.equal(row('joan').querySelector('[data-confirm-action="text"]'), null);
   assert.equal(row('tomorrow').querySelector('[data-confirm-action="text"]').textContent, 'Text');
 });
+
+test('Upcoming hides Text when the same phone is do-not-text on another lead', async () => {
+  const today = window.todayEtKey();
+  const joan = {
+    id: 'joan-blocked',
+    status: 'pending',
+    customer_name: 'Joan Connor',
+    customer_phone: '(215) 362-4042',
+    customer_address: '12 Oak Street, Doylestown, PA',
+    appointment_at: window.etLocalInputToIso(today + 'T11:00'),
+    product: 'leaffilter',
+    is_cancelled: false,
+    followup_stopped_reason: null
+  };
+  const calls = [];
+  window.sb = {
+    auth: { getSession: async () => ({ data: { session: { user: { id: 'rep-1' } } } }) },
+    from(table) {
+      const state = { table, filters: [] };
+      const chain = new Proxy({}, {
+        get(_target, prop) {
+          if (prop === 'then') {
+            return (resolve, reject) => {
+              let data = [];
+              if (table === 'leads') {
+                const dnt = state.filters.some(([col, val]) => col === 'followup_stopped_reason' && val === 'Do not text');
+                calls.push(dnt ? 'dnt' : 'appts');
+                data = dnt
+                  ? [{ customer_phone: '(215) 362-4042', customer_name: 'Joan Connor', followup_stopped_reason: 'Do not text' }]
+                  : [joan];
+              }
+              return Promise.resolve({ data: data, error: null }).then(resolve, reject);
+            };
+          }
+          if (prop === 'eq') return (col, val) => { state.filters.push([col, val]); return chain; };
+          return () => chain;
+        }
+      });
+      return chain;
+    }
+  };
+  await window.loadAppointments();
+  const card = document.getElementById('dashApptCard');
+  const quote = card.querySelector('button[onclick*="joan-blocked"]');
+  assert.equal(quote.textContent, 'Quote');
+  assert.equal(card.querySelector('[data-confirm-action="text"]'), null);
+  assert.deepEqual(calls, ['appts', 'dnt']);
+});

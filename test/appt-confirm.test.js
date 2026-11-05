@@ -43,7 +43,11 @@ const names = [
   'fuConfirmPhone',
   'fuPhoneKey',
   'fuIsDoNotText',
+  'fuCustomerNameKey',
   'fuDoNotTextPhones',
+  'fuDoNotTextNames',
+  'fuNameSuppressed',
+  'fuSameCustomer',
   'fuDueTextRows',
   'fuFollowUpListRows',
   'leadSmsSuppressed',
@@ -301,4 +305,23 @@ test('sending a confirmation does not finish the later follow-up sequence', () =
   assert.equal(html.includes('Appointment confirmation'), true);
   assert.equal(html.includes('function logFuTouch'), true);
   assert.equal(html.includes('fuTouchLeadPatch(row)'), true);
+});
+
+test('a do-not-text phone or a phoneless name gets no confirmation plan', () => {
+  const names = {
+    phoneless: { 'linda coleman': true },
+    all: { 'linda coleman': true, 'pat phone': true }
+  };
+  assert.equal(fuConfirmPlan(lead(), [], '2026-10-29', { '5555550100': true }), null);
+  assert.equal(fuConfirmPlan(lead({ customer_phone: '5555550199' }), [], '2026-10-29', {}, names), null);
+  const self = fuConfirmPlan(lead({
+    followup_status: 'stopped',
+    followup_stopped_reason: 'Do not text'
+  }), [], '2026-10-29', { '5555550100': true }, names);
+  assert.equal(self.bucket, 'done');
+  assert.equal(self.stoppedReason, 'Do not text');
+  assert.equal(fuApptConfirmState(lead(), [], '2026-10-29', {}, names), '');
+  const kept = fuConfirmPlan(lead({ customer_name: 'Pat Phone', customer_phone: '5555550166' }), [], '2026-10-29', {}, names);
+  assert.equal(kept && kept.group, 'confirm');
+  assert.equal(kept.bucket, 'today');
 });
