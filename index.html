@@ -1983,6 +1983,43 @@
       color: var(--red)
     }
 
+    .result-product {
+      margin: 0 0 12px
+    }
+
+    .result-product-q {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 6px
+    }
+
+    .result-product-q .req {
+      color: #E53935
+    }
+
+    .result-product .es-seg {
+      margin-bottom: 0
+    }
+
+    .result-product .es-seg-opt {
+      min-height: 44px;
+      padding: 12px 8px;
+      font-size: 16px;
+      font-weight: 800
+    }
+
+    .result-product .es-seg-opt.active {
+      background: var(--green);
+      color: #fff;
+      box-shadow: none
+    }
+
+    .result-product .es-seg-opt.result-prod-ltg.active {
+      background: #B45309;
+      color: #fff
+    }
+
     .es-actions {
       display: flex;
       gap: 9px;
@@ -2927,6 +2964,13 @@
             <input type="hidden" id="calCustAddr">
             <input type="hidden" id="calCustPhone">
             <input type="hidden" id="calLeadCode">
+            <div class="result-product">
+              <div class="result-product-q" id="soldResultProductQ">Which product was this? <span class="req">*</span></div>
+              <div class="es-seg" role="radiogroup" aria-labelledby="soldResultProductQ">
+                <button type="button" class="es-seg-opt result-prod-lf result-flow-lf active" role="radio" aria-checked="true" onclick="setResultProduct('leaffilter')">LeafFilter</button>
+                <button type="button" class="es-seg-opt result-prod-ltg result-flow-ltg" role="radio" aria-checked="false" onclick="setResultProduct('roofline')">Lighting</button>
+              </div>
+            </div>
             <div class="chk-row" style="margin-bottom:10px">
               <div class="chk-box" id="chkCombo" onclick="toggleChk('chkCombo')">
                 <div class="chk-top"><div class="chk-mark"></div><span class="chk-lbl">Combo</span></div>
@@ -2992,6 +3036,13 @@
 
           <!-- NOT SOLD panel -->
           <div id="ccNotPanel" style="display:none">
+            <div class="result-product">
+              <div class="result-product-q" id="nsResultProductQ">Which product was this? <span class="req">*</span></div>
+              <div class="es-seg" role="radiogroup" aria-labelledby="nsResultProductQ">
+                <button type="button" class="es-seg-opt result-prod-lf result-flow-lf active" role="radio" aria-checked="true" onclick="setResultProduct('leaffilter')">LeafFilter</button>
+                <button type="button" class="es-seg-opt result-prod-ltg result-flow-ltg" role="radio" aria-checked="false" onclick="setResultProduct('roofline')">Lighting</button>
+              </div>
+            </div>
             <div class="fg">
               <label class="fl">Reason</label>
               <div class="rl" id="ccReasonList"></div>
@@ -3035,7 +3086,6 @@
               <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
               <textarea class="fi" id="ccNotNotes" placeholder="e.g. Call back in spring, left card..."></textarea>
             </div>
-            <div id="ccNotProductHint" style="font-size:12px;font-weight:800;color:#166534;margin-bottom:8px">Saving as LeafFilter</div>
             <button class="sbtn ns" onclick="submitLeadFromCalc('not_sold')">❌ Log Not Sold</button>
           </div>
         </div>
@@ -3108,10 +3158,12 @@
       <div style="font-size:17px;font-weight:800;margin-bottom:4px">Did you drive there?</div>
       <div id="driveQuestionName" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px"></div>
       <div style="font-size:12px;color:var(--muted);line-height:1.4;margin-bottom:10px">Both are saved as not sold and get a reschedule text. You can undo for a few seconds.</div>
-      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">Product quoted</div>
-      <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button type="button" id="driveProdLf" class="qc-prod-btn active" onclick="setDriveProduct('leaffilter')">🍃 LeafFilter</button>
-        <button type="button" id="driveProdLtg" class="qc-prod-btn" onclick="setDriveProduct('roofline')">💡 Lighting</button>
+      <div class="result-product">
+        <div class="result-product-q" id="driveResultProductQ">Which product was this? <span class="req">*</span></div>
+        <div class="es-seg" role="radiogroup" aria-labelledby="driveResultProductQ">
+          <button type="button" id="driveProdLf" class="es-seg-opt result-prod-lf active" role="radio" aria-checked="true" onclick="setDriveProduct('leaffilter')">LeafFilter</button>
+          <button type="button" id="driveProdLtg" class="es-seg-opt result-prod-ltg" role="radio" aria-checked="false" onclick="setDriveProduct('roofline')">Lighting</button>
+        </div>
       </div>
       <label class="fl" style="font-size:10px">Phone for the reschedule text</label>
       <input type="tel" class="fi" id="driveQuestionPhone" placeholder="555-555-5555" maxlength="14" style="margin-bottom:12px;font-size:14px;padding:10px 12px">
@@ -6270,13 +6322,15 @@
         const isCombo = document.getElementById('chkCombo').classList.contains('active');
         const isRehash = document.getElementById('chkRehash').classList.contains('active');
         const isSelfGen = document.getElementById('chkSelfGen').classList.contains('active');
+        const product = requireResultProduct();
+        if (!product) return false;
         const payload = {
           status: 'sold',
           sale_amount: amt,
-          product: _qcProduct,
+          product: product,
           sale_type: isCombo ? 'combo' : 'single',
           lead_type: isRehash ? 'rehash' : isSelfGen ? 'self_gen' : 'company',
-          job_number: tagJobNum(document.getElementById('jobNum').value, _qcProduct),
+          job_number: tagJobNum(document.getElementById('jobNum').value, product),
           sales_date: document.getElementById('salesDate').value || null,
           install_date: document.getElementById('installDate').value || null,
           commission_amount: parseFloat(document.getElementById('commAmt').value) || null,
@@ -6343,11 +6397,13 @@
         const nsDate = nsDateEl ? nsDateEl.value || null : null;
 
         const reasonLabelNow = (reasons.find(r => String(r.id) === String(selReason)) || {}).label || '';
-        const enroll = fuEnrollPatch(reasonLabelNow, notes, nsDate || todayEtKey(), _qcProduct === 'roofline' ? 'roofline' : 'leaffilter', contact.fuPhone, contact.fuName, dontTextLogOpt());
+        const product = requireResultProduct();
+        if (!product) return;
+        const enroll = fuEnrollPatch(reasonLabelNow, notes, nsDate || todayEtKey(), product, contact.fuPhone, contact.fuName, dontTextLogOpt());
         const payload = {
           status: 'not_sold',
           reason_id: selReason,
-          product: _qcProduct === 'roofline' ? 'roofline' : 'leaffilter',
+          product: product,
           notes: notes || null,
           sales_date: nsDate,
           sale_amount: contact.leftAt,
@@ -7881,6 +7937,9 @@
 
     // Which product's price list is active in the Quote Calculator right now.
     let _qcProduct = 'leaffilter'; // 'leaffilter' | 'roofline'
+    // Product confirmed when a lead is resulted. Starts as the lead's product
+    // and can be switched without clearing the quote lines already entered.
+    let _resultProduct = 'leaffilter';
 
     // Lighting jobs get "LTG" tagged after the Job # (e.g. "123456 LTG").
     function tagJobNum(jn, product) {
@@ -8282,7 +8341,7 @@
         planNum = parts[0];
         planRate = parseFloat(parts[1]) || 0;
       }
-      const product = ccTarget === 'edit' ? esProduct : _qcProduct;
+      const product = ccTarget === 'edit' ? esProduct : _resultProduct;
       const priced = saleCommission({
         retail,
         sold: soldRaw,
@@ -8676,13 +8735,15 @@
         const personPhone = contact.fuPhone || calPhone;
         const closeDate = nsDate || todayEtKey();
         const reasonLabelNow = reasons.find(r => r.id === selCcReason)?.label || '';
-        const enroll = fuEnrollPatch(reasonLabelNow, notes, closeDate, _qcProduct === 'roofline' ? 'roofline' : 'leaffilter', personPhone, personName || calName, dontTextLogOpt());
+        const product = requireResultProduct();
+        if (!product) return;
+        const enroll = fuEnrollPatch(reasonLabelNow, notes, closeDate, product, personPhone, personName || calName, dontTextLogOpt());
         
         const quoteRef = buildQuoteRefLine({ retail: retailVal, leftAt: contact.leftAt, footage: quoted.footage });
         const payload = {
           status: 'not_sold',
           reason_id: selCcReason,
-          product: _qcProduct === 'roofline' ? 'roofline' : 'leaffilter',
+          product: product,
           notes: [quoteRef, stripLeadingQuoteRefNotes(notes)].filter(Boolean).join('\n') || null,
           sales_date: closeDate,
           sale_amount: contact.leftAt,
@@ -9094,6 +9155,8 @@
       setVal('salesDate', leadDate);
       setVal('ccNotSoldDate', leadDate);
       if (!pendingAppointments.some(a => a.id === appt.id)) pendingAppointments.push(appt);
+      // Quote prices and the result question both start on this appointment's product.
+      setQcProduct(leadProductKey(appt.product));
       renderAppointments();
     }
 
@@ -9173,6 +9236,7 @@
       qcAdminIncluded = localStorage.getItem('cc_admin_default') !== 'false';
       qcAdminInOpening = localStorage.getItem('cc_admin_in_opening') === 'true';
       _qcProduct = 'leaffilter';
+      _resultProduct = 'leaffilter';
       qcLoadPriceList();
       updateQcProductButtons();
       ccResetLogPanel(); // Ensures the whole form is blank each time the tab is opened
@@ -9184,12 +9248,61 @@
     }
 
     function setQcProduct(p) {
-      if (_qcProduct === p) return;
-      _qcProduct = p;
-      qcLoadPriceList();
+      const next = leadProductKey(p);
+      _resultProduct = next;
+      if (_qcProduct !== next) {
+        _qcProduct = next;
+        qcLoadPriceList();
+        renderQCItems();
+      }
       updateQcProductButtons();
-      renderQCItems();
       calcQuote();
+    }
+
+    function setResultProduct(p) {
+      _resultProduct = leadProductKey(p);
+      updateResultProductButtons();
+      calcQuote();
+    }
+
+    function selectedResultProduct() {
+      const lighting = !!document.querySelector('.result-flow-ltg.active');
+      const leaf = !!document.querySelector('.result-flow-lf.active');
+      if (lighting && !leaf) return 'roofline';
+      if (leaf && !lighting) return 'leaffilter';
+      if (lighting && leaf) return _resultProduct === 'roofline' ? 'roofline' : 'leaffilter';
+      return '';
+    }
+
+    function requireResultProduct() {
+      const picked = selectedResultProduct();
+      if (!picked) {
+        toast('Choose LeafFilter or Lighting', 'err');
+        const blocks = Array.from(document.querySelectorAll('#ccSoldPanel .result-product, #ccNotPanel .result-product'));
+        const visible = blocks.find(el => el.getClientRects().length) || blocks[0];
+        if (visible && visible.scrollIntoView) visible.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return null;
+      }
+      if (_resultProduct !== picked) {
+        _resultProduct = picked;
+        updateResultProductButtons();
+        calcQuote();
+      }
+      return picked;
+    }
+
+    function updateResultProductButtons() {
+      const lighting = _resultProduct === 'roofline';
+      document.querySelectorAll('.result-flow-lf').forEach(btn => {
+        btn.classList.toggle('active', !lighting);
+        btn.setAttribute('aria-checked', !lighting ? 'true' : 'false');
+      });
+      document.querySelectorAll('.result-flow-ltg').forEach(btn => {
+        btn.classList.toggle('active', lighting);
+        btn.setAttribute('aria-checked', lighting ? 'true' : 'false');
+      });
+      const ltg = document.getElementById('jobNumLtgHint');
+      if (ltg) ltg.style.display = lighting ? 'inline' : 'none';
     }
 
     function updateQcProductButtons() {
@@ -9197,14 +9310,7 @@
       const rl = document.getElementById('qcProdBtnRoofline');
       if (lf) lf.classList.toggle('active', _qcProduct === 'leaffilter');
       if (rl) rl.classList.toggle('active', _qcProduct === 'roofline');
-      const ltg = document.getElementById('jobNumLtgHint');
-      if (ltg) ltg.style.display = _qcProduct === 'roofline' ? 'inline' : 'none';
-      const hint = document.getElementById('ccNotProductHint');
-      if (hint) {
-        const lighting = _qcProduct === 'roofline';
-        hint.textContent = lighting ? 'Saving as Lighting' : 'Saving as LeafFilter';
-        hint.style.color = lighting ? '#92400E' : '#166534';
-      }
+      updateResultProductButtons();
     }
 
     function qcFloorTotalsShell() {
@@ -9295,8 +9401,8 @@
         if (extEl) extEl.textContent = ext > 0 ? fmt(ext) : '$0';
       });
 
-      const openingPct = overagePctFor(_qcProduct);
-      const productName = leadProductKey(_qcProduct) === 'roofline' ? 'Lighting' : 'LeafFilter';
+      const openingPct = overagePctFor(_resultProduct);
+      const productName = _resultProduct === 'roofline' ? 'Lighting' : 'LeafFilter';
       const pctLabel = formatOveragePct(openingPct) + '%';
       const par = retail * 0.65;
       const parPlusAdmin = par + 500;
@@ -9345,7 +9451,7 @@
           retail,
           sold: soldRaw,
           financeRatePct: planRate,
-          overagePct: overagePctFor(_qcProduct)
+          overagePct: overagePctFor(_resultProduct)
         });
         const effectiveNet = priced.effectiveNet;
         const netPct = priced.netPct;
@@ -11374,10 +11480,25 @@
     function setDriveProduct(p) {
       if (driveQuestionBusy) return;
       driveQuestionProduct = p === 'roofline' ? 'roofline' : 'leaffilter';
+      const lighting = driveQuestionProduct === 'roofline';
       const lf = document.getElementById('driveProdLf');
       const ltg = document.getElementById('driveProdLtg');
-      if (lf) lf.classList.toggle('active', driveQuestionProduct !== 'roofline');
-      if (ltg) ltg.classList.toggle('active', driveQuestionProduct === 'roofline');
+      if (lf) {
+        lf.classList.toggle('active', !lighting);
+        lf.setAttribute('aria-checked', !lighting ? 'true' : 'false');
+      }
+      if (ltg) {
+        ltg.classList.toggle('active', lighting);
+        ltg.setAttribute('aria-checked', lighting ? 'true' : 'false');
+      }
+    }
+
+    function chosenDriveProduct() {
+      const ltg = document.getElementById('driveProdLtg');
+      const lf = document.getElementById('driveProdLf');
+      if (ltg && ltg.classList.contains('active')) return 'roofline';
+      if (lf && lf.classList.contains('active')) return 'leaffilter';
+      return '';
     }
 
     function openDriveQuestion(id) {
@@ -11405,17 +11526,19 @@
 
     async function confirmDriveQuestion(droveThere) {
       if (driveQuestionBusy) return;
+      const noShowProduct = chosenDriveProduct();
+      if (!noShowProduct) { toast('Choose LeafFilter or Lighting', 'err'); return; }
       const id = pendingNoShowId;
       const appt = pendingAppointments.find(a => a.id === id);
       if (!appt) { cancelDriveQuestion(); toast('Appointment not found', 'err'); return; }
       driveQuestionBusy = true;
       setDriveButtons(true);
+      driveQuestionProduct = noShowProduct;
       const noteLine = droveThere ? 'No show' : 'Cancelled before arrival';
       const reason = matchingNoShowReason();
       const close = apptDateKey(appt.appointment_at) || todayEtKey();
       const typedPhone = (document.getElementById('driveQuestionPhone')?.value || '').trim();
       const phone = typedPhone || appt.customer_phone || '';
-      const noShowProduct = driveQuestionProduct === 'roofline' ? 'roofline' : 'leaffilter';
       const enroll = fuEnrollPatch('No show', noteLine, close, noShowProduct, phone, appt.customer_name || '');
       const payload = {
         status: 'not_sold',
