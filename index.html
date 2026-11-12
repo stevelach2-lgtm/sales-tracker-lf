@@ -2173,6 +2173,32 @@
       font-size: 16px !important;
     }
 
+    .v2-top { margin: 10px 12px 12px; background: #fff; border-radius: 16px; padding: 14px 14px 12px; box-shadow: var(--shadow); }
+    .v2-earned-label { font-size: 12px; font-weight: 800; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+    .v2-earned { font-size: 40px; font-weight: 900; letter-spacing: -1px; line-height: 1.05; color: var(--text); }
+    .v2-goal-meta { font-size: 12px; font-weight: 700; color: var(--muted); margin: 4px 0 8px; }
+    .v2-wrap { margin: 0 12px 12px; }
+    .v2-card { background: #fff; border: 1.5px solid var(--border); border-radius: 16px; padding: 12px; box-shadow: var(--shadow); }
+    .v2-kicker { font-size: 11px; font-weight: 800; letter-spacing: .04em; color: #3730A3; }
+    .v2-name { font-size: 18px; font-weight: 900; line-height: 1.25; }
+    .v2-line { font-size: 13px; color: var(--muted); line-height: 1.4; }
+    .v2-strong { font-size: 16px; font-weight: 800; margin-top: 6px; }
+    .v2-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .v2-actions .appt-action { flex: 1 1 72px; }
+    .v2-badge { font-size: 11px; font-weight: 800; border: 1px solid #166534; color: #166534; background: #F0FDF4; border-radius: 999px; padding: 2px 8px; }
+    .v2-flag { font-size: 12px; font-weight: 800; color: #92400E; margin-top: 4px; }
+    .v2-range { min-height: 36px; border-radius: 999px; border: 1.5px solid var(--border); background: #fff; font-weight: 800; padding: 6px 12px; font-family: inherit; }
+    .v2-range.active { background: var(--green); color: #fff; border-color: var(--green); }
+    .v2-more { margin: 0 12px 16px; background: #fff; border-radius: 14px; border: 1.5px solid var(--border); padding: 10px 12px; }
+    .v2-more summary { font-weight: 800; cursor: pointer; }
+    #dashApptCard { position: absolute; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+    #mockupViewer { display: none; position: fixed; inset: 0; z-index: 10020; background: #0B1530; color: #fff; flex-direction: column; }
+    #mockupViewer.open { display: flex; }
+    #mockupStage { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none; background: #0B1530; }
+    #mockupBefore, #mockupAfter { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transform-origin: center center; }
+    body.v2-shot-next #p-dash > *:not(#dashNextUp) { display: none !important; }
+    body.v2-shot-settings #p-dash { display: none !important; }
+
     .appt-action {
       min-height: 44px;
       min-width: 72px;
@@ -2293,53 +2319,17 @@
 
       <!-- DASHBOARD -->
       <div id="p-dash" class="page active">
-        <div class="dash-header">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div>
-              <div class="dash-date" id="heroDate"></div>
-              <div class="dash-title">LeafFilter Performance Dashboard</div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">
-                <div id="dashCommStrip" class="dash-comm-strip" style="display:none">
-                  <div id="dashCommDueStat" class="dash-comm-stat due-stat" style="display:none">
-                    <span class="dash-comm-lbl">Comm Due</span>
-                    <span class="dash-comm-val" id="dashCommDueVal">—</span>
-                  </div>
-                  <div id="dashCommDueDiv" class="dash-comm-div" style="display:none"></div>
-                  <div id="dashCommRetailStat" class="dash-comm-stat" style="display:none">
-                    <span class="dash-comm-lbl">Retail YTD</span>
-                    <span class="dash-comm-val" id="dashCommRetailVal">—</span>
-                  </div>
-                  <div id="dashCommRetailDiv" class="dash-comm-div" style="display:none"></div>
-                  <div id="dashCommPctStat" class="dash-comm-stat" style="display:none">
-                    <span class="dash-comm-lbl">Comm YTD</span>
-                    <span class="dash-comm-val" id="dashCommPctVal">—</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div class="v2-top" id="dashTopBar">
+          <div class="dash-date" id="heroDate"></div>
+          <div class="v2-earned-label">Earned this week</div>
+          <div class="v2-earned" id="dashEarned">—</div>
+          <div class="v2-goal-meta" id="dashGoalMeta">Goal $3,500</div>
+          <div class="goal-track"><div class="goal-fill" id="dashGoalBar" style="width:0%"></div></div>
         </div>
-        <div class="period-bar">
-          <button class="ptab" onclick="setPeriod('today',this)">Today</button>
-          <button class="ptab active" onclick="setPeriod('week',this)">Week</button>
-          <button class="ptab" onclick="setPeriod('month',this)">Month</button>
-          <button class="ptab" onclick="setPeriod('rolling60',this)">60 Days</button>
-          <button class="ptab" onclick="setPeriod('custom',this)">Custom</button>
-        </div>
-
-        <!-- Custom Date Inputs (Hidden by default) -->
-        <div id="customRangePicker"
-          style="display:none; padding:10px 14px; background:#F9FAFB; border:1px solid var(--border); border-top:none; border-bottom-left-radius:14px; border-bottom-right-radius:14px; gap:8px; align-items:center; justify-content:space-between">
-          <div style="display:flex; align-items:center; gap:6px; flex:1">
-            <input type="date" id="custS" onchange="loadDash()"
-              style="flex:1; border:1.5px solid var(--border); border-radius:8px; padding:6px 10px; font-family:'Inter',sans-serif; font-size:12px; outline:none">
-            <span style="font-size:11px; font-weight:700; color:var(--muted)">to</span>
-            <input type="date" id="custE" onchange="loadDash()"
-              style="flex:1; border:1.5px solid var(--border); border-radius:8px; padding:6px 10px; font-family:'Inter',sans-serif; font-size:12px; outline:none">
-          </div>
-        </div>
+        <div id="dashNextUp" class="v2-wrap"></div>
         <div id="dashNeedsResult" style="display:none;margin:4px 12px 12px"></div>
-        <div id="dashApptCard" style="display:none;margin:4px 12px 12px"></div>
+        <div id="dashRestToday" class="v2-wrap"></div>
+        <div id="dashApptCard" style="display:none"></div>
         <div id="dashTextToday" style="margin:4px 10px 12px"></div>
         <!-- Installations Action Center -->
         <div id="instActionCenter"
@@ -2360,37 +2350,22 @@
             0</div>
         </div>
 
-        <!-- Goal Progress Bars -->
-        <div class="goal-section" id="goalSection">
-          <div class="goal-row">
-            <div class="goal-header">
-              <span class="goal-lbl">Daily Sales Goal</span>
-              <span class="goal-val" id="goalDailyVal">— / —</span>
-            </div>
-            <div class="goal-track">
-              <div class="goal-fill" id="goalDailyBar" style="width:0%"></div>
-            </div>
-          </div>
-          <div class="goal-row">
-            <div class="goal-header">
-              <span class="goal-lbl">Weekly Revenue Goal</span>
-              <span class="goal-val" id="goalWeeklyVal">— / —</span>
-            </div>
-            <div class="goal-track">
-              <div class="goal-fill" id="goalWeeklyBar" style="width:0%"></div>
-            </div>
-          </div>
-        </div>
-        <div class="mgrid" id="mgrid">
-          <div class="loading" style="grid-column:1/-1">
-            <div class="spinner"></div>
-          </div>
-        </div>
+        <div id="dashMoney" class="v2-wrap"></div>
         <div id="closeRateCard" class="cr-card" aria-live="polite">
           <div class="loading">
             <div class="spinner"></div>
           </div>
         </div>
+        <div id="dashMiles" class="v2-wrap"></div>
+        <details id="dashMore" class="v2-more">
+          <summary>More stats</summary>
+          <div id="dashAvgPct" style="font-size:12px;color:var(--muted);margin:8px 0"></div>
+          <div class="mgrid" id="mgrid">
+            <div class="loading" style="grid-column:1/-1">
+              <div class="spinner"></div>
+            </div>
+          </div>
+        </details>
       </div>
 
 
@@ -2601,7 +2576,7 @@
             <span id="mileageSettingsIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
           </div>
           <div id="mileageSettingsSection" style="display:none">
-            <div class="s-sub" style="margin-bottom:12px">Used for the daily driving log. The route starts and ends at home.</div>
+            <div class="s-sub" style="margin-bottom:12px">Used for the daily driving log and for Leave by. The route starts and ends at home. The first appointment of the day starts from here.</div>
             <label class="fl">Home address</label>
             <input type="text" class="fi" id="mileageHome" autocomplete="street-address"
               value="221 Sunny Jim Dr, Medford, NJ 08055"
@@ -2610,77 +2585,19 @@
             <input type="number" class="fi" id="mileageRate" inputmode="decimal" min="0" step="0.001" value="0.76"
               style="margin-bottom:6px">
             <div style="font-size:11px;color:var(--muted);line-height:1.45;margin-bottom:12px">
-              Prefilled with the current IRS business rate: <strong>$0.76 per mile</strong> for July 1–December 31, 2026
-              (irs.gov standard mileage rates, IR-2026-29). January 1–June 30, 2026 was $0.725 (IR-2025-128).
-              Type dollars (0.76) or cents (76). The month and year estimates multiply every saved mile by this rate.
+              The first drive of each day starts at this address. The dashboard deduction uses the IRS table by date:
+              <strong>72.5¢</strong> for January 1–June 30, 2026 and <strong>76¢</strong> for July 1–December 31, 2026.
+              This box is the rate stored on the mileage log. Type dollars (0.76) or cents (76).
             </div>
             <button type="button" onclick="saveMileageSettings()"
               style="width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer">Save
               mileage settings</button>
           </div>
         </div>
-        <!-- Goal Settings -->
         <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
         <div class="settings-wrap" style="padding-top:0">
-          <div class="s-title" onclick="toggleSetSec('goalsSection', 'goalsIcon')"
-            style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; font-size:14px; color:var(--text)">
-            <span>🎯 Daily &amp; Weekly Goals</span>
-            <span id="goalsIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
-          </div>
-          <div id="goalsSection" style="display:none">
-            <div class="s-sub" style="margin-bottom:12px">Set your targets for the dashboard progress bars.</div>
-            <div style="margin-bottom:12px">
-              <label class="fl">Daily Sales Goal (# of sales)</label>
-              <input type="number" class="fi" id="blDailySales" placeholder="2" inputmode="numeric"
-                onchange="saveBaseline('dailySales',this.value)">
-              <div style="font-size:11px;color:var(--muted);margin-top:3px">Sales per day target</div>
-            </div>
-            <div style="margin-bottom:12px">
-              <label class="fl">Weekly Revenue Goal ($)</label>
-              <input type="number" class="fi" id="blWeeklyRev" placeholder="5000" inputmode="decimal"
-                onchange="saveBaseline('weeklyRev',this.value)">
-              <div style="font-size:11px;color:var(--muted);margin-top:3px">Revenue target per week</div>
-            </div>
-          </div>
-        </div>
-
-        <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
-
-        <!-- Grading Baselines -->
-        <div class="settings-wrap" style="padding-top:0">
-          <div class="s-title" onclick="toggleSetSec('baselinesSection', 'baselinesIcon')"
-            style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; font-size:14px; color:var(--text)">
-            <span>📊 Grading Baselines</span>
-            <span id="baselinesIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
-          </div>
-          <div id="baselinesSection" style="display:none">
-            <div class="s-sub" style="margin-bottom:12px">Cards turn <strong style="color:var(--green)">green</strong>
-              when at or above threshold, <strong style="color:var(--red)">red</strong> when below.</div>
-            <div style="margin-bottom:12px">
-              <label class="fl">NVPIL Baseline ($)</label>
-              <input type="number" class="fi" id="blNvpil" placeholder="2000" inputmode="decimal"
-                onchange="saveBaseline('nvpil',this.value)">
-              <div style="font-size:11px;color:var(--muted);margin-top:3px">Green if NVPIL ≥ this amount</div>
-            </div>
-            <div style="margin-bottom:12px">
-              <label class="fl">SLG% Baseline (%)</label>
-              <input type="number" class="fi" id="blSlg" placeholder="55" inputmode="decimal"
-                onchange="saveBaseline('slg',this.value)">
-              <div style="font-size:11px;color:var(--muted);margin-top:3px">Green if SLG% ≥ this percentage</div>
-            </div>
-            <div style="margin-bottom:4px">
-              <label class="fl">Net/Gross Baseline (%)</label>
-              <input type="number" class="fi" id="blNtg" placeholder="80" inputmode="decimal"
-                onchange="saveBaseline('ntg',this.value)">
-              <div style="font-size:11px;color:var(--muted);margin-top:3px">Green if Net/Gross ≥ this percentage</div>
-            </div>
-            <div style="margin-bottom:4px">
-              <label class="fl" style="margin-top:12px">Close Rate Baseline (%)</label>
-              <input type="number" class="fi" id="blCr" placeholder="50" inputmode="decimal"
-                onchange="saveBaseline('cr',this.value)">
-              <div style="font-size:11px;color:var(--muted);margin-top:3px">Green if Close Rate ≥ this percentage</div>
-            </div>
-          </div>
+          <div class="s-title">🎯 Weekly commission goal</div>
+          <div class="s-sub">The dashboard progress bar is $3,500 of commission earned this week. The old sales-count and $20,000 revenue bars are off the dashboard. The Commissions tab still has its own paycheck goal.</div>
         </div>
 
         <div style="height:1px;background:var(--border);margin:4px 14px 14px"></div>
@@ -2738,6 +2655,10 @@
             <label class="fl">Referral app link</label>
             <input type="url" class="fi" id="fuReferralLink" value="https://gtrfl.us/TNCz3q" placeholder="https://gtrfl.us/TNCz3q" style="margin-bottom:8px;font-size:12px">
             <button type="button" onclick="saveReferralLinkSetting()" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#fff;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:12px">Save referral link</button>
+            <label class="fl">Night mockup</label>
+            <textarea class="fi" id="mockupSmsTemplate" style="min-height:88px;margin-bottom:8px;font-size:13px"></textarea>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4;margin-bottom:8px">Used when you text a night lighting mockup. Steve still taps Send himself. [First name] is the customer.</div>
+            <button type="button" onclick="saveMockupSmsTemplate()" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#fff;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:12px">Save night mockup text</button>
             <div style="margin-bottom:12px">
               <button onclick="openFuTemplateEditor()"
                 style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
@@ -3661,6 +3582,7 @@
         </div>
       </div>
 
+      <div id="esMockup" style="margin:0 0 12px"></div>
       <!-- Notes (both) -->
       <div class="fg">
         <label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
@@ -3676,6 +3598,32 @@
   </div>
   </div>
 
+  <div id="mockupViewer" role="dialog" aria-label="Night mockup">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 12px 8px">
+      <button type="button" onclick="closeMockupViewer()" style="background:transparent;color:#fff;border:none;font-size:16px;font-weight:800;font-family:inherit;min-height:44px">‹ Back</button>
+      <span id="mockupViewerName" style="font-weight:800"></span>
+      <span id="mockupViewerStatus" class="v2-badge">Ready</span>
+    </div>
+    <div id="mockupStage">
+      <img id="mockupBefore" alt="Before, daytime photo">
+      <img id="mockupAfter" alt="After, night view with evenly spaced pinpoint lights">
+    </div>
+    <div style="padding:8px 12px 14px">
+      <input id="mockupSlider" type="range" min="0" max="100" value="50" aria-label="Before and after slider" oninput="mockupSlide(this.value)" style="width:100%;margin-bottom:6px">
+      <div style="font-size:11px;line-height:1.4;color:#D6DCE8">Drag to compare. warm-white individual pinpoint lights, evenly spaced about every 12 inches along the eaves and roofline, never a continuous strip. Text opens Messages with the note filled in. If the image copied, long-press and tap Paste.</div>
+      <div id="mockupViewerMeta" style="font-size:11px;color:#9AA6C0;margin-top:4px"></div>
+      <div id="mockupAsk" style="display:none;margin-top:8px;background:#111827;border-radius:12px;padding:10px">
+        <div style="font-weight:800;margin-bottom:6px">Did you send the mockup?</div>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="appt-action" onclick="confirmMockupSent()" style="background:#166534;color:#fff;border:none">Yes</button>
+          <button type="button" class="appt-action" onclick="undoMockupSent()" style="background:#fff;color:#111;border:none">Undo</button>
+        </div>
+      </div>
+      <div id="mockupViewerActions" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px"></div>
+    </div>
+  </div>
+  <input id="mockupPhotoInput" type="file" accept="image/*" style="display:none" onchange="mockupPhotoChosen(this)">
+  <script src="lib/v2-logic.js"></script>
   <script>
     // ─────────────────────────────────────────
     // STATE
@@ -3850,6 +3798,14 @@
     // BOOT
     // ─────────────────────────────────────────
     async function boot() {
+      if (String(location.search || '').indexOf('v2preview=1') !== -1) {
+        const cfgEl = document.getElementById('cfg');
+        const appEl = document.getElementById('app');
+        if (cfgEl) cfgEl.style.display = 'none';
+        if (appEl) appEl.style.display = 'block';
+        if (typeof renderV2Preview === 'function') renderV2Preview();
+        return;
+      }
       const url = localStorage.getItem('sb_url') || APP_SUPABASE_URL;
       const key = localStorage.getItem('sb_key') || APP_SUPABASE_KEY;
       if (!sb) sb = window.supabase.createClient(url, key);
@@ -3881,6 +3837,8 @@
         await loadRepProfile();
         _userId = session.user.id;
         await loadFuTemplates();
+        if (typeof loadMockupSmsUI === 'function') loadMockupSmsUI();
+        if (typeof loadMockupConfig === 'function') loadMockupConfig();
         gcalCheckTokenFromRedirect();
         loadDash();
         fetchTodaysCalendarLeads();
@@ -4052,6 +4010,7 @@
     // DASHBOARD
     // ─────────────────────────────────────────
     let curPeriod = 'week';
+    let dashRange = 'week';
 
     function setPeriod(p, btn) {
       curPeriod = p;
@@ -4060,15 +4019,18 @@
 
       // Show/Hide custom picker
       const picker = document.getElementById('customRangePicker');
-      if (p === 'custom') {
-        picker.style.display = 'flex';
-        // Default to last 30 days if empty
-        if (!document.getElementById('custS').value) {
-          document.getElementById('custE').value = todayEtKey();
-          document.getElementById('custS').value = etShiftKey(todayEtKey(), -30);
+      if (picker) {
+        if (p === 'custom') {
+          picker.style.display = 'flex';
+          const startEl = document.getElementById('custS');
+          const endEl = document.getElementById('custE');
+          if (startEl && endEl && !startEl.value) {
+            endEl.value = todayEtKey();
+            startEl.value = etShiftKey(todayEtKey(), -30);
+          }
+        } else {
+          picker.style.display = 'none';
         }
-      } else {
-        picker.style.display = 'none';
       }
 
       loadDash();
@@ -4334,32 +4296,25 @@
         { key: 'roofline', name: 'Lighting', badge: 'LTG', cls: 'ltg' }
       ];
       const windows = closeRateWindows(now);
-      const byWindow = windows.map(win => ({ win, stats: closeRateStats(leads, win) }));
+      const range = dashRange === 'month' ? 'month' : 'week';
+      const selected = windows.find(win => win.key === range) || windows[0];
+      const since = windows.find(win => win.key === 'all') || windows[windows.length - 1];
+      const selectedStats = closeRateStats(leads, selected);
+      const sinceStats = closeRateStats(leads, since);
       const blocks = products.map(prod => {
-        const cols = byWindow.map(({ win, stats }) => {
-          const s = stats[prod.key];
-          const avg = s.saleCount ? s.saleSum / s.saleCount : null;
-          return `<div class="cr-col">
-            <div class="cr-period">${win.label}</div>
-            <div class="cr-range">${crRangeLabel(win)}</div>
-            <div class="cr-rate${crRateClass(s.sold, s.appts)}">${crRateText(s.sold, s.appts)}</div>
-            <div class="cr-meta">
-              <span>${s.appts} run</span>
-              <span>${s.sold} sold</span>
-              <span>Avg ${avg == null ? '—' : crMoney(avg)}</span>
-              <span>Total ${crMoney(s.saleSum)}</span>
-            </div>
-            <div class="cr-noshow">${s.noShows} no-show${s.noShows === 1 ? '' : 's'}</div>
-          </div>`;
-        }).join('');
+        const s = selectedStats[prod.key];
+        const all = sinceStats[prod.key];
         return `<section class="cr-prod ${prod.cls}">
           <div class="cr-prod-name"><span class="hbadge ${prod.cls}">${prod.badge}</span>${prod.name}</div>
-          <div class="cr-cols">${cols}</div>
+          <div class="cr-rate${crRateClass(s.sold, s.appts)}" style="font-size:28px">${crRateText(s.sold, s.appts)}</div>
+          <div class="cr-meta"><span>${s.sold} sold</span><span>${s.appts} run</span><span>${s.noShows} no-show${s.noShows === 1 ? '' : 's'}</span></div>
+          <div class="cr-noshow">Since Oct 19: ${crRateText(all.sold, all.appts)} · ${all.noShows} no-show${all.noShows === 1 ? '' : 's'}</div>
         </section>`;
       }).join('');
+      const label = range === 'month' ? 'This month' : 'This week';
       return `<div class="cr-head">
-        <div class="cr-title">Close rate by product</div>
-        <div class="cr-sub">Sold ÷ appointments run (sold + not sold). From Oct 19, 2026. No-shows, cancelled, and pending are left out.</div>
+        <div class="cr-title">Close rate · ${label}</div>
+        <div class="cr-sub">Sold ÷ appointments run. Since Oct 19, no-shows, cancelled, and pending stay out of the rate.</div>
       </div>${blocks}`;
     }
 
@@ -4408,11 +4363,6 @@
       ]);
       const c = calcM(cur || []), p = calcM(prv || []);
       const ytdComm = (ytd || []).filter(l => l.commission_paid).reduce((s, l) => s + (parseFloat(l.commission_amount) || 0), 0);
-      // Load baselines
-      const blNvpil = parseFloat(localStorage.getItem('bl_nvpil')) || 2000;
-      const blSlg = parseFloat(localStorage.getItem('bl_slg')) || 55;
-      const blNtg = parseFloat(localStorage.getItem('bl_ntg')) || 80;
-      const blCr = parseFloat(localStorage.getItem('bl_cr')) || 50;
       const g = document.getElementById('mgrid');
       g.innerHTML = [
         card('Total Appointments (Leads)', c.leads, fmtNum, p.leads,
@@ -4420,13 +4370,13 @@
           'No sales LF ' + c.nsLf + ' · LTG ' + c.nsLtg + '<br>Rehash not counted'),
         card('Total Sales', c.sales, fmtNum, p.sales),
         card('Total Revenue (Volume)', c.rev, fmtDollar, p.rev),
-        card('Paid Commissions (YTD)', ytdComm, fmtDollar, null, null, 'Marked paid · by install date', false, 'Jan 1 – today'),
         card('Avg Sale (AOV)', c.aov, fmtDollar, p.aov, c.caov ? fmtDollar(c.caov) + ' Combo AOV' : null, 'Combo AOV: avg combo sale'),
         card('Combo Sales', c.combo, fmtNum, p.combo),
         card('Cancelled (Sales)', c.cancelled, fmtNum, p.cancelled, null, 'Won sales later cancelled', true)
       ].join('');
       renderGoalBars(c);
       calcCommissionsDue();
+      if (typeof loadDashV2 === 'function') loadDashV2(ytdComm);
 
       // Install alerts
       const todayStr = todayEtKey();
@@ -4459,13 +4409,8 @@
     }
 
     async function calcCommissionsDue() {
-      const strip = document.getElementById('dashCommStrip');
-      const dueStat = document.getElementById('dashCommDueStat');
-      const dueDiv = document.getElementById('dashCommDueDiv');
-      const retailStat = document.getElementById('dashCommRetailStat');
-      const retailDiv = document.getElementById('dashCommRetailDiv');
-      const pctStat = document.getElementById('dashCommPctStat');
-      if (!strip) return;
+      const avgEl = document.getElementById('dashAvgPct');
+      if (!avgEl) return;
       try {
         const ytdStartDate = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
         const [{ data: dueData, error: dueErr }, { data: ytdLeads, error: ytdErr }] = await Promise.all([
@@ -4483,40 +4428,17 @@
             .gte('sales_date', ytdStartDate)
         ]);
 
-        let showDue = false;
-        let showRetail = false;
-        let showComm = false;
-
-        if (!dueErr && dueData) {
-          const unpaid = dueData.reduce((s, j) => s + (parseFloat(j.commission_amount) || 0), 0);
-          if (unpaid > 0) {
-            showDue = true;
-            document.getElementById('dashCommDueVal').textContent =
-              '$' + unpaid.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-          }
-        }
-
+        const parts = [];
         if (!ytdErr && ytdLeads && ytdLeads.length) {
           const avgRetail = avgPctField(ytdLeads, 'retail_percentage');
           const avgComm = avgPctField(ytdLeads, 'commission_percentage');
-          if (avgRetail != null) {
-            showRetail = true;
-            document.getElementById('dashCommRetailVal').textContent = avgRetail.toFixed(1) + '%';
-          }
-          if (avgComm != null) {
-            showComm = true;
-            document.getElementById('dashCommPctVal').textContent = avgComm.toFixed(1) + '%';
-          }
+          if (avgRetail != null) parts.push('Avg % of retail ' + avgRetail.toFixed(1) + '%');
+          if (avgComm != null) parts.push('Avg comm % ' + avgComm.toFixed(1) + '%');
         }
-
-        dueStat.style.display = showDue ? 'flex' : 'none';
-        dueDiv.style.display = showDue && (showRetail || showComm) ? 'block' : 'none';
-        retailStat.style.display = showRetail ? 'flex' : 'none';
-        retailDiv.style.display = showRetail && showComm ? 'block' : 'none';
-        pctStat.style.display = showComm ? 'flex' : 'none';
-        strip.style.display = (showDue || showRetail || showComm) ? 'inline-flex' : 'none';
+        avgEl.textContent = parts.join(' · ');
+        if (dueErr) { /* unpaid split is on the Money card */ }
       } catch (e) {
-        strip.style.display = 'none';
+        avgEl.textContent = '';
       }
     }
 
@@ -4526,6 +4448,10 @@
     let _lastGoalData = null; // cache for recap card
 
     function renderGoalBars(c) {
+      if (!document.getElementById('goalSection')) {
+        _lastGoalData = null;
+        return;
+      }
       const dailyBase = parseFloat(localStorage.getItem('bl_dailySales')) || 2;
       const weeklyBase = parseFloat(localStorage.getItem('bl_weeklyRev')) || 5000;
 
@@ -6076,7 +6002,7 @@
       const tracked = due.filter(r => !(r.plan && r.plan.group === 'confirm'));
       const dueLf = tracked.filter(r => leadProductKey(r.product) !== 'roofline').length;
       const dueLtg = tracked.filter(r => leadProductKey(r.product) === 'roofline').length;
-      const shown = fuTextTodayShown(due);
+      const shown = fuTextTodayShown(due).slice(0, 3);
       const open = smsWindowOpen();
       const btnLabel = open ? 'Text' : 'Text after 8 AM';
       let body;
@@ -6104,7 +6030,7 @@
       const hours = open ? '' : '<div style="font-size:10px;color:#B45309;margin-top:4px">Texting is 8 AM–9 PM Eastern. The button copies the message until then.</div>';
       el.innerHTML = '<div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:14px;padding:12px 14px">'
         + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
-        + '<div style="min-width:0"><div style="font-size:13px;font-weight:800;color:#92400E">Text today</div>'
+        + '<div style="min-width:0"><div style="font-size:13px;font-weight:800;color:#92400E">Texts to send</div>'
         + '<div style="font-size:11px;color:#B45309">No-sales, referrals · LF ' + dueLf + ' · LTG ' + dueLtg + '</div></div>'
         + '<div style="display:flex;align-items:center;gap:8px">'
         + '<button type="button" onclick="openFollowUps()" style="background:transparent;border:none;color:#92400E;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer">See all</button>'
@@ -7089,6 +7015,8 @@
       }
       esProduct = leadProductKey(l.product);
       esSetProduct(esProduct);
+      window._editLead = l;
+      if (typeof renderLeadMockup === 'function') renderLeadMockup(l);
 
       esInitialStatus = l.status;
       esStatus = l.status;
@@ -7473,6 +7401,7 @@
       const confirmed = await confirmDeleteLead();
       if (!confirmed) return;
       const mileageDate = editMileageDate;
+      if (typeof removeMockupFiles === 'function') await removeMockupFiles(editLeadId);
       const { error } = await sb.from('leads').delete().eq('id', editLeadId);
       if (error) { toast('Error deleting', 'err'); return; }
       if (mileageDate) scheduleMileageRecalc(mileageDate);
@@ -7950,7 +7879,6 @@
     }
 
     const LAZY_SRC = {
-      chart: 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
       jspdf: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
       autotable: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js',
       qrcode: 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'
@@ -7978,8 +7906,7 @@
       await loadScriptOnce(LAZY_SRC.qrcode);
     }
     async function ensureChartLib() {
-      if (window.Chart) return;
-      await loadScriptOnce(LAZY_SRC.chart);
+      return;
     }
 
     async function exportCommPDF() {
@@ -9165,7 +9092,8 @@
         + '<div style="font-size:11px;color:#4338CA">' + (appt.customer_address ? mapsDirLink(appt.customer_address) : '') + '</div>'
         + '</div>'
         + '<button type="button" onclick="clearActiveAppointment()" style="background:#fff;border:1.5px solid #C7D2FE;color:#3730A3;border-radius:8px;padding:6px 8px;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0">Clear</button>'
-        + '</div>';
+        + '</div>'
+        + (typeof mockupPanelHtml === 'function' ? mockupPanelHtml(appt) : '');
     }
 
     function apptRowHtml(a) {
@@ -9248,6 +9176,7 @@
         }
       }
       renderActiveApptBar();
+      if (typeof renderScheduleV2 === 'function') renderScheduleV2();
     }
 
     function apptPhoneHref(phone) {
@@ -9316,8 +9245,10 @@
       if (!sb) return;
       const full = 'id,customer_name,customer_address,customer_phone,appointment_at,sf_opportunity_name,notes,status,product,sale_type,lead_type,lead_id,lead_code,pay_push_weeks,followup_stopped_reason,followup_phone,is_cancelled';
       const base = 'id,customer_name,customer_address,customer_phone,appointment_at,sf_opportunity_name,notes,status,product,sale_type,lead_type,lead_id,lead_code,pay_push_weeks';
+      const withMockup = full + ',lat,lng,mockup_status,mockup_before_path,mockup_after_path,mockup_error,mockup_texted_at';
       const run = (cols) => sb.from('leads').select(cols).eq('status', 'pending').order('appointment_at', { ascending: true });
-      let res = await run(full);
+      let res = await run(withMockup);
+      if (res.error && /lat|lng|mockup_/i.test(res.error.message || '')) res = await run(full);
       if (res.error && /followup_stopped_reason|followup_phone|is_cancelled/i.test(res.error.message || '')) res = await run(base);
       if (res.error) {
         console.warn('loadAppointments', res.error);
@@ -10828,8 +10759,15 @@
     async function mileageFetchJson(url, ms) {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), ms);
+      const headers = { Accept: 'application/json' };
+      if (String(url).indexOf('/api/') === 0) {
+        try {
+          const session = await mileageSession();
+          if (session && session.access_token) headers.Authorization = 'Bearer ' + session.access_token;
+        } catch (e) {}
+      }
       try {
-        const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: ctrl.signal });
+        const res = await fetch(url, { headers: headers, signal: ctrl.signal });
         if (!res.ok) return null;
         return await res.json();
       } catch (e) {
@@ -11923,6 +11861,895 @@
         console.error(e);
         driveQuestionBusy = false;
         setDriveButtons(false);
+      }
+    }
+
+    // ─────────────────────────────────────────
+    // DASHBOARD V2 — display and workflow only
+    // ─────────────────────────────────────────
+    const MOCKUP_SMS_DEFAULT = "Hi [First name], here's how your home could look at night with permanent lighting. Steve, LeafFilter";
+    let _condCache = {};
+    let _condTimer = null;
+    let _liveCoords = null;
+    let _liveAsked = false;
+    let _mockupLead = null;
+    let _mockupPending = null;
+
+    function moneyPlain(n) {
+      const v = Number(n) || 0;
+      return '$' + Math.round(v).toLocaleString('en-US');
+    }
+
+    function etTimeLabel(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      return new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' }).format(d);
+    }
+
+    function fridayLabel(key) {
+      if (!key) return '';
+      const d = new Date(key + 'T12:00:00Z');
+      return new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' }).format(d);
+    }
+
+    function setDashRange(range) {
+      dashRange = range === 'month' ? 'month' : 'week';
+      curPeriod = dashRange;
+      loadDash();
+    }
+
+    function paintEarned(amount) {
+      const goal = (window.V2 && window.V2.WEEKLY_COMMISSION_GOAL) || 3500;
+      const progress = window.V2 ? window.V2.goalProgress(amount, goal) : { earned: amount, goal: goal, pct: Math.round((amount / goal) * 100) };
+      const earned = document.getElementById('dashEarned');
+      const meta = document.getElementById('dashGoalMeta');
+      const bar = document.getElementById('dashGoalBar');
+      if (earned) earned.textContent = moneyPlain(progress.earned);
+      if (meta) meta.textContent = 'Goal ' + moneyPlain(progress.goal) + ' · ' + progress.pct + '%';
+      if (bar) bar.style.width = progress.pct + '%';
+    }
+
+    function paintMoney(model) {
+      const el = document.getElementById('dashMoney');
+      if (!el || !model) return;
+      const weekOn = dashRange !== 'month';
+      const waitingBits = Object.keys(model.waitingByDate || {}).sort().map(key => moneyPlain(model.waitingByDate[key]) + ' ' + fridayLabel(key));
+      el.innerHTML = '<div class="v2-card">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+        + '<div class="v2-kicker" style="color:#166534">MONEY</div>'
+        + '<div style="display:flex;gap:6px">'
+        + '<button type="button" class="v2-range' + (weekOn ? ' active' : '') + '" onclick="setDashRange(\'week\')">Week</button>'
+        + '<button type="button" class="v2-range' + (weekOn ? '' : ' active') + '" onclick="setDashRange(\'month\')">Month</button>'
+        + '</div></div>'
+        + '<div class="v2-line" style="margin-top:8px">Earned ' + (weekOn ? 'this week' : 'this month') + ': <strong>' + moneyPlain(weekOn ? model.earnedWeek : model.earnedMonth) + '</strong></div>'
+        + '<div class="v2-strong">Funded, pays ' + fridayLabel(model.paysFridayDate) + ': ' + moneyPlain(model.paysFriday) + '</div>'
+        + '<div class="v2-line">Waiting on funding: ' + moneyPlain(model.waiting) + (waitingBits.length ? ' · ' + escHtml(waitingBits.join(' · ')) : '') + '</div>'
+        + '<div class="v2-line">Not installed yet: ' + moneyPlain(model.notInstalled) + '</div>'
+        + '<div class="v2-line">Paid YTD: ' + moneyPlain(model.paidYtd) + '</div>'
+        + '</div>';
+    }
+
+    function paintMiles(rows) {
+      const el = document.getElementById('dashMiles');
+      if (!el || !window.V2) return;
+      const week = getPeriodRanges('week');
+      const month = getPeriodRanges('month');
+      const weekRows = (rows || []).filter(r => r.date >= week.cs.slice(0, 10) && r.date <= week.ce.slice(0, 10));
+      const monthRows = (rows || []).filter(r => r.date >= month.cs.slice(0, 10) && r.date <= month.ce.slice(0, 10));
+      const line = (label, list) => {
+        const d = window.V2.deductionForDays(list);
+        const rate = d.rateLabels.length ? d.rateLabels.join(' / ') : 'IRS rate not set';
+        return '<div class="v2-line"><strong>' + label + '</strong> ' + d.miles.toLocaleString('en-US') + ' mi · ' + moneyPlain(d.dollars) + ' at ' + escHtml(rate) + '</div>';
+      };
+      el.innerHTML = '<div class="v2-card"><div class="v2-kicker" style="color:#166534">MILES &amp; TIME</div>'
+        + line('This week', weekRows)
+        + line('This month', monthRows)
+        + '<div class="v2-strong" id="dashHomeBy">Home by —</div>'
+        + '<div class="v2-line">IRS business rate by the date of each logged day.</div></div>';
+    }
+
+    async function loadDashV2(paidYtd) {
+      if (!sb || !window.V2 || window._v2Preview) return;
+      try {
+        const week = getPeriodRanges('week');
+        const month = getPeriodRanges('month');
+        const ytdStart = todayEtKey().slice(0, 4) + '-01-01';
+        const weekStart = week.cs.slice(0, 10);
+        const weekEnd = week.ce.slice(0, 10);
+        const monthStart = month.cs.slice(0, 10);
+        const monthEnd = month.ce.slice(0, 10);
+        const moneyCols = 'commission_amount,commission_paid,is_funded,install_date,pay_push_weeks,status,is_cancelled';
+        let money = await sb.from('leads').select(moneyCols).eq('status', 'sold').eq('commission_paid', false);
+        if (money.error && /is_funded|pay_push_weeks/i.test(money.error.message || '')) {
+          money = await sb.from('leads').select('commission_amount,commission_paid,install_date,status,is_cancelled').eq('status', 'sold').eq('commission_paid', false);
+        }
+        const [weekRes, monthRes, milesRes, paidRes] = await Promise.all([
+          sb.from('leads').select('commission_amount,status,is_cancelled').eq('status', 'sold').gte('sales_date', weekStart).lte('sales_date', weekEnd),
+          sb.from('leads').select('commission_amount,status,is_cancelled').eq('status', 'sold').gte('sales_date', monthStart).lte('sales_date', monthEnd),
+          sb.from('mileage_log').select('log_date,total_miles').gte('log_date', monthStart).lte('log_date', monthEnd),
+          sb.from('leads').select('commission_amount,commission_paid,is_cancelled,status').eq('status', 'sold').eq('commission_paid', true).gte('sales_date', ytdStart)
+        ]);
+        const earnedWeek = window.V2.earnedCommission(weekRes.data || []);
+        const earnedMonth = window.V2.earnedCommission(monthRes.data || []);
+        paintEarned(earnedWeek);
+        const grouped = window.V2.classifyUnpaid(money.data || [], todayEtKey());
+        const paid = paidRes && !paidRes.error ? window.V2.earnedCommission((paidRes.data || []).map(row => Object.assign({ status: 'sold', is_cancelled: false }, row))) : (Number(paidYtd) || 0);
+        paintMoney(Object.assign({ earnedWeek: earnedWeek, earnedMonth: earnedMonth, paidYtd: paid }, grouped));
+        const miles = (milesRes && milesRes.data || []).map(row => ({ date: row.log_date, miles: Number(row.total_miles) || 0 }));
+        paintMiles(miles);
+      } catch (e) {
+        console.warn('dash v2', e);
+      }
+    }
+
+    function upcomingList() {
+      const today = todayEtKey();
+      return (pendingAppointments || []).filter(a => apptDateKey(a.appointment_at) >= today)
+        .sort((a, b) => new Date(a.appointment_at) - new Date(b.appointment_at));
+    }
+
+    function nextUpAppointment(list) {
+      const now = Date.now();
+      const rows = list || upcomingList();
+      const still = rows.filter(a => new Date(a.appointment_at).getTime() + 60 * 60000 > now);
+      return still[0] || rows[0] || null;
+    }
+
+    function leadTextsOff(lead) {
+      if (!lead) return false;
+      return leadSmsSuppressed(lead, _fuDoNotTextPhones || {}) || fuNameSuppressed(lead, _fuDoNotTextNames);
+    }
+
+    function mockupConfigured() {
+      return window._mockupConfigured !== false;
+    }
+
+    function nightButtonHtml(lead) {
+      if (!lead || !lead.id) return '';
+      const lighting = leadProductKey(lead.product) === 'roofline';
+      const label = mockupConfigured() ? 'Night mockup' : 'Not set up yet';
+      const bg = lighting && mockupConfigured() ? 'var(--green)' : '#fff';
+      const color = lighting && mockupConfigured() ? '#fff' : 'var(--text)';
+      const border = lighting && mockupConfigured() ? 'none' : '1.5px solid var(--border)';
+      return '<button type="button" class="appt-action" onclick="requestNightMockup(\'' + lead.id + '\')"'
+        + (mockupConfigured() ? '' : ' disabled')
+        + ' style="width:100%;margin-top:8px;background:' + bg + ';color:' + color + ';border:' + border + '">' + label + '</button>'
+        + '<button type="button" class="appt-action" onclick="pickMockupPhoto(\'' + lead.id + '\')" style="width:100%;margin-top:6px;background:#fff;color:#166534;border:1.5px solid #86EFAC">Photo</button>';
+    }
+
+    function mockupBadgeHtml(lead) {
+      if (!lead || !window.V2) return '';
+      const label = window.V2.mockupStatusLabel(lead.mockup_status);
+      if (!label) return '';
+      if (lead.mockup_status === 'ready') {
+        return '<button type="button" class="v2-badge" onclick="openMockupFromLead(\'' + lead.id + '\')">' + label + ' ▸</button>';
+      }
+      return '<span class="v2-badge" style="border-color:#D1D5DB;color:#374151;background:#F9FAFB">' + escHtml(label) + '</span>';
+    }
+
+    function nextUpHtml(lead, list) {
+      const cond = _condCache[lead.id] && _condCache[lead.id].data;
+      const state = fuApptConfirmState(lead, _apptConfirmTouches[lead.id] || [], todayEtKey(), _fuDoNotTextPhones, _fuDoNotTextNames);
+      const when = formatApptTime(lead.appointment_at);
+      const weather = cond && cond.weather && cond.weather.summary
+        ? 'At ' + when + ': ' + cond.weather.summary
+        : (cond ? 'Weather unavailable' : 'Checking weather…');
+      const drive = cond && cond.drive
+        ? (cond.drive.summary + (cond.padMinutes ? ' + ' + cond.padReason.replace(/^\+/, '') : ''))
+        : '';
+      const leavePlan = (cond && cond.drive && window.V2) ? window.V2.leaveBy({
+        appointmentAt: lead.appointment_at,
+        driveMinutes: cond.drive.minutes,
+        severity: cond.severity || 'clear',
+        earliestLeaveAt: (_condCache[lead.id] && _condCache[lead.id].earliestLeaveAt) || null
+      }) : null;
+      const leave = leavePlan
+        ? (leavePlan.warning ? leavePlan.warning : ('Leave by ' + etTimeLabel(leavePlan.leaveAt)))
+        : (cond && cond.leaveAt ? 'Leave by ' + etTimeLabel(cond.leaveAt) : '');
+      const earliestNote = leavePlan && leavePlan.warning ? ('Earliest leave ' + etTimeLabel(leavePlan.leaveAt)) : '';
+      const from = (_condCache[lead.id] && _condCache[lead.id].from) || '';
+      const miles = cond && cond.drive && cond.drive.miles != null ? cond.drive.miles + ' mi' : '';
+      const updated = cond && cond.updatedAt ? 'Updated ' + etTimeLabel(cond.updatedAt) : '';
+      const route = cond && cond.routeWeather && cond.routeWeather.summary ? 'On the drive: ' + cond.routeWeather.summary : '';
+      const call = apptPhoneHref(lead.customer_phone);
+      const dir = apptDirectionsHref(lead.customer_address);
+      const text = state === 'text'
+        ? '<button type="button" class="appt-action" onclick="textAppointmentConfirm(\'' + lead.id + '\')" style="background:#fff;color:#1D4ED8;border:1.5px solid #BFDBFE">Text</button>'
+        : (state === 'sent' ? '<div class="appt-action" style="color:#166534;border:1.5px solid #86EFAC;background:#F0FDF4">Sent ✓</div>' : '');
+      return '<div class="v2-card" id="nextUpCard">'
+        + '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center">'
+        + '<div class="v2-kicker">NEXT UP · ' + escHtml(when) + ' ET</div>'
+        + mockupBadgeHtml(lead)
+        + '</div>'
+        + '<div class="v2-name">' + escHtml(lead.customer_name || 'No name') + '</div>'
+        + '<div class="v2-line">' + (lead.customer_address ? mapsDirLink(lead.customer_address) : '') + (miles ? ' · ' + escHtml(miles) : '') + '</div>'
+        + (from ? '<div class="v2-line">' + escHtml(from) + '</div>' : '')
+        + (state === 'text' ? '<div class="v2-flag">Not confirmed yet</div>' : '')
+        + '<div class="v2-strong">' + escHtml(weather) + '</div>'
+        + (route ? '<div class="v2-line">' + escHtml(route) + '</div>' : '')
+        + (leave ? '<div class="v2-strong">' + escHtml(leave) + '</div>' : '')
+        + (earliestNote ? '<div class="v2-line">' + escHtml(earliestNote) + '</div>' : '')
+        + (drive ? '<div class="v2-line">' + escHtml(drive) + (cond && cond.drive && cond.drive.traffic ? ' · Mapbox' : '') + '</div>' : '')
+        + (updated ? '<div class="v2-line">' + escHtml(updated) + '</div>' : '')
+        + (lead.mockup_status === 'failed' && lead.mockup_error ? '<div class="v2-flag">' + escHtml(lead.mockup_error) + '</div><button type="button" class="appt-action" onclick="requestNightMockup(\'' + lead.id + '\')" style="margin-top:6px;background:#fff;border:1.5px solid #FCD34D">Try again</button>' : '')
+        + '<div class="v2-actions">'
+        + (dir ? '<a class="appt-action" href="' + dir + '" target="_blank" rel="noopener noreferrer" style="background:var(--green);color:#fff;border:none">Navigate</a>' : '')
+        + (call ? '<a class="appt-action" href="' + call + '" style="background:#fff;color:#166534;border:1.5px solid #86EFAC">Call</a>' : '')
+        + text
+        + '<button type="button" class="appt-action" onclick="startAppointment(\'' + lead.id + '\')" style="background:#fff;color:#166534;border:1.5px solid #86EFAC">Quote</button>'
+        + '</div>'
+        + nightButtonHtml(lead)
+        + '</div>';
+    }
+
+    function restOfTodayHtml(list, next) {
+      const today = todayEtKey();
+      const rows = (list || []).filter(a => a && next && a.id !== next.id && apptDateKey(a.appointment_at) === today);
+      if (!rows.length) return '';
+      const body = rows.map(a => {
+        const cond = _condCache[a.id] && _condCache[a.id].data;
+        const bits = [formatApptTime(a.appointment_at)];
+        if (cond && cond.weather && cond.weather.summary) bits.push(cond.weather.summary);
+        else if (!cond) bits.push('weather…');
+        if (cond && cond.drive && cond.drive.miles != null) bits.push(cond.drive.miles + ' mi');
+        const badge = window.V2 ? window.V2.mockupStatusLabel(a.mockup_status) : '';
+        if (badge) bits.push(badge);
+        return '<div class="v2-line" style="padding:6px 0;border-top:1px solid var(--border)">' + escHtml(bits.join(' · ')) + '</div>';
+      }).join('');
+      return '<div class="v2-card"><div class="v2-kicker">REST OF TODAY (' + rows.length + ')</div>' + body + '</div>';
+    }
+
+    function renderScheduleV2() {
+      const nextEl = document.getElementById('dashNextUp');
+      const restEl = document.getElementById('dashRestToday');
+      if (!nextEl && !restEl) return;
+      try {
+        const list = upcomingList();
+        const next = nextUpAppointment(list);
+        if (nextEl) {
+          nextEl.innerHTML = next ? nextUpHtml(next, list) : '<div class="v2-card"><div class="v2-kicker">NEXT UP</div><div class="v2-line">Nothing else scheduled.</div></div>';
+        }
+        if (restEl) restEl.innerHTML = restOfTodayHtml(list, next);
+        if (next && window.V2 && !window._v2Preview) refreshConditions(next, list);
+      } catch (err) {
+        console.warn('schedule v2', err);
+      }
+    }
+
+    function cacheFresh(entry, lead) {
+      if (!entry || !window.V2) return false;
+      const hot = window.V2.withinLastMinutes(lead.appointment_at, new Date(), 90);
+      const limit = hot ? 10 * 60 * 1000 : 30 * 60 * 1000;
+      return Date.now() - entry.at < limit;
+    }
+
+    async function liveCoordsOnce() {
+      if (_liveCoords) return _liveCoords;
+      if (_liveAsked || !navigator.geolocation) return null;
+      _liveAsked = true;
+      return new Promise(resolve => {
+        navigator.geolocation.getCurrentPosition(
+          pos => { _liveCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude }; resolve(_liveCoords); },
+          () => resolve(null),
+          { enableHighAccuracy: false, timeout: 2500, maximumAge: 120000 }
+        );
+      });
+    }
+
+    async function ensureLeadCoords(lead) {
+      const lat = Number(lead && lead.lat);
+      const lng = Number(lead && lead.lng);
+      if (isFinite(lat) && isFinite(lng)) return { lat: lat, lng: lng };
+      if (!lead || !lead.customer_address) return null;
+      const coords = await mileageGeocode(lead.customer_address);
+      if (coords && lead.id && sb) {
+        lead.lat = coords.lat;
+        lead.lng = coords.lng;
+        sb.from('leads').update({ lat: coords.lat, lng: coords.lng }).eq('id', lead.id);
+      }
+      return coords;
+    }
+
+    function restOfTodayRows(list, next) {
+      const today = todayEtKey();
+      return (list || []).filter(a => a && next && a.id !== next.id && apptDateKey(a.appointment_at) === today);
+    }
+
+    function paintScheduleFromCache() {
+      const fresh = upcomingList();
+      const current = nextUpAppointment(fresh);
+      const nextEl = document.getElementById('dashNextUp');
+      const restEl = document.getElementById('dashRestToday');
+      if (nextEl && current) nextEl.innerHTML = nextUpHtml(current, fresh);
+      if (restEl) restEl.innerHTML = restOfTodayHtml(fresh, current);
+    }
+
+    async function fetchConditionsFor(lead, list, session, home, allowLive) {
+      if (!lead || cacheFresh(_condCache[lead.id], lead)) return _condCache[lead.id];
+      const dest = await ensureLeadCoords(lead);
+      const day = apptDateKey(lead.appointment_at);
+      const earlier = (list || []).filter(a => a.id !== lead.id && apptDateKey(a.appointment_at) === day && new Date(a.appointment_at) < new Date(lead.appointment_at));
+      let origin = home;
+      let from = 'From home';
+      let earliestLeaveAt = null;
+      if (earlier.length) {
+        const prev = earlier[earlier.length - 1];
+        const prevCoords = await ensureLeadCoords(prev);
+        const live = allowLive ? await liveCoordsOnce() : null;
+        if (live) {
+          origin = live;
+          from = 'From your location';
+        } else if (prevCoords) {
+          origin = prevCoords;
+          from = 'From last stop';
+          earliestLeaveAt = new Date(new Date(prev.appointment_at).getTime() + 60 * 60000).toISOString();
+        }
+      }
+      let data = { weather: null, drive: null, degraded: 'no_destination', updatedAt: new Date().toISOString() };
+      if (dest && origin && session) {
+        const res = await fetch('/api/conditions', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ appointmentAt: lead.appointment_at, origin: origin, dest: dest })
+        });
+        data = res.ok ? await res.json() : { weather: null, drive: null, degraded: 'unavailable', updatedAt: new Date().toISOString() };
+      }
+      _condCache[lead.id] = { at: Date.now(), from: from, earliestLeaveAt: earliestLeaveAt, data: data };
+      return _condCache[lead.id];
+    }
+
+    async function refreshConditions(next, list) {
+      if (!next || !window.V2 || window._v2Preview) return;
+      const rows = list && list.length ? list : upcomingList();
+      const rest = restOfTodayRows(rows, next);
+      const needNext = !cacheFresh(_condCache[next.id], next);
+      const needRest = rest.some(row => !cacheFresh(_condCache[row.id], row));
+      if (needNext || needRest) {
+        try {
+          const session = await mileageSession();
+          if (!session) return;
+          const home = await mileageGeocode(mileageHomeAddress());
+          if (needNext) {
+            await fetchConditionsFor(next, rows, session, home, true);
+            paintScheduleFromCache();
+            refreshHomeBy(rows, home);
+          }
+          for (let i = 0; i < rest.length; i++) {
+            if (cacheFresh(_condCache[rest[i].id], rest[i])) continue;
+            try {
+              await fetchConditionsFor(rest[i], rows, session, home, false);
+              const restEl = document.getElementById('dashRestToday');
+              if (restEl) restEl.innerHTML = restOfTodayHtml(upcomingList(), nextUpAppointment(upcomingList()));
+            } catch (err) {
+              console.warn('rest conditions', err);
+            }
+          }
+        } catch (e) {
+          console.warn('conditions', e);
+        }
+      }
+      if (!_condTimer) {
+        _condTimer = setInterval(() => {
+          const page = document.getElementById('p-dash');
+          if (!page || !page.classList.contains('active') || window._v2Preview) return;
+          const againRows = upcomingList();
+          const again = nextUpAppointment(againRows);
+          if (again) refreshConditions(again, againRows);
+        }, 60000);
+      }
+    }
+
+    async function refreshHomeBy(list, home) {
+      const el = document.getElementById('dashHomeBy');
+      if (!el || !window.V2 || !home) return;
+      const today = todayEtKey();
+      const todays = (list || []).filter(a => apptDateKey(a.appointment_at) === today)
+        .sort((a, b) => new Date(a.appointment_at) - new Date(b.appointment_at));
+      const last = todays[todays.length - 1];
+      if (!last) { el.textContent = 'Home by —'; return; }
+      const origin = await ensureLeadCoords(last);
+      if (!origin) return;
+      const session = await mileageSession();
+      if (!session) return;
+      const depart = new Date(new Date(last.appointment_at).getTime() + 60 * 60000).toISOString();
+      try {
+        const res = await fetch('/api/conditions', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ appointmentAt: depart, origin: origin, dest: home })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.drive) { el.textContent = 'Home by —'; return; }
+        const homeAt = window.V2.homeBy({ lastAppointmentAt: last.appointment_at, driveHomeMinutes: data.drive.minutes });
+        el.textContent = homeAt ? ('Home by about ' + etTimeLabel(homeAt)) : 'Home by —';
+      } catch (e) {}
+    }
+
+    function mockupPanelHtml(lead) {
+      if (!lead) return '';
+      const reason = lead.mockup_status === 'failed' && lead.mockup_error ? '<div class="v2-flag">' + escHtml(lead.mockup_error) + '</div>' : '';
+      return '<div style="margin-top:8px">' + mockupBadgeHtml(lead) + reason + nightButtonHtml(lead) + '</div>';
+    }
+
+    function renderLeadMockup(lead) {
+      const el = document.getElementById('esMockup');
+      if (!el) return;
+      el.innerHTML = '<div class="v2-card" style="margin:0">'
+        + '<div class="v2-kicker">NIGHT MOCKUP</div>'
+        + '<div class="v2-line">A straight-on front photo works best. Lights: ' + escHtml((window.V2 && window.V2.MOCKUP_STYLE) || 'warm-white individual pinpoint lights, evenly spaced about every 12 inches along the eaves and roofline, never a continuous strip') + '.</div>'
+        + mockupPanelHtml(lead)
+        + (lead && lead.mockup_status === 'ready' ? '<button type="button" class="appt-action" style="width:100%;margin-top:6px;background:#111827;color:#fff;border:none" onclick="openMockupFromLead(\'' + lead.id + '\')">View mockup</button>' : '')
+        + '</div>';
+    }
+
+    function pickMockupPhoto(leadId) {
+      window._mockupPhotoLeadId = leadId;
+      const input = document.getElementById('mockupPhotoInput');
+      if (input) input.click();
+    }
+
+    async function mockupPhotoChosen(input) {
+      const file = input.files && input.files[0];
+      const leadId = window._mockupPhotoLeadId;
+      input.value = '';
+      if (!file || !leadId) return;
+      const session = await mileageSession();
+      if (!session) { toast('Sign in first', 'err'); return; }
+      const path = session.user.id + '/' + leadId + '/before.jpg';
+      const up = await sb.storage.from('mockups').upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' });
+      if (up.error) { toast('Photo did not save. Run the mockup migration if this is the first time.', 'err'); return; }
+      const saved = await sb.from('leads').update({ mockup_before_path: path, mockup_error: null }).eq('id', leadId);
+      if (saved.error) { toast('Photo saved, but the lead needs the mockup columns. Run the migration.', 'err'); return; }
+      toast('Photo added', 'ok');
+      const lead = (pendingAppointments || []).find(a => a.id === leadId) || window._editLead;
+      if (lead && lead.id === leadId) lead.mockup_before_path = path;
+      renderScheduleV2();
+      if (lead) renderLeadMockup(lead);
+    }
+
+    async function requestNightMockup(leadId) {
+      if (!mockupConfigured()) return;
+      const session = await mileageSession();
+      if (!session) { toast('Sign in first', 'err'); return; }
+      try {
+        const res = await fetch('/api/mockup-notify', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lead_id: leadId })
+        });
+        const body = await res.json().catch(() => ({}));
+        if (body.notConfigured) {
+          window._mockupConfigured = false;
+          toast('Not set up yet', 'err');
+          renderScheduleV2();
+          return;
+        }
+        if (body.status === 'failed') toast(body.error || "Couldn't make the mockup", 'err');
+        else if (body.status === 'requested') toast('Mockup requested', 'ok');
+        else toast(body.error || 'Could not request the mockup', 'err');
+        const lead = (pendingAppointments || []).find(a => a.id === leadId);
+        if (lead && body.status) {
+          lead.mockup_status = body.status;
+          lead.mockup_error = body.error || null;
+        }
+        renderScheduleV2();
+        if (window._editLead && window._editLead.id === leadId && body.status) {
+          window._editLead.mockup_status = body.status;
+          window._editLead.mockup_error = body.error || null;
+          renderLeadMockup(window._editLead);
+        }
+      } catch (e) {
+        toast('Could not request the mockup', 'err');
+      }
+    }
+
+    async function signedMockup(path) {
+      if (!path || !sb) return '';
+      const signed = await sb.storage.from('mockups').createSignedUrl(path, 600);
+      if (!signed || signed.error || !signed.data) return '';
+      return signed.data.signedUrl || signed.data.signedURL || '';
+    }
+
+    async function mockupLeadById(id) {
+      const local = (pendingAppointments || []).find(a => a.id === id) || (window._editLead && window._editLead.id === id ? window._editLead : null);
+      if (local && local.mockup_after_path) return local;
+      if (!sb) return local;
+      const res = await sb.from('leads').select('id,customer_name,customer_phone,followup_stopped_reason,product,mockup_status,mockup_before_path,mockup_after_path,mockup_error,mockup_texted_at').eq('id', id).maybeSingle();
+      return (res && res.data) || local;
+    }
+
+    function mockupSlide(value) {
+      const img = document.getElementById('mockupAfter');
+      if (img) img.style.clipPath = 'inset(0 0 0 ' + value + '%)';
+    }
+
+    function closeMockupViewer() {
+      const el = document.getElementById('mockupViewer');
+      if (el) el.classList.remove('open');
+      _mockupLead = null;
+    }
+
+    function mockupShareState(lead) {
+      if (leadTextsOff(lead)) return { label: 'Texts are off for this customer', off: true };
+      if (typeof smsWindowOpen === 'function' && !smsWindowOpen()) return { label: 'Text after 8 AM', hold: true };
+      return { label: 'Text to customer' };
+    }
+
+    function fillMockupSms(lead) {
+      const first = smsFirstName((lead && (lead.customer_name || lead.followup_name)) || '');
+      return mockupSmsTemplate().replace(/\[First name\]/g, first).replace(/\[Name\]/g, first);
+    }
+
+    function mockupSmsTemplate() {
+      try {
+        const saved = localStorage.getItem('cc_mockup_sms');
+        if (saved && saved.trim()) return saved;
+      } catch (e) {}
+      return MOCKUP_SMS_DEFAULT;
+    }
+
+    function loadMockupSmsUI() {
+      const el = document.getElementById('mockupSmsTemplate');
+      if (el && document.activeElement !== el) el.value = mockupSmsTemplate();
+    }
+
+    function saveMockupSmsTemplate() {
+      const el = document.getElementById('mockupSmsTemplate');
+      const text = String((el && el.value) || '').trim() || MOCKUP_SMS_DEFAULT;
+      try { localStorage.setItem('cc_mockup_sms', text); } catch (e) {}
+      if (el) el.value = text;
+      toast('Night mockup text saved', 'ok');
+    }
+
+    async function openMockupViewer(lead, urls) {
+      _mockupLead = lead;
+      const view = document.getElementById('mockupViewer');
+      if (!view) return;
+      document.getElementById('mockupViewerName').textContent = (lead && lead.customer_name) || 'Mockup';
+      document.getElementById('mockupViewerStatus').textContent = (window.V2 && window.V2.mockupStatusLabel(lead && lead.mockup_status)) || 'Ready';
+      const before = document.getElementById('mockupBefore');
+      const after = document.getElementById('mockupAfter');
+      before.src = (urls && urls.before) || '';
+      after.src = (urls && urls.after) || '';
+      mockupSlide(50);
+      const slider = document.getElementById('mockupSlider');
+      if (slider) slider.value = '50';
+      document.getElementById('mockupViewerMeta').textContent = 'Before photo by Steve · after made for the night view';
+      const ask = document.getElementById('mockupAsk');
+      if (ask) ask.style.display = 'none';
+      const actions = document.getElementById('mockupViewerActions');
+      const share = mockupShareState(lead || {});
+      let buttons = '';
+      if (share.off) buttons += '<div class="appt-action" style="background:#fff;color:#991B1B">' + share.label + '</div>';
+      else if (share.hold) buttons += '<button type="button" class="appt-action" disabled style="background:#fff;color:#92400E">' + share.label + '</button>';
+      else {
+        buttons += '<button type="button" class="appt-action" onclick="textMockup()" style="background:#FACC15;color:#713F12;border:none">Text to customer</button>';
+        buttons += '<button type="button" class="appt-action" onclick="shareMockup()" style="background:transparent;color:#fff;border:1.5px solid #5B6B8C">Share…</button>';
+      }
+      buttons += '<button type="button" class="appt-action" onclick="saveMockupImage()" style="background:#fff;color:#111;border:none">Save image</button>';
+      buttons += '<button type="button" class="appt-action" onclick="requestNightMockup(\'' + (lead && lead.id) + '\')" style="background:transparent;color:#fff;border:1.5px solid #5B6B8C">Redo</button>';
+      actions.innerHTML = buttons;
+      view.classList.add('open');
+      preloadMockupFile(urls && urls.after);
+    }
+
+    async function openMockupFromLead(id) {
+      const lead = await mockupLeadById(id);
+      if (!lead) { toast('Could not open the mockup', 'err'); return; }
+      const before = lead.mockup_before_path ? await signedMockup(lead.mockup_before_path) : '';
+      const after = lead.mockup_after_path ? await signedMockup(lead.mockup_after_path) : '';
+      if (!after && !before) { toast('No mockup image yet', 'err'); return; }
+      openMockupViewer(lead, { before: before, after: after || before });
+    }
+
+    let _mockupFile = null;
+    let _mockupPng = null;
+    function blobToPng(blob) {
+      if (blob && blob.type === 'image/png') return Promise.resolve(blob);
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width || 1;
+          canvas.height = img.naturalHeight || img.height || 1;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+          URL.revokeObjectURL(url);
+          canvas.toBlob(out => out ? resolve(out) : reject(new Error('png')), 'image/png');
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error('image'));
+        };
+        img.src = url;
+      });
+    }
+
+    async function preloadMockupFile(url) {
+      _mockupFile = null;
+      _mockupPng = null;
+      if (!url) return;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const blob = await res.blob();
+        _mockupFile = new File([blob], 'night-mockup.jpg', { type: blob.type || 'image/jpeg' });
+        try { _mockupPng = await blobToPng(blob); } catch (e) { _mockupPng = null; }
+      } catch (e) {}
+    }
+
+    function mockupImageBlob() {
+      if (_mockupFile) return Promise.resolve(_mockupFile);
+      const url = document.getElementById('mockupAfter') && document.getElementById('mockupAfter').src;
+      if (!url) return Promise.resolve(null);
+      return fetch(url).then(res => res.ok ? res.blob() : null).catch(() => null);
+    }
+
+    async function saveMockupImage() {
+      const blob = await mockupImageBlob();
+      if (!blob) { toast('Image is not ready', 'err'); return false; }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'night-mockup.jpg';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+      return true;
+    }
+
+    function showMockupAsk() {
+      const ask = document.getElementById('mockupAsk');
+      if (ask) ask.style.display = 'block';
+    }
+
+    function clipboardImageSupported() {
+      return !!(navigator.clipboard && navigator.clipboard.write && typeof ClipboardItem !== 'undefined');
+    }
+
+    async function textMockup() {
+      const lead = _mockupLead;
+      if (!lead) return;
+      const share = mockupShareState(lead);
+      if (share.off || share.hold) return;
+      const text = fillMockupSms(lead);
+      _mockupPending = { id: lead.id, previous: lead.mockup_texted_at || null };
+      let copied = false;
+      if (clipboardImageSupported()) {
+        try {
+          const pngPromise = _mockupPng ? Promise.resolve(_mockupPng) : mockupImageBlob().then(blob => blob ? blobToPng(blob) : Promise.reject(new Error('image')));
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngPromise })]);
+          copied = true;
+        } catch (e) {
+          copied = false;
+        }
+      }
+      if (copied) toast('Image copied, paste it in Messages', 'ok');
+      else await saveMockupImage();
+      showMockupAsk();
+      openSmsComposer(lead.customer_phone, text);
+    }
+
+    async function shareMockup() {
+      const lead = _mockupLead;
+      if (!lead) return;
+      const share = mockupShareState(lead);
+      if (share.off || share.hold) return;
+      if (!_mockupFile) await preloadMockupFile(document.getElementById('mockupAfter') && document.getElementById('mockupAfter').src);
+      const text = fillMockupSms(lead);
+      if (!_mockupFile || !navigator.share) {
+        toast('Sharing is not available on this phone', 'err');
+        return;
+      }
+      try {
+        const payload = { files: [_mockupFile], text: text, title: 'Night mockup' };
+        if (navigator.canShare && !navigator.canShare(payload)) {
+          await navigator.share({ text: text, title: 'Night mockup' });
+        } else {
+          await navigator.share(payload);
+        }
+      } catch (e) {
+        if (e && e.name === 'AbortError') return;
+        toast('Could not open the share sheet', 'err');
+        return;
+      }
+      _mockupPending = { id: lead.id, previous: lead.mockup_texted_at || null };
+      showMockupAsk();
+    }
+
+    async function confirmMockupSent() {
+      const pending = _mockupPending;
+      if (!pending || !sb) return;
+      const stamp = new Date().toISOString();
+      await sb.from('leads').update({ mockup_texted_at: stamp }).eq('id', pending.id);
+      if (_mockupLead && _mockupLead.id === pending.id) _mockupLead.mockup_texted_at = stamp;
+      const ask = document.getElementById('mockupAsk');
+      if (ask) ask.style.display = 'none';
+      toast('Marked mockup texted', 'ok');
+    }
+
+    async function undoMockupSent() {
+      const pending = _mockupPending;
+      if (!pending || !sb) return;
+      await sb.from('leads').update({ mockup_texted_at: pending.previous }).eq('id', pending.id);
+      if (_mockupLead && _mockupLead.id === pending.id) _mockupLead.mockup_texted_at = pending.previous;
+      const ask = document.getElementById('mockupAsk');
+      if (ask) ask.style.display = 'none';
+      toast('Undone', 'ok');
+    }
+
+    async function removeMockupFiles(leadId) {
+      try {
+        const session = await mileageSession();
+        if (!session || !sb || !leadId) return;
+        const folder = session.user.id + '/' + leadId;
+        const listed = await sb.storage.from('mockups').list(folder);
+        const names = ((listed && listed.data) || []).map(file => folder + '/' + file.name);
+        if (names.length) await sb.storage.from('mockups').remove(names);
+      } catch (e) {}
+    }
+
+    async function loadMockupConfig() {
+      if (window._mockupConfigured != null || window._v2Preview) return;
+      try {
+        const session = await mileageSession();
+        if (!session) return;
+        const res = await fetch('/api/mockup-config', { headers: { Authorization: 'Bearer ' + session.access_token } });
+        if (!res.ok) return;
+        const body = await res.json();
+        window._mockupConfigured = !!body.webhookConfigured;
+        renderScheduleV2();
+      } catch (e) {}
+    }
+
+    function previewHouse(night) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 800;
+      canvas.height = 500;
+      const g = canvas.getContext('2d');
+      g.fillStyle = night ? '#0B1530' : '#D7E6F5';
+      g.fillRect(0, 0, 800, 500);
+      g.fillStyle = night ? '#243356' : '#F4E7D4';
+      g.beginPath();
+      g.moveTo(80, 280);
+      g.lineTo(400, 130);
+      g.lineTo(720, 280);
+      g.lineTo(720, 460);
+      g.lineTo(80, 460);
+      g.closePath();
+      g.fill();
+      g.fillStyle = night ? '#1B2744' : '#8FB4D6';
+      g.fillRect(330, 300, 70, 160);
+      if (night) {
+        g.fillStyle = '#FFD58A';
+        for (let x = 110; x <= 690; x += 28) {
+          const y = x <= 400 ? 280 - ((x - 80) / 320) * 140 : 140 + ((x - 400) / 320) * 140;
+          g.beginPath();
+          g.arc(x, y + 6, 3.2, 0, Math.PI * 2);
+          g.fill();
+        }
+      }
+      return canvas.toDataURL('image/jpeg', 0.86);
+    }
+
+    function renderV2Preview() {
+      window._v2Preview = true;
+      window._mockupConfigured = true;
+      try { setDates(); } catch (e) {}
+      const hash = String(location.hash || '');
+      document.body.classList.toggle('v2-shot-next', hash === '#next');
+      document.body.classList.toggle('v2-shot-settings', hash === '#settings');
+      paintEarned(574);
+      paintMoney({
+        earnedWeek: 574,
+        earnedMonth: 2200,
+        paysFriday: 1772,
+        paysFridayDate: '2026-11-13',
+        waiting: 1153,
+        waitingByDate: { '2026-11-20': 924, '2026-11-27': 230 },
+        notInstalled: 0,
+        paidYtd: 36963
+      });
+      if (window.V2) {
+        paintMiles([
+          { date: '2026-11-02', miles: 180 },
+          { date: '2026-11-03', miles: 150 },
+          { date: '2026-11-10', miles: 210 },
+          { date: '2026-11-11', miles: 160 }
+        ]);
+        const home = document.getElementById('dashHomeBy');
+        if (home) home.textContent = 'Home by about 7:40 PM';
+        const closeEl = document.getElementById('closeRateCard');
+        if (closeEl && typeof renderCloseRateCard === 'function') {
+          closeEl.innerHTML = renderCloseRateCard([
+            { status: 'sold', product: 'leaffilter', sales_date: '2026-11-10', sale_amount: 4200, is_cancelled: false },
+            { status: 'not_sold', product: 'leaffilter', sales_date: '2026-11-10', is_cancelled: false, not_sold_reasons: { label: 'Price' } },
+            { status: 'sold', product: 'roofline', sales_date: '2026-11-11', sale_amount: 3100, is_cancelled: false },
+            { status: 'not_sold', product: 'roofline', sales_date: '2026-11-09', is_cancelled: false, not_sold_reasons: { label: 'No show' } }
+          ], new Date('2026-11-12T16:00:00Z'));
+        }
+      }
+      const today = todayEtKey();
+      const at = (hour) => {
+        const local = today + 'T' + String(hour).padStart(2, '0') + ':00';
+        return etLocalInputToIso(local);
+      };
+      pendingAppointments = [
+        {
+          id: 'preview-mary',
+          status: 'pending',
+          customer_name: 'Mary S. (sample)',
+          customer_address: '100 State St, Media, PA',
+          customer_phone: '6105550100',
+          appointment_at: at(11),
+          product: 'roofline',
+          lat: 39.92,
+          lng: -75.39,
+          mockup_status: 'ready',
+          mockup_before_path: 'preview/before.jpg',
+          mockup_after_path: 'preview/after.jpg'
+        },
+        {
+          id: 'preview-later',
+          status: 'pending',
+          customer_name: 'Jon P. (sample)',
+          customer_address: '20 Oak Ave, Wayne, PA',
+          customer_phone: '6105550199',
+          appointment_at: at(13),
+          product: 'leaffilter',
+          lat: 40.04,
+          lng: -75.38,
+          mockup_status: 'in_progress'
+        }
+      ];
+      _condCache['preview-mary'] = {
+        at: Date.now(),
+        from: 'From home (Medford)',
+        data: {
+          weather: { summary: '41°F · rain 60%', warnings: ['Rain likely'], tempF: 41, rainChance: 60 },
+          drive: { minutes: 34, miles: 22, traffic: true, summary: '34 min with traffic' },
+          routeWeather: { summary: 'Rain likely', severity: 'rain' },
+          severity: 'rain',
+          padMinutes: 10,
+          padReason: '+10 min rain',
+          leaveAt: new Date(new Date(pendingAppointments[0].appointment_at).getTime() - 44 * 60000).toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      };
+      _condCache['preview-later'] = {
+        at: Date.now(),
+        from: 'From last stop',
+        data: {
+          weather: { summary: '44°F · rain', tempF: 44, rainChance: 55 },
+          drive: { minutes: 28, miles: 18, traffic: true, summary: '28 min with traffic' },
+          severity: 'rain',
+          padMinutes: 10,
+          padReason: '+10 min rain'
+        }
+      };
+      renderAppointments();
+      const needs = document.getElementById('dashNeedsResult');
+      if (needs && hash !== '#next') {
+        needs.style.display = 'block';
+        needs.innerHTML = '<div style="background:#FFFBEB;border:2px solid #F59E0B;border-radius:14px;padding:12px">'
+          + '<div style="font-size:16px;font-weight:900;color:#92400E">Needs result (1)</div>'
+          + '<div style="font-size:12px;color:#92400E">Past appointments still waiting on Sold, No sale, or No show.</div>'
+          + '<div style="padding-top:8px"><div style="font-weight:800">Pat Miles</div>'
+          + '<div style="display:flex;gap:6px;margin-top:6px"><span class="appt-action" style="background:#166534;color:#fff">Sold</span><span class="appt-action" style="background:#fff;border:1.5px solid #FECACA">No sale</span><span class="appt-action" style="background:#fff;border:1.5px solid #FCD34D">No show</span></div></div></div>';
+      }
+      if (hash === '#settings') {
+        goTo('set');
+        const miles = document.getElementById('mileageSettingsSection');
+        const sms = document.getElementById('smsConfigSection');
+        if (miles) miles.style.display = 'block';
+        if (sms) sms.style.display = 'block';
+        loadMockupSmsUI();
+      }
+      if (hash === '#mockup') {
+        window.smsWindowOpen = function () { return true; };
+        openMockupViewer(pendingAppointments[0], { before: previewHouse(false), after: previewHouse(true) });
       }
     }
 

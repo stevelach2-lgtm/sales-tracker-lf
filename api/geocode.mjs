@@ -1,9 +1,12 @@
 // GET /api/geocode?address=...
+// Login required (Authorization: Bearer <supabase access token>).
 // Census geocoder has no CORS headers, so the browser cannot call it.
 // This function calls Census server-side, retries a cleaned address when
 // Census has no match, then falls back to Nominatim with an identifying
 // User-Agent. Response: { lat, lng, matched } where matched is the
 // matched address string, or null when nothing matched.
+
+import { requireUser, json as authJson } from './_auth.mjs';
 
 const CENSUS_URL = 'https://geocoding.geo.census.gov/geocoder/locations/onelineaddress';
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
@@ -182,7 +185,9 @@ function jsonResponse(status, body, cache, extra) {
   return Response.json(body, { status: status, headers: headers });
 }
 
-async function handleGet(request) {
+async function handleGet(request, deps) {
+  const auth = await ((deps && deps.requireUser) || requireUser)(request);
+  if (!auth.user) return auth.response || authJson(401, { error: 'Sign in required' });
   let address = '';
   try {
     address = new URL(request.url).searchParams.get('address') || '';
@@ -195,7 +200,7 @@ async function handleGet(request) {
   }
   try {
     const result = await geocodeAddress(address, { referer: requestReferer(request) });
-    const cache = result.matched ? 'public, max-age=86400' : 'no-store';
+    const cache = result.matched ? 'private, max-age=86400' : 'private, no-store';
     return jsonResponse(200, result, cache);
   } catch (error) {
     return jsonResponse(200, emptyResult(), 'no-store');
@@ -215,4 +220,4 @@ export default {
   }
 };
 
-export { geocodeAddress, addressVariants };
+export { geocodeAddress, addressVariants, handleGet };
