@@ -5,7 +5,7 @@
 // If the env var is missing, returns { notConfigured: true } and does not fail the lead.
 
 import { requireUser } from './_auth.mjs';
-import { v2, json, isUuid, stylePayload, signMockupBody, rest, SUPABASE_ANON_KEY } from './mockup-shared.mjs';
+import { v2, json, isUuid, stylePayload, signMockupBody, webhookSenderHeaders, rest, SUPABASE_ANON_KEY } from './mockup-shared.mjs';
 
 async function signPhoto(token, path) {
   const res = await rest('/storage/v1/object/sign/mockups/' + path.split('/').map(encodeURIComponent).join('/'), {
@@ -88,33 +88,52 @@ async function handlePost(request, deps) {
     return json(200, { status: 'failed', error: 'Mockup signing is not set up yet' });
   }
 
+  const webhookKey = (process.env.MOCKUP_WEBHOOK_KEY || '').trim();
+  if (!webhookKey) {
+    await restFn('/rest/v1/leads?id=eq.' + leadId, {
+      method: 'PATCH',
+      token: auth.token,
+      apikey: SUPABASE_ANON_KEY,
+      headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ mockup_status: 'failed', mockup_error: 'Mockup webhook key is not set up yet' })
+    });
+    return json(200, { status: 'failed', error: 'Mockup webhook key is not set up yet' });
+  }
+
+  const requestId = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
   const inserted = await restFn('/rest/v1/mockup_requests', {
     method: 'POST',
     token: auth.token,
     apikey: SUPABASE_ANON_KEY,
     headers: { 'Content-Type': 'application/json', Prefer: 'return=representation' },
     body: JSON.stringify({
+      id: requestId,
+      request_id: requestId,
       lead_id: leadId,
       user_id: auth.user.id,
       status: 'requested',
+      created_at: createdAt,
       before_path: lead.mockup_before_path,
       style_notes: v2.MOCKUP_STYLE
     })
   });
   const requestRow = Array.isArray(inserted.data) ? inserted.data[0] : null;
-  const requestId = requestRow && requestRow.id;
-  if (!inserted.ok || !requestId) {
+  const savedRequestId = requestRow && (requestRow.request_id || requestRow.id);
+  if (!inserted.ok || savedRequestId !== requestId) {
     const message = (inserted.data && inserted.data.message) || 'Could not save the request';
     return json(200, { status: 'failed', error: message });
   }
 
+  const timestamp = String(Date.now());
   const rawBody = JSON.stringify({
     lead_id: leadId,
     request_id: requestId,
     photo_url: photoUrl,
+    timestamp: timestamp,
     style: stylePayload()
   });
-  const signed = signMockupBody(rawBody, signingSecret);
+  const signed = signMockupBody(rawBody, signingSecret, timestamp);
   let webhookOk = false;
   let webhookError = 'Could not reach the mockup service';
   try {
@@ -123,7 +142,7 @@ async function handlePost(request, deps) {
       headers: Object.assign({
         'Content-Type': 'application/json',
         Accept: 'application/json'
-      }, signed.headers),
+      }, webhookSenderHeaders(webhookKey), signed.headers),
       body: rawBody,
       signal: AbortSignal.timeout(8000)
     });

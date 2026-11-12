@@ -22,10 +22,13 @@ comment on column public.leads.mockup_error is
 
 create table if not exists public.mockup_requests (
   id            uuid primary key default gen_random_uuid(),
+  -- Same value the webhook sends as request_id. Bob looks this up before generating.
+  request_id    uuid not null unique,
   lead_id       uuid not null references public.leads(id) on delete cascade,
   user_id       uuid not null references auth.users(id),
   status        text not null default 'requested'
                 check (status in ('requested', 'in_progress', 'ready', 'failed')),
+  created_at    timestamptz not null default now(),
   requested_at  timestamptz not null default now(),
   started_at    timestamptz,
   ready_at      timestamptz,
@@ -34,6 +37,20 @@ create table if not exists public.mockup_requests (
   style_notes   text default 'warm-white individual pinpoint lights, evenly spaced about every 12 inches along the eaves and roofline, never a continuous strip',
   error         text
 );
+
+-- If an earlier copy of this file created the table without these columns.
+alter table public.mockup_requests add column if not exists request_id uuid;
+alter table public.mockup_requests add column if not exists created_at timestamptz default now();
+update public.mockup_requests set request_id = id where request_id is null;
+update public.mockup_requests set created_at = coalesce(created_at, requested_at, now()) where created_at is null;
+alter table public.mockup_requests alter column request_id set not null;
+alter table public.mockup_requests alter column created_at set not null;
+create unique index if not exists mockup_requests_request_id_key on public.mockup_requests (request_id);
+
+comment on column public.mockup_requests.request_id is
+  'Webhook request_id. Bob confirms this row is status=requested, lead_id matches, and created_at is under 15 minutes old before making an image.';
+comment on column public.mockup_requests.created_at is
+  'When Steve asked. Bob rejects the job if this is older than 15 minutes.';
 
 alter table public.mockup_requests enable row level security;
 

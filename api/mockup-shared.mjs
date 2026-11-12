@@ -2,12 +2,17 @@
 // Style line, exact: warm-white individual pinpoint lights, evenly spaced about
 // every 12 inches along the eaves and roofline, never a continuous strip.
 //
-// Bob's webhook receives POST application/json. The body string is signed.
+// Bob's webhook receives POST application/json.
+// Sender key: Authorization: Bearer $MOCKUP_WEBHOOK_KEY
+//   (header name is WEBHOOK_SENDER_HEADER, one constant).
+// Signature: HMAC-SHA256 of (timestamp + "." + rawBody), key MOCKUP_UPLOAD_SECRET.
 // Headers:
-//   X-Mockup-Signature: hex HMAC-SHA256 of the raw body, key MOCKUP_UPLOAD_SECRET
-//   X-Mockup-Timestamp: unix milliseconds when the signature was made
-// Bob verifies the signature against the raw body (do not re-stringify JSON)
+//   X-Mockup-Signature: hex digest
+//   X-Mockup-Timestamp: unix milliseconds, the same timestamp inside the JSON
+// Bob verifies that string against the raw body (do not re-stringify JSON)
 // and rejects a timestamp more than 5 minutes off.
+// Before generating, Bob checks mockup_requests for request_id + lead_id,
+// status = 'requested', and created_at within 15 minutes.
 //
 // {
 //   "lead_id": "uuid",
@@ -44,6 +49,9 @@ const v2 = require('../lib/v2-logic.js');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+// Grok Bot webhook routine sender key. Change this one name if Bob's panel uses another header.
+const WEBHOOK_SENDER_HEADER = 'Authorization';
+
 function isUuid(value) {
   return UUID.test(String(value || ''));
 }
@@ -71,7 +79,8 @@ function stylePayload() {
 
 function signMockupBody(rawBody, secret, nowMs) {
   const timestamp = String(nowMs == null ? Date.now() : nowMs);
-  const signature = createHmac('sha256', String(secret || '')).update(String(rawBody)).digest('hex');
+  const signedText = timestamp + '.' + String(rawBody);
+  const signature = createHmac('sha256', String(secret || '')).update(signedText).digest('hex');
   return {
     timestamp: timestamp,
     signature: signature,
@@ -80,6 +89,12 @@ function signMockupBody(rawBody, secret, nowMs) {
       'X-Mockup-Timestamp': timestamp
     }
   };
+}
+
+function webhookSenderHeaders(key) {
+  const headers = {};
+  headers[WEBHOOK_SENDER_HEADER] = 'Bearer ' + String(key || '').trim();
+  return headers;
 }
 
 function serviceKey() {
@@ -105,4 +120,7 @@ async function rest(path, options) {
   return { ok: response.ok, status: response.status, data: data };
 }
 
-export { v2, json, isUuid, secretOk, stylePayload, signMockupBody, serviceKey, rest, SUPABASE_URL, SUPABASE_ANON_KEY };
+export {
+  v2, json, isUuid, secretOk, stylePayload, signMockupBody, webhookSenderHeaders,
+  WEBHOOK_SENDER_HEADER, serviceKey, rest, SUPABASE_URL, SUPABASE_ANON_KEY
+};

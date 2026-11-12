@@ -137,12 +137,13 @@ test('geocode success is cached privately', () => {
   assert.equal(source.includes('public, max-age'), false);
 });
 
-test('webhook signature is HMAC-SHA256 of the raw body', async () => {
+test('webhook signature is HMAC-SHA256 of timestamp dot raw body', async () => {
   const { signMockupBody } = await import('../api/mockup-shared.mjs');
   const raw = '{"lead_id":"abc","photo_url":"https://example.test/p"}';
   const secret = 'shared-secret';
   const signed = signMockupBody(raw, secret, 1700000000000);
-  const expected = createHmac('sha256', secret).update(raw).digest('hex');
+  const expected = createHmac('sha256', secret).update('1700000000000.' + raw).digest('hex');
+  assert.notEqual(expected, createHmac('sha256', secret).update(raw).digest('hex'));
   assert.equal(signed.signature, expected);
   assert.equal(signed.headers['X-Mockup-Signature'], expected);
   assert.equal(signed.headers['X-Mockup-Timestamp'], '1700000000000');
@@ -182,15 +183,18 @@ test('a failed before-photo signature is saved as Couldn\'t make', async () => {
   }
 });
 
-test('the outgoing webhook carries the signature of the raw body', async () => {
+test('the outgoing webhook sends the sender key and signs timestamp dot body', async () => {
   const { handlePost } = await import('../api/mockup-notify.mjs');
+  const { WEBHOOK_SENDER_HEADER } = await import('../api/mockup-shared.mjs');
   const leadId = '11111111-1111-4111-8111-111111111111';
-  const requestId = '33333333-3333-4333-8333-333333333333';
   const previousHook = process.env.MOCKUP_WEBHOOK_URL;
   const previousSecret = process.env.MOCKUP_UPLOAD_SECRET;
+  const previousKey = process.env.MOCKUP_WEBHOOK_KEY;
   process.env.MOCKUP_WEBHOOK_URL = 'https://example.test/hook';
   process.env.MOCKUP_UPLOAD_SECRET = 'shared-secret';
+  process.env.MOCKUP_WEBHOOK_KEY = 'grok-sender-key';
   let captured = null;
+  let inserted = null;
   try {
     const res = await handlePost(new Request('https://sales-tracker-lf.vercel.app/api/mockup-notify', {
       method: 'POST',
@@ -205,7 +209,8 @@ test('the outgoing webhook carries the signature of the raw body', async () => {
       },
       rest: async (url, options) => {
         if (String(url).includes('/rest/v1/mockup_requests') && options && options.method === 'POST') {
-          return { ok: true, data: [{ id: requestId }] };
+          inserted = JSON.parse(options.body);
+          return { ok: true, data: [inserted] };
         }
         if (String(url).includes('/rest/v1/leads') && (!options || options.method !== 'PATCH')) {
           return { ok: true, data: [{ id: leadId, user_id: '22222222-2222-4222-8222-222222222222', mockup_before_path: 'user/lead/before.jpg' }] };
@@ -215,16 +220,29 @@ test('the outgoing webhook carries the signature of the raw body', async () => {
     });
     const body = await res.json();
     assert.equal(body.status, 'requested');
+    assert.equal(inserted.status, 'requested');
+    assert.equal(inserted.lead_id, leadId);
+    assert.equal(inserted.request_id, inserted.id);
+    assert.match(inserted.created_at, /^\d{4}-\d{2}-\d{2}T/);
     assert.equal(captured.url, 'https://example.test/hook');
-    const expected = createHmac('sha256', 'shared-secret').update(captured.body).digest('hex');
+    assert.equal(WEBHOOK_SENDER_HEADER, 'Authorization');
+    assert.equal(captured.headers[WEBHOOK_SENDER_HEADER], 'Bearer grok-sender-key');
+    const payload = JSON.parse(captured.body);
+    assert.equal(payload.lead_id, leadId);
+    assert.equal(payload.request_id, inserted.request_id);
+    assert.equal(payload.photo_url, 'https://signed.example/photo.jpg');
+    assert.equal(payload.timestamp, captured.headers['X-Mockup-Timestamp']);
+    const expected = createHmac('sha256', 'shared-secret').update(payload.timestamp + '.' + captured.body).digest('hex');
     assert.equal(captured.headers['X-Mockup-Signature'], expected);
-    assert.match(captured.headers['X-Mockup-Timestamp'], /^\d+$/);
     assert.match(captured.body, /warm-white individual pinpoint lights, evenly spaced about every 12 inches/);
+    assert.equal(captured.body.includes('grok-sender-key'), false);
   } finally {
     if (previousHook == null) delete process.env.MOCKUP_WEBHOOK_URL;
     else process.env.MOCKUP_WEBHOOK_URL = previousHook;
     if (previousSecret == null) delete process.env.MOCKUP_UPLOAD_SECRET;
     else process.env.MOCKUP_UPLOAD_SECRET = previousSecret;
+    if (previousKey == null) delete process.env.MOCKUP_WEBHOOK_KEY;
+    else process.env.MOCKUP_WEBHOOK_KEY = previousKey;
   }
 });
 

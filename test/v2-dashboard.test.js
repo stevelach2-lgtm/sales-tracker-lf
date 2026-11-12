@@ -200,5 +200,6 @@ test('the phone bundle does not contain the Mapbox token or mockup secrets', () 
   assert.equal(html.includes('pk.ey'), false);
   assert.equal(html.includes('MOCKUP_WEBHOOK_URL'), false);
   assert.equal(html.includes('MOCKUP_UPLOAD_SECRET'), false);
+  assert.equal(html.includes('MOCKUP_WEBHOOK_KEY'), false);
   assert.equal(html.includes('SUPABASE_SERVICE_ROLE'), false);
 });
