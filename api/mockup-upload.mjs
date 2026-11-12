@@ -7,12 +7,9 @@
 
 import { json, isUuid, secretOk, serviceKey, rest, v2 } from './mockup-shared.mjs';
 
-const MAX_BYTES = 5 * 1024 * 1024;
-
 function cleanStatus(value) {
-  const status = String(value || 'ready').trim();
-  if (status === 'in_progress' || status === 'ready' || status === 'failed') return status;
-  return '';
+  if (value == null || String(value).trim() === '') return '';
+  return String(value).trim();
 }
 
 async function handlePost(request) {
@@ -32,6 +29,10 @@ async function handlePost(request) {
     error: body.error || body.reason || ''
   });
   if (decision.http !== 200) return json(decision.http, { error: decision.error });
+  const imageB64 = body.image_base64 || body.imageBase64 || '';
+  if (decision.status === 'ready' && v2.mockupImageTooLarge(imageB64)) {
+    return json(413, { error: 'Image must be under 3 MB' });
+  }
 
   const key = serviceKey();
   const leadRes = await rest('/rest/v1/leads?id=eq.' + leadId + '&select=id,user_id', {
@@ -47,11 +48,13 @@ async function handlePost(request) {
     const ext = contentType === 'image/png' ? 'png' : 'jpg';
     let bytes;
     try {
-      bytes = Buffer.from(String(body.image_base64 || body.imageBase64), 'base64');
+      bytes = Buffer.from(String(imageB64), 'base64');
     } catch (error) {
       return json(400, { error: 'image_base64 is not valid' });
     }
-    if (!bytes.length || bytes.length > MAX_BYTES) return json(400, { error: 'Image must be under 5 MB' });
+    if (!bytes.length || bytes.length > v2.MOCKUP_IMAGE_MAX_BYTES) {
+      return json(413, { error: 'Image must be under 3 MB' });
+    }
     afterPath = lead.user_id + '/' + leadId + '/after.' + ext;
     const upload = await rest('/storage/v1/object/mockups/' + afterPath.split('/').map(encodeURIComponent).join('/'), {
       method: 'POST',

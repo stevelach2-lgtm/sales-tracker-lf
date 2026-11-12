@@ -1,21 +1,31 @@
 // Night mockup contract shared by the notify and upload functions.
-// Lights are always individual pinpoint lights, evenly spaced. Never a strip.
+// Style line, exact: warm-white individual pinpoint lights, evenly spaced about
+// every 12 inches along the eaves and roofline, never a continuous strip.
 //
-// Bob's webhook receives POST application/json:
+// Bob's webhook receives POST application/json. The body string is signed.
+// Headers:
+//   X-Mockup-Signature: hex HMAC-SHA256 of the raw body, key MOCKUP_UPLOAD_SECRET
+//   X-Mockup-Timestamp: unix milliseconds when the signature was made
+// Bob verifies the signature against the raw body (do not re-stringify JSON)
+// and rejects a timestamp more than 5 minutes off.
+//
 // {
 //   "lead_id": "uuid",
 //   "request_id": "uuid",
 //   "photo_url": "https://...signed, about 2 hours",
 //   "style": {
-//     "color": "warm white",
+//     "color": "warm-white",
 //     "lights": "individual pinpoint lights",
-//     "spacing": "evenly spaced along the roofline and fascia",
-//     "never": "continuous strip, rope, or glow line",
-//     "notes": "Warm white, individual pinpoint lights, evenly spaced; never a continuous strip, rope, or glow line"
+//     "spacing": "evenly spaced about every 12 inches along the eaves and roofline",
+//     "never": "a continuous strip",
+//     "notes": "<MOCKUP_STYLE>"
 //   }
 // }
+//
 // Bob calls back POST /api/mockup-upload with header Authorization: Bearer $MOCKUP_UPLOAD_SECRET
-// (or X-Mockup-Secret). Body:
+// (or X-Mockup-Secret). The image stays in the JSON body and must decode to 3 MB or less
+// (Vercel drops larger function bodies before this code runs). 413 if it is over.
+// Unknown status is 400. Body:
 // {
 //   "lead_id": "uuid",
 //   "request_id": "uuid, optional",
@@ -26,7 +36,7 @@
 // }
 
 import { createRequire } from 'module';
-import { timingSafeEqual } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { SUPABASE_URL, SUPABASE_ANON_KEY, json } from './_auth.mjs';
 
 const require = createRequire(import.meta.url);
@@ -51,11 +61,24 @@ function secretOk(request) {
 
 function stylePayload() {
   return {
-    color: 'warm white',
+    color: 'warm-white',
     lights: 'individual pinpoint lights',
-    spacing: 'evenly spaced along the roofline and fascia',
-    never: 'continuous strip, rope, or glow line',
+    spacing: 'evenly spaced about every 12 inches along the eaves and roofline',
+    never: 'a continuous strip',
     notes: v2.MOCKUP_STYLE
+  };
+}
+
+function signMockupBody(rawBody, secret, nowMs) {
+  const timestamp = String(nowMs == null ? Date.now() : nowMs);
+  const signature = createHmac('sha256', String(secret || '')).update(String(rawBody)).digest('hex');
+  return {
+    timestamp: timestamp,
+    signature: signature,
+    headers: {
+      'X-Mockup-Signature': signature,
+      'X-Mockup-Timestamp': timestamp
+    }
   };
 }
 
@@ -82,4 +105,4 @@ async function rest(path, options) {
   return { ok: response.ok, status: response.status, data: data };
 }
 
-export { v2, json, isUuid, secretOk, stylePayload, serviceKey, rest, SUPABASE_URL, SUPABASE_ANON_KEY };
+export { v2, json, isUuid, secretOk, stylePayload, signMockupBody, serviceKey, rest, SUPABASE_URL, SUPABASE_ANON_KEY };

@@ -5,7 +5,7 @@
 // If the env var is missing, returns { notConfigured: true } and does not fail the lead.
 
 import { requireUser } from './_auth.mjs';
-import { v2, json, isUuid, stylePayload, rest, SUPABASE_ANON_KEY } from './mockup-shared.mjs';
+import { v2, json, isUuid, stylePayload, signMockupBody, rest, SUPABASE_ANON_KEY } from './mockup-shared.mjs';
 
 async function signPhoto(token, path) {
   const res = await rest('/storage/v1/object/sign/mockups/' + path.split('/').map(encodeURIComponent).join('/'), {
@@ -24,8 +24,14 @@ async function signPhoto(token, path) {
     : 'https://gktnrjtmuxhnxggqgpny.supabase.co/storage/v1' + signed;
 }
 
-async function handlePost(request) {
-  const auth = await requireUser(request);
+const PHOTO_OPEN_ERROR = 'Could not open the photo';
+
+async function handlePost(request, deps) {
+  const authFn = (deps && deps.requireUser) || requireUser;
+  const restFn = (deps && deps.rest) || rest;
+  const signFn = (deps && deps.signPhoto) || signPhoto;
+  const fetchFn = (deps && deps.fetch) || fetch;
+  const auth = await authFn(request);
   if (!auth.user) return auth.response;
   let body = {};
   try { body = await request.json(); } catch (error) { body = {}; }
@@ -35,7 +41,7 @@ async function handlePost(request) {
   const webhook = (process.env.MOCKUP_WEBHOOK_URL || '').trim();
   if (!webhook) return json(200, { notConfigured: true, buttonLabel: 'Not set up yet' });
 
-  const leadRes = await rest('/rest/v1/leads?id=eq.' + leadId + '&select=id,user_id,mockup_before_path', {
+  const leadRes = await restFn('/rest/v1/leads?id=eq.' + leadId + '&select=id,user_id,mockup_before_path', {
     token: auth.token,
     apikey: SUPABASE_ANON_KEY
   });
@@ -48,7 +54,7 @@ async function handlePost(request) {
     webhookOk: true
   });
   if (!decision.ok && decision.error === 'Add a photo of the house first') {
-    await rest('/rest/v1/leads?id=eq.' + leadId, {
+    await restFn('/rest/v1/leads?id=eq.' + leadId, {
       method: 'PATCH',
       token: auth.token,
       apikey: SUPABASE_ANON_KEY,
@@ -58,10 +64,31 @@ async function handlePost(request) {
     return json(200, { status: 'failed', error: decision.error });
   }
 
-  const photoUrl = await signPhoto(auth.token, lead.mockup_before_path);
-  if (!photoUrl) return json(200, { status: 'failed', error: 'Could not open the photo' });
+  const photoUrl = await signFn(auth.token, lead.mockup_before_path);
+  if (!photoUrl) {
+    await restFn('/rest/v1/leads?id=eq.' + leadId, {
+      method: 'PATCH',
+      token: auth.token,
+      apikey: SUPABASE_ANON_KEY,
+      headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ mockup_status: 'failed', mockup_error: PHOTO_OPEN_ERROR })
+    });
+    return json(200, { status: 'failed', error: PHOTO_OPEN_ERROR });
+  }
 
-  const inserted = await rest('/rest/v1/mockup_requests', {
+  const signingSecret = (process.env.MOCKUP_UPLOAD_SECRET || '').trim();
+  if (!signingSecret) {
+    await restFn('/rest/v1/leads?id=eq.' + leadId, {
+      method: 'PATCH',
+      token: auth.token,
+      apikey: SUPABASE_ANON_KEY,
+      headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ mockup_status: 'failed', mockup_error: 'Mockup signing is not set up yet' })
+    });
+    return json(200, { status: 'failed', error: 'Mockup signing is not set up yet' });
+  }
+
+  const inserted = await restFn('/rest/v1/mockup_requests', {
     method: 'POST',
     token: auth.token,
     apikey: SUPABASE_ANON_KEY,
@@ -81,18 +108,23 @@ async function handlePost(request) {
     return json(200, { status: 'failed', error: message });
   }
 
+  const rawBody = JSON.stringify({
+    lead_id: leadId,
+    request_id: requestId,
+    photo_url: photoUrl,
+    style: stylePayload()
+  });
+  const signed = signMockupBody(rawBody, signingSecret);
   let webhookOk = false;
   let webhookError = 'Could not reach the mockup service';
   try {
-    const sent = await fetch(webhook, {
+    const sent = await fetchFn(webhook, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({
-        lead_id: leadId,
-        request_id: requestId,
-        photo_url: photoUrl,
-        style: stylePayload()
-      }),
+      headers: Object.assign({
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      }, signed.headers),
+      body: rawBody,
       signal: AbortSignal.timeout(8000)
     });
     webhookOk = sent.ok;
@@ -102,14 +134,14 @@ async function handlePost(request) {
   }
 
   if (!webhookOk) {
-    await rest('/rest/v1/mockup_requests?id=eq.' + requestId, {
+    await restFn('/rest/v1/mockup_requests?id=eq.' + requestId, {
       method: 'PATCH',
       token: auth.token,
       apikey: SUPABASE_ANON_KEY,
       headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' },
       body: JSON.stringify({ status: 'failed', error: webhookError })
     });
-    await rest('/rest/v1/leads?id=eq.' + leadId, {
+    await restFn('/rest/v1/leads?id=eq.' + leadId, {
       method: 'PATCH',
       token: auth.token,
       apikey: SUPABASE_ANON_KEY,
@@ -119,7 +151,7 @@ async function handlePost(request) {
     return json(200, { status: 'failed', error: webhookError, request_id: requestId });
   }
 
-  await rest('/rest/v1/leads?id=eq.' + leadId, {
+  await restFn('/rest/v1/leads?id=eq.' + leadId, {
     method: 'PATCH',
     token: auth.token,
     apikey: SUPABASE_ANON_KEY,
@@ -132,6 +164,8 @@ async function handlePost(request) {
 export async function POST(request) {
   return handlePost(request);
 }
+
+export { handlePost, PHOTO_OPEN_ERROR };
 
 export default {
   async fetch(request) {

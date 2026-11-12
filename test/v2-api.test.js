@@ -1,4 +1,7 @@
 const assert = require('node:assert/strict');
+const fs = require('fs');
+const path = require('path');
+const { createHmac } = require('crypto');
 const test = require('node:test');
 
 test('geocode refuses a request that is not signed in', async () => {
@@ -126,6 +129,130 @@ test('mockup upload rejects a missing secret and a ready image without bytes', a
   assert.equal(body.error, 'Not set up yet');
   process.env.MOCKUP_UPLOAD_SECRET = previousSecret;
   process.env.SUPABASE_SERVICE_ROLE_KEY = previousKey;
+});
+
+test('geocode success is cached privately', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'api', 'geocode.mjs'), 'utf8');
+  assert.match(source, /private, max-age=86400/);
+  assert.equal(source.includes('public, max-age'), false);
+});
+
+test('webhook signature is HMAC-SHA256 of the raw body', async () => {
+  const { signMockupBody } = await import('../api/mockup-shared.mjs');
+  const raw = '{"lead_id":"abc","photo_url":"https://example.test/p"}';
+  const secret = 'shared-secret';
+  const signed = signMockupBody(raw, secret, 1700000000000);
+  const expected = createHmac('sha256', secret).update(raw).digest('hex');
+  assert.equal(signed.signature, expected);
+  assert.equal(signed.headers['X-Mockup-Signature'], expected);
+  assert.equal(signed.headers['X-Mockup-Timestamp'], '1700000000000');
+});
+
+test('a failed before-photo signature is saved as Couldn\'t make', async () => {
+  const { handlePost, PHOTO_OPEN_ERROR } = await import('../api/mockup-notify.mjs');
+  const leadId = '11111111-1111-4111-8111-111111111111';
+  const previousHook = process.env.MOCKUP_WEBHOOK_URL;
+  process.env.MOCKUP_WEBHOOK_URL = 'https://example.test/hook';
+  const patches = [];
+  try {
+    const res = await handlePost(new Request('https://sales-tracker-lf.vercel.app/api/mockup-notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer token' },
+      body: JSON.stringify({ lead_id: leadId })
+    }), {
+      requireUser: async () => ({ user: { id: '22222222-2222-4222-8222-222222222222' }, token: 'token', response: null }),
+      signPhoto: async () => '',
+      rest: async (url, options) => {
+        if (options && options.method === 'PATCH') patches.push(JSON.parse(options.body));
+        if (String(url).includes('/rest/v1/leads')) {
+          return { ok: true, data: [{ id: leadId, user_id: '22222222-2222-4222-8222-222222222222', mockup_before_path: 'user/lead/before.jpg' }] };
+        }
+        return { ok: true, data: [] };
+      }
+    });
+    const body = await res.json();
+    assert.equal(body.status, 'failed');
+    assert.equal(body.error, PHOTO_OPEN_ERROR);
+    assert.equal(patches.length, 1);
+    assert.equal(patches[0].mockup_status, 'failed');
+    assert.equal(patches[0].mockup_error, PHOTO_OPEN_ERROR);
+  } finally {
+    if (previousHook == null) delete process.env.MOCKUP_WEBHOOK_URL;
+    else process.env.MOCKUP_WEBHOOK_URL = previousHook;
+  }
+});
+
+test('the outgoing webhook carries the signature of the raw body', async () => {
+  const { handlePost } = await import('../api/mockup-notify.mjs');
+  const leadId = '11111111-1111-4111-8111-111111111111';
+  const requestId = '33333333-3333-4333-8333-333333333333';
+  const previousHook = process.env.MOCKUP_WEBHOOK_URL;
+  const previousSecret = process.env.MOCKUP_UPLOAD_SECRET;
+  process.env.MOCKUP_WEBHOOK_URL = 'https://example.test/hook';
+  process.env.MOCKUP_UPLOAD_SECRET = 'shared-secret';
+  let captured = null;
+  try {
+    const res = await handlePost(new Request('https://sales-tracker-lf.vercel.app/api/mockup-notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer token' },
+      body: JSON.stringify({ lead_id: leadId })
+    }), {
+      requireUser: async () => ({ user: { id: '22222222-2222-4222-8222-222222222222' }, token: 'token', response: null }),
+      signPhoto: async () => 'https://signed.example/photo.jpg',
+      fetch: async (url, options) => {
+        captured = { url: url, headers: options.headers, body: options.body };
+        return { ok: true, status: 200 };
+      },
+      rest: async (url, options) => {
+        if (String(url).includes('/rest/v1/mockup_requests') && options && options.method === 'POST') {
+          return { ok: true, data: [{ id: requestId }] };
+        }
+        if (String(url).includes('/rest/v1/leads') && (!options || options.method !== 'PATCH')) {
+          return { ok: true, data: [{ id: leadId, user_id: '22222222-2222-4222-8222-222222222222', mockup_before_path: 'user/lead/before.jpg' }] };
+        }
+        return { ok: true, data: [] };
+      }
+    });
+    const body = await res.json();
+    assert.equal(body.status, 'requested');
+    assert.equal(captured.url, 'https://example.test/hook');
+    const expected = createHmac('sha256', 'shared-secret').update(captured.body).digest('hex');
+    assert.equal(captured.headers['X-Mockup-Signature'], expected);
+    assert.match(captured.headers['X-Mockup-Timestamp'], /^\d+$/);
+    assert.match(captured.body, /warm-white individual pinpoint lights, evenly spaced about every 12 inches/);
+  } finally {
+    if (previousHook == null) delete process.env.MOCKUP_WEBHOOK_URL;
+    else process.env.MOCKUP_WEBHOOK_URL = previousHook;
+    if (previousSecret == null) delete process.env.MOCKUP_UPLOAD_SECRET;
+    else process.env.MOCKUP_UPLOAD_SECRET = previousSecret;
+  }
+});
+
+test('mockup upload rejects an unknown status with 400', async () => {
+  const { POST: uploadPost } = await import('../api/mockup-upload.mjs');
+  const previousSecret = process.env.MOCKUP_UPLOAD_SECRET;
+  const previousKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  process.env.MOCKUP_UPLOAD_SECRET = 'shared-secret';
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role';
+  try {
+    const res = await uploadPost(new Request('https://sales-tracker-lf.vercel.app/api/mockup-upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer shared-secret' },
+      body: JSON.stringify({
+        lead_id: '11111111-1111-4111-8111-111111111111',
+        status: 'done',
+        image_base64: 'YQ=='
+      })
+    }));
+    assert.equal(res.status, 400);
+    const body = await res.json();
+    assert.equal(body.error, 'Unknown status');
+  } finally {
+    if (previousSecret == null) delete process.env.MOCKUP_UPLOAD_SECRET;
+    else process.env.MOCKUP_UPLOAD_SECRET = previousSecret;
+    if (previousKey == null) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    else process.env.SUPABASE_SERVICE_ROLE_KEY = previousKey;
+  }
 });
 
 function jsonResponse(data) {

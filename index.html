@@ -3610,7 +3610,7 @@
     </div>
     <div style="padding:8px 12px 14px">
       <input id="mockupSlider" type="range" min="0" max="100" value="50" aria-label="Before and after slider" oninput="mockupSlide(this.value)" style="width:100%;margin-bottom:6px">
-      <div style="font-size:11px;line-height:1.4;color:#D6DCE8">Drag to compare. Warm white, individual pinpoint lights, evenly spaced. Never a strip. Text opens Messages with the note filled in. If the image copied, long-press and tap Paste.</div>
+      <div style="font-size:11px;line-height:1.4;color:#D6DCE8">Drag to compare. warm-white individual pinpoint lights, evenly spaced about every 12 inches along the eaves and roofline, never a continuous strip. Text opens Messages with the note filled in. If the image copied, long-press and tap Paste.</div>
       <div id="mockupViewerMeta" style="font-size:11px;color:#9AA6C0;margin-top:4px"></div>
       <div id="mockupAsk" style="display:none;margin-top:8px;background:#111827;border-radius:12px;padding:10px">
         <div style="font-weight:800;margin-bottom:6px">Did you send the mockup?</div>
@@ -11998,9 +11998,7 @@
 
     function leadTextsOff(lead) {
       if (!lead) return false;
-      if (lead.followup_stopped_reason === 'Do not text') return true;
-      const phone = digits10(lead.customer_phone || lead.followup_phone || '');
-      return !!(phone && _fuDoNotTextPhones && _fuDoNotTextPhones[phone]);
+      return leadSmsSuppressed(lead, _fuDoNotTextPhones || {}) || fuNameSuppressed(lead, _fuDoNotTextNames);
     }
 
     function mockupConfigured() {
@@ -12040,7 +12038,16 @@
       const drive = cond && cond.drive
         ? (cond.drive.summary + (cond.padMinutes ? ' + ' + cond.padReason.replace(/^\+/, '') : ''))
         : '';
-      const leave = cond && cond.leaveAt ? 'Leave by ' + etTimeLabel(cond.leaveAt) : '';
+      const leavePlan = (cond && cond.drive && window.V2) ? window.V2.leaveBy({
+        appointmentAt: lead.appointment_at,
+        driveMinutes: cond.drive.minutes,
+        severity: cond.severity || 'clear',
+        earliestLeaveAt: (_condCache[lead.id] && _condCache[lead.id].earliestLeaveAt) || null
+      }) : null;
+      const leave = leavePlan
+        ? (leavePlan.warning ? leavePlan.warning : ('Leave by ' + etTimeLabel(leavePlan.leaveAt)))
+        : (cond && cond.leaveAt ? 'Leave by ' + etTimeLabel(cond.leaveAt) : '');
+      const earliestNote = leavePlan && leavePlan.warning ? ('Earliest leave ' + etTimeLabel(leavePlan.leaveAt)) : '';
       const from = (_condCache[lead.id] && _condCache[lead.id].from) || '';
       const miles = cond && cond.drive && cond.drive.miles != null ? cond.drive.miles + ' mi' : '';
       const updated = cond && cond.updatedAt ? 'Updated ' + etTimeLabel(cond.updatedAt) : '';
@@ -12062,6 +12069,7 @@
         + '<div class="v2-strong">' + escHtml(weather) + '</div>'
         + (route ? '<div class="v2-line">' + escHtml(route) + '</div>' : '')
         + (leave ? '<div class="v2-strong">' + escHtml(leave) + '</div>' : '')
+        + (earliestNote ? '<div class="v2-line">' + escHtml(earliestNote) + '</div>' : '')
         + (drive ? '<div class="v2-line">' + escHtml(drive) + (cond && cond.drive && cond.drive.traffic ? ' · Mapbox' : '') + '</div>' : '')
         + (updated ? '<div class="v2-line">' + escHtml(updated) + '</div>' : '')
         + (lead.mockup_status === 'failed' && lead.mockup_error ? '<div class="v2-flag">' + escHtml(lead.mockup_error) + '</div><button type="button" class="appt-action" onclick="requestNightMockup(\'' + lead.id + '\')" style="margin-top:6px;background:#fff;border:1.5px solid #FCD34D">Try again</button>' : '')
@@ -12083,6 +12091,7 @@
         const cond = _condCache[a.id] && _condCache[a.id].data;
         const bits = [formatApptTime(a.appointment_at)];
         if (cond && cond.weather && cond.weather.summary) bits.push(cond.weather.summary);
+        else if (!cond) bits.push('weather…');
         if (cond && cond.drive && cond.drive.miles != null) bits.push(cond.drive.miles + ' mi');
         const badge = window.V2 ? window.V2.mockupStatusLabel(a.mockup_status) : '';
         if (badge) bits.push(badge);
@@ -12142,46 +12151,80 @@
       return coords;
     }
 
+    function restOfTodayRows(list, next) {
+      const today = todayEtKey();
+      return (list || []).filter(a => a && next && a.id !== next.id && apptDateKey(a.appointment_at) === today);
+    }
+
+    function paintScheduleFromCache() {
+      const fresh = upcomingList();
+      const current = nextUpAppointment(fresh);
+      const nextEl = document.getElementById('dashNextUp');
+      const restEl = document.getElementById('dashRestToday');
+      if (nextEl && current) nextEl.innerHTML = nextUpHtml(current, fresh);
+      if (restEl) restEl.innerHTML = restOfTodayHtml(fresh, current);
+    }
+
+    async function fetchConditionsFor(lead, list, session, home, allowLive) {
+      if (!lead || cacheFresh(_condCache[lead.id], lead)) return _condCache[lead.id];
+      const dest = await ensureLeadCoords(lead);
+      const day = apptDateKey(lead.appointment_at);
+      const earlier = (list || []).filter(a => a.id !== lead.id && apptDateKey(a.appointment_at) === day && new Date(a.appointment_at) < new Date(lead.appointment_at));
+      let origin = home;
+      let from = 'From home';
+      let earliestLeaveAt = null;
+      if (earlier.length) {
+        const prev = earlier[earlier.length - 1];
+        const prevCoords = await ensureLeadCoords(prev);
+        const live = allowLive ? await liveCoordsOnce() : null;
+        if (live) {
+          origin = live;
+          from = 'From your location';
+        } else if (prevCoords) {
+          origin = prevCoords;
+          from = 'From last stop';
+          earliestLeaveAt = new Date(new Date(prev.appointment_at).getTime() + 60 * 60000).toISOString();
+        }
+      }
+      let data = { weather: null, drive: null, degraded: 'no_destination', updatedAt: new Date().toISOString() };
+      if (dest && origin && session) {
+        const res = await fetch('/api/conditions', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ appointmentAt: lead.appointment_at, origin: origin, dest: dest })
+        });
+        data = res.ok ? await res.json() : { weather: null, drive: null, degraded: 'unavailable', updatedAt: new Date().toISOString() };
+      }
+      _condCache[lead.id] = { at: Date.now(), from: from, earliestLeaveAt: earliestLeaveAt, data: data };
+      return _condCache[lead.id];
+    }
+
     async function refreshConditions(next, list) {
       if (!next || !window.V2 || window._v2Preview) return;
-      if (!cacheFresh(_condCache[next.id], next)) {
+      const rows = list && list.length ? list : upcomingList();
+      const rest = restOfTodayRows(rows, next);
+      const needNext = !cacheFresh(_condCache[next.id], next);
+      const needRest = rest.some(row => !cacheFresh(_condCache[row.id], row));
+      if (needNext || needRest) {
         try {
           const session = await mileageSession();
           if (!session) return;
-          const dest = await ensureLeadCoords(next);
           const home = await mileageGeocode(mileageHomeAddress());
-          const day = apptDateKey(next.appointment_at);
-          const earlier = (list || []).filter(a => a.id !== next.id && apptDateKey(a.appointment_at) === day && new Date(a.appointment_at) < new Date(next.appointment_at));
-          let origin = home;
-          let from = 'From home';
-          if (earlier.length) {
-            const live = await liveCoordsOnce();
-            const prev = earlier[earlier.length - 1];
-            const prevCoords = await ensureLeadCoords(prev);
-            if (live) { origin = live; from = 'From your location'; }
-            else if (prevCoords) { origin = prevCoords; from = 'From last stop'; }
+          if (needNext) {
+            await fetchConditionsFor(next, rows, session, home, true);
+            paintScheduleFromCache();
+            refreshHomeBy(rows, home);
           }
-          if (!dest || !origin) {
-            _condCache[next.id] = { at: Date.now(), from: from, data: { weather: null, drive: null, degraded: 'no_destination', updatedAt: new Date().toISOString() } };
-          } else {
-            const res = await fetch('/api/conditions', {
-              method: 'POST',
-              headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ appointmentAt: next.appointment_at, origin: origin, dest: dest })
-            });
-            const data = res.ok ? await res.json() : { weather: null, drive: null, degraded: 'unavailable', updatedAt: new Date().toISOString() };
-            _condCache[next.id] = { at: Date.now(), from: from, data: data };
-          }
-          if (document.getElementById('dashNextUp')) {
-            const fresh = upcomingList();
-            const current = nextUpAppointment(fresh);
-            if (current && current.id === next.id) {
-              document.getElementById('dashNextUp').innerHTML = nextUpHtml(current, fresh);
-              const rest = document.getElementById('dashRestToday');
-              if (rest) rest.innerHTML = restOfTodayHtml(fresh, current);
+          for (let i = 0; i < rest.length; i++) {
+            if (cacheFresh(_condCache[rest[i].id], rest[i])) continue;
+            try {
+              await fetchConditionsFor(rest[i], rows, session, home, false);
+              const restEl = document.getElementById('dashRestToday');
+              if (restEl) restEl.innerHTML = restOfTodayHtml(upcomingList(), nextUpAppointment(upcomingList()));
+            } catch (err) {
+              console.warn('rest conditions', err);
             }
           }
-          refreshHomeBy(list && list.length ? list : upcomingList(), home);
         } catch (e) {
           console.warn('conditions', e);
         }
@@ -12190,9 +12233,9 @@
         _condTimer = setInterval(() => {
           const page = document.getElementById('p-dash');
           if (!page || !page.classList.contains('active') || window._v2Preview) return;
-          const rows = upcomingList();
-          const again = nextUpAppointment(rows);
-          if (again) refreshConditions(again, rows);
+          const againRows = upcomingList();
+          const again = nextUpAppointment(againRows);
+          if (again) refreshConditions(again, againRows);
         }, 60000);
       }
     }
@@ -12235,7 +12278,7 @@
       if (!el) return;
       el.innerHTML = '<div class="v2-card" style="margin:0">'
         + '<div class="v2-kicker">NIGHT MOCKUP</div>'
-        + '<div class="v2-line">A straight-on front photo works best. Lights stay individual pinpoints, evenly spaced.</div>'
+        + '<div class="v2-line">A straight-on front photo works best. Lights: ' + escHtml((window.V2 && window.V2.MOCKUP_STYLE) || 'warm-white individual pinpoint lights, evenly spaced about every 12 inches along the eaves and roofline, never a continuous strip') + '.</div>'
         + mockupPanelHtml(lead)
         + (lead && lead.mockup_status === 'ready' ? '<button type="button" class="appt-action" style="width:100%;margin-top:6px;background:#111827;color:#fff;border:none" onclick="openMockupFromLead(\'' + lead.id + '\')">View mockup</button>' : '')
         + '</div>';

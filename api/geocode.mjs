@@ -200,7 +200,7 @@ async function handleGet(request, deps) {
   }
   try {
     const result = await geocodeAddress(address, { referer: requestReferer(request) });
-    const cache = result.matched ? 'public, max-age=86400' : 'no-store';
+    const cache = result.matched ? 'private, max-age=86400' : 'private, no-store';
     return jsonResponse(200, result, cache);
   } catch (error) {
     return jsonResponse(200, emptyResult(), 'no-store');

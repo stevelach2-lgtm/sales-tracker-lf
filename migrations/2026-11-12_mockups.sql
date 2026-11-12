@@ -31,7 +31,7 @@ create table if not exists public.mockup_requests (
   ready_at      timestamptz,
   before_path   text,
   after_path    text,
-  style_notes   text default 'Warm white, individual pinpoint lights, evenly spaced along the roofline and fascia; never a continuous strip, rope, or glow line',
+  style_notes   text default 'warm-white individual pinpoint lights, evenly spaced about every 12 inches along the eaves and roofline, never a continuous strip',
   error         text
 );
 

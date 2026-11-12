@@ -40,6 +40,19 @@ test('Leave by matches the weather pad table for a 34 minute drive', () => {
   expectLeave('ice', 54);
   assert.equal(v2.leaveBy({ appointmentAt: at, driveMinutes: 34, severity: 'rain' }).padReason, '+10 min rain');
   assert.equal(v2.leaveBy({ appointmentAt: at, driveMinutes: null, severity: 'rain' }), null);
+  assert.equal(v2.leaveBy({ appointmentAt: at, driveMinutes: 34, severity: 'clear' }).tight, false);
+
+  const earliest = new Date(new Date(at).getTime() - 60 * 60000).toISOString();
+  const fits = v2.leaveBy({ appointmentAt: at, driveMinutes: 34, severity: 'rain', earliestLeaveAt: earliest });
+  assert.equal(fits.tight, false);
+  assert.equal(fits.warning, '');
+  assert.equal(new Date(fits.leaveAt).getTime(), new Date(at).getTime() - 44 * 60000);
+
+  const tight = v2.leaveBy({ appointmentAt: at, driveMinutes: 90, severity: 'rain', earliestLeaveAt: earliest });
+  assert.equal(tight.leaveAt, earliest);
+  assert.equal(tight.tight, true);
+  assert.equal(tight.lateMinutes, 40);
+  assert.equal(tight.warning, "Tight: you'll be about 40 min late");
 
   const home = v2.homeBy({ lastAppointmentAt: at, driveHomeMinutes: 40 });
   assert.equal(new Date(home).getTime(), new Date(at).getTime() + (60 + 40) * 60000);
@@ -126,8 +139,23 @@ test('mockup status flow requests, fails with a reason, and retries', () => {
   assert.equal(v2.retryMockup('in_progress').ok, false);
   assert.equal(v2.mockupStatusLabel('ready'), 'Mockup ready');
   assert.equal(v2.mockupStatusLabel('failed'), "Couldn't make");
-  assert.match(v2.MOCKUP_STYLE, /pinpoint/);
-  assert.match(v2.MOCKUP_STYLE, /never a continuous strip/);
+  assert.equal(v2.MOCKUP_STYLE, 'warm-white individual pinpoint lights, evenly spaced about every 12 inches along the eaves and roofline, never a continuous strip');
+  const unknown = v2.applyMockupUpload({ secretOk: true, leadId: 'abc', status: 'done', hasImage: true });
+  assert.equal(unknown.http, 400);
+  assert.notEqual(unknown.status, 'ready');
+  assert.equal(v2.applyMockupUpload({ secretOk: true, leadId: 'abc', hasImage: true }).status, 'ready');
+  assert.equal(v2.mockupImageBytes('YQ=='), 1);
+  const over = 'A'.repeat(Math.ceil((v2.MOCKUP_IMAGE_MAX_BYTES + 1) / 3) * 4);
+  assert.equal(v2.mockupImageTooLarge(over), true);
+});
+
+test('mockup Do not text uses the same phone and name checks as a confirmation', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const start = html.indexOf('function leadTextsOff');
+  const slice = html.slice(start, start + 320);
+  assert.match(slice, /leadSmsSuppressed\(lead, _fuDoNotTextPhones \|\| \{\}\)/);
+  assert.match(slice, /fuNameSuppressed\(lead, _fuDoNotTextNames\)/);
+  assert.equal(slice.includes("followup_stopped_reason === 'Do not text'"), false);
 });
 
 test('unpaid commission is grouped for display without recomputing the amount', () => {
