@@ -8,14 +8,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="LF Sales">
   <meta name="theme-color" content="#00853E">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <title>LeafFilter Sales Tracker</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
     rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     :root {
       --green: #00853E;
@@ -2133,6 +2131,44 @@
       padding: 36px
     }
 
+    /* 16px minimum keeps iOS from zooming the page when a field is focused. */
+    input, select, textarea {
+      font-size: 16px !important;
+    }
+
+    .appt-action {
+      min-height: 44px;
+      min-width: 72px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.1;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+
+    .nav {
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+      padding-bottom: calc(6px + env(safe-area-inset-bottom));
+    }
+
+    .ni {
+      min-height: 48px;
+    }
+
+    body {
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+
   </style>
 </head>
 
@@ -2159,17 +2195,7 @@
 
     <!-- Auth Tabs -->
     <div id="authForm" style="display:none;">
-      <!-- Tab Switcher -->
-      <div style="display:flex; background:#F3F4F6; border-radius:10px; padding:3px; gap:3px; margin-bottom:20px">
-        <button id="tabLogin" onclick="showAuthTab('login')"
-          style="flex:1; padding:9px; background:#fff; border:none; border-radius:8px; font-family:'Inter',sans-serif; font-size:13px; font-weight:700; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.1); color:var(--text)">Sign
-          In</button>
-        <button id="tabSignup" onclick="showAuthTab('signup')"
-          style="flex:1; padding:9px; background:transparent; border:none; border-radius:8px; font-family:'Inter',sans-serif; font-size:13px; font-weight:700; cursor:pointer; color:var(--muted)">Create
-          Account</button>
-      </div>
-
-      <!-- Sign In Panel -->
+      <!-- Sign In. New accounts are turned off; Steve signs in with the account he already has. -->
       <div id="panelLogin">
         <label class="cfg-lbl">Email</label>
         <input type="email" class="cfg-inp" id="authEmail" placeholder="you@email.com">
@@ -2188,29 +2214,6 @@
           <button onclick="doForgotPw()" id="resetBtn" style="width:100%;padding:12px;border:none;border-radius:10px;background:var(--green);color:#fff;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:6px">Send Reset Link</button>
           <p style="font-size:11px;color:var(--muted);text-align:center;margin:0">Check your email for a link to set a new password</p>
         </div>
-      </div>
-
-      <!-- Create Account Panel -->
-      <div id="panelSignup" style="display:none">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
-          <div>
-            <label class="cfg-lbl">First Name</label>
-            <input type="text" class="cfg-inp" id="signupFirst" placeholder="First">
-          </div>
-          <div>
-            <label class="cfg-lbl">Last Name</label>
-            <input type="text" class="cfg-inp" id="signupLast" placeholder="Last">
-          </div>
-        </div>
-        <label class="cfg-lbl">Email</label>
-        <input type="email" class="cfg-inp" id="signupEmail" placeholder="you@email.com">
-        <label class="cfg-lbl">Phone Number</label>
-        <input type="tel" class="cfg-inp" id="signupPhone" placeholder="(555) 555-5555">
-        <label class="cfg-lbl">Office Location</label>
-        <input type="text" class="cfg-inp" id="signupOffice" placeholder="e.g. San Antonio, TX">
-        <label class="cfg-lbl">Password</label>
-        <input type="password" class="cfg-inp" id="signupPass" placeholder="At least 6 characters">
-        <button class="cfg-btn" onclick="doSignup()" id="signupBtn" style="margin-bottom:8px;">Create Account</button>
       </div>
     </div>
 
@@ -2298,6 +2301,7 @@
               style="flex:1; border:1.5px solid var(--border); border-radius:8px; padding:6px 10px; font-family:'Inter',sans-serif; font-size:12px; outline:none">
           </div>
         </div>
+        <div id="dashNeedsResult" style="display:none;margin:4px 12px 12px"></div>
         <div id="dashApptCard" style="display:none;margin:4px 12px 12px"></div>
         <div id="dashTextToday" style="margin:4px 10px 12px"></div>
         <!-- Installations Action Center -->
@@ -2441,6 +2445,7 @@
             <button onclick="saveCommGoal()"
               style="background:var(--green-light);color:var(--green-dark);border:none;border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer">Set</button>
           </div>
+          <div id="commAttention" style="display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 10px"></div>
           <div id="commList" style="padding:0 14px 100px">
             <div class="loading"><div class="spinner"></div></div>
           </div>
@@ -2455,6 +2460,7 @@
       <!-- MILEAGE -->
       <div id="p-miles" class="page">
         <div style="padding:14px 14px 0">
+          <button type="button" onclick="goTo('set')" class="appt-action" style="margin-bottom:10px;background:#fff;color:var(--text);border:1.5px solid var(--border)">← Settings</button>
           <div style="font-size:17px;font-weight:800">Mileage</div>
           <div style="font-size:12px;color:var(--muted);line-height:1.4;margin-top:2px">IRS driving log. A day is saved when you close a lead — you don't have to open this tab.</div>
         </div>
@@ -2513,6 +2519,10 @@
 
       <!-- SETTINGS -->
       <div id="p-set" class="page">
+        <div class="settings-wrap" style="padding-bottom:0">
+          <button type="button" onclick="goTo('miles')" class="appt-action" style="width:100%;background:#F0FDF4;color:#166534;border:1.5px solid #86EFAC">Mileage log</button>
+          <div class="s-sub" style="margin-top:6px">Daily miles moved here so Quote can sit in the middle of the bar.</div>
+        </div>
         <!-- My Profile -->
         <div class="settings-wrap">
           <div class="s-title" onclick="toggleSetSec('profileSection', 'profileIcon')"
@@ -2763,12 +2773,10 @@
         <div id="apptMissedList"></div>
       </details>
     </div>
-    <div style="padding:14px 14px 0;display:flex;align-items:center;justify-content:space-between;gap:10px">
+    <div style="padding:14px 14px 0;display:flex;align-items:center;justify-content:space-between;gap:8px">
       <div style="font-size:17px;font-weight:800">💰 Customer Quote Calculator</div>
-      <button onclick="openPriceListEditor()"
-        style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;background:#F3F4F6;color:#000;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">
-        🏷️ Edit Prices
-      </button>
+      <button type="button" onclick="startNewQuote()" class="appt-action" style="background:#fff;color:#166534;border:1.5px solid #86EFAC;flex-shrink:0">New quote</button>
+      <button type="button" onclick="openPriceListEditor()" class="appt-action" style="background:#F3F4F6;color:#000;border:1.5px solid var(--border);flex-shrink:0">Edit Prices</button>
     </div>
 
     <div style="padding:10px 14px 0;display:flex;gap:8px">
@@ -2784,30 +2792,30 @@
 
     <div style="padding:14px 14px 0">
       <!-- Opening Price + PAR+Admin -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:8px">
           <div style="background:#FEF9C3;border:1.5px solid #FDE047;border-radius:9px;padding:9px 11px">
-            <div id="qcOpeningLabel" style="font-size:9px;font-weight:700;color:#854D0E;letter-spacing:.5px">OPENING PRICE</div>
-            <div id="qcOpening" style="font-size:17px;font-weight:800;color:#854D0E">$0.00</div>
+            <div id="qcOpeningLabel" style="font-size:11px;font-weight:700;color:#854D0E;letter-spacing:.5px">OPENING PRICE</div>
+            <div id="qcOpening" style="font-size:28px;font-weight:800;color:#854D0E;line-height:1.15">$0.00</div>
             <div id="qcOpeningPct" style="font-size:10px;font-weight:700;color:#A16207"></div>
           </div>
           <div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:9px;padding:9px 11px">
             <div style="font-size:9px;font-weight:700;color:#166534;letter-spacing:.5px">PAR + ADMIN</div>
-            <div id="qcParAdmin" style="font-size:17px;font-weight:800;color:#166534">$0.00</div>
+            <div id="qcParAdmin" style="font-size:28px;font-weight:800;color:#166534;line-height:1.15">$0.00</div>
             <div style="font-size:9px;font-weight:600;color:#15803D">admin included</div>
           </div>
         </div>
         <!-- Sold At + Commission -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center;margin-bottom:8px">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:start;margin-bottom:8px">
           <div style="display:flex;align-items:center;gap:6px;background:#F9FAFB;border-radius:9px;padding:7px 10px">
             <span style="font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap">Sold $</span>
             <input type="number" id="qcSoldAt" inputmode="decimal" placeholder="0.00"
               style="flex:1;border:none;background:transparent;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:var(--text);outline:none;min-width:0"
               oninput="calcQuote()">
           </div>
-          <div id="qcCommBox" style="background:#F9FAFB;border-radius:9px;padding:7px 10px;display:none">
-            <div style="font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.5px">COMMISSION</div>
-            <div id="qcComm" style="font-size:15px;font-weight:800;color:var(--green-dark)">$0.00</div>
-            <div id="qcParGapLine" style="font-size:9px;font-weight:700;margin-top:2px"></div>
+          <div id="qcCommBox" style="background:#F9FAFB;border-radius:9px;padding:7px 10px;display:none;min-width:0;overflow-wrap:anywhere">
+            <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px">COMMISSION</div>
+            <div id="qcComm" style="font-size:26px;font-weight:800;color:var(--green-dark);line-height:1.15">$0.00</div>
+            <div id="qcParGapLine" style="font-size:15px;font-weight:800;margin-top:2px"></div>
             <div id="qcCommTier" style="font-size:9px;font-weight:600;color:var(--muted)"></div>
           </div>
         </div>
@@ -3064,15 +3072,14 @@
         </svg>
         <span>History</span>
       </button>
-      <button class="ni" id="n-miles" onclick="goTo('miles')">
+      <button class="ni" id="n-quote" onclick="goTo('quote')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
           stroke-linejoin="round">
-          <path d="M3 13l1.8-5.2A2 2 0 016.7 6h10.6a2 2 0 011.9 1.8L21 13" />
-          <path d="M3 13h18" />
-          <circle cx="7.5" cy="17" r="1.6" />
-          <circle cx="16.5" cy="17" r="1.6" />
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9.5 9a2.5 2.5 0 015 0c0 1.5-2.5 2-2.5 3.5"/>
+          <line x1="12" y1="16.5" x2="12" y2="16.5"/>
         </svg>
-        <span>Miles</span>
+        <span>Quote</span>
       </button>
       <button class="ni" id="n-comm" onclick="goTo('comm')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -3090,15 +3097,6 @@
             d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
         </svg>
         <span>Settings</span>
-      </button>
-      <button class="ni" id="n-quote" onclick="goTo('quote')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-          stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M9.5 9a2.5 2.5 0 015 0c0 1.5-2.5 2-2.5 3.5"/>
-          <line x1="12" y1="16.5" x2="12" y2="16.5"/>
-        </svg>
-        <span>Quote</span>
       </button>
     </nav>
   </div><!-- /app -->
@@ -3127,6 +3125,7 @@
   <div class="undo-bar" id="undoBar"><span id="undoMsg">Lead logged</span><button class="undo-btn"
       onclick="undoLead()">UNDO</button></div>
   <div class="undo-bar" id="fuUndoBar" style="bottom:calc(var(--nav) + 62px + env(safe-area-inset-bottom));max-width:92%;white-space:normal"><span id="fuUndoMsg">Texts stopped</span><button class="undo-btn" type="button" onclick="undoDontText()">Resume texting</button></div>
+  <div class="undo-bar" id="smsUndoBar" style="bottom:calc(var(--nav) + 12px + env(safe-area-inset-bottom));max-width:92%;white-space:normal"><span id="smsUndoMsg">Text opened</span><button class="undo-btn" type="button" onclick="undoSentText()">Undo</button></div>
 
   <!-- Delete Lead Warning Modal -->
   <div id="deleteWarnOverlay"
@@ -3675,15 +3674,9 @@
     }
 
     function showAuthTab(tab) {
-      const isLogin = tab === 'login';
-      document.getElementById('panelLogin').style.display = isLogin ? 'block' : 'none';
-      document.getElementById('panelSignup').style.display = isLogin ? 'none' : 'block';
-      document.getElementById('tabLogin').style.background = isLogin ? '#fff' : 'transparent';
-      document.getElementById('tabSignup').style.background = isLogin ? 'transparent' : '#fff';
-      document.getElementById('tabLogin').style.color = isLogin ? 'var(--text)' : 'var(--muted)';
-      document.getElementById('tabSignup').style.color = isLogin ? 'var(--muted)' : 'var(--text)';
-      document.getElementById('tabLogin').style.boxShadow = isLogin ? '0 1px 3px rgba(0,0,0,.1)' : 'none';
-      document.getElementById('tabSignup').style.boxShadow = isLogin ? 'none' : '0 1px 3px rgba(0,0,0,.1)';
+      const login = document.getElementById('panelLogin');
+      if (login) login.style.display = 'block';
+      if (tab === 'signup') toast('New accounts are turned off. Sign in with your existing account.', 'err');
     }
 
     function checkPasswordResetToken() {
@@ -3756,7 +3749,9 @@
     }
 
     async function doSignup() {
-      const first = document.getElementById('signupFirst').value.trim();
+      const firstEl = document.getElementById('signupFirst');
+      if (!firstEl) { toast('New accounts are turned off. Sign in with your existing account.', 'err'); return; }
+      const first = firstEl.value.trim();
       const last = document.getElementById('signupLast').value.trim();
       const email = document.getElementById('signupEmail').value.trim();
       const phone = document.getElementById('signupPhone').value.trim();
@@ -3956,8 +3951,10 @@
       // hidden above the fold, which is exactly the bug the old Quote popup had.
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
-      document.getElementById('p-' + id).classList.add('active');
-      document.getElementById('n-' + id).classList.add('active');
+      const page = document.getElementById('p-' + id);
+      const navBtn = document.getElementById('n-' + id);
+      if (page) page.classList.add('active');
+      if (navBtn) navBtn.classList.add('active');
       if (id === 'dash') loadDash();
       if (id === 'hist') {
         if (window.skipDefaultHist) window.skipDefaultHist = false;
@@ -4015,10 +4012,8 @@
         picker.style.display = 'flex';
         // Default to last 30 days if empty
         if (!document.getElementById('custS').value) {
-          const d = new Date();
-          document.getElementById('custE').value = d.toISOString().split('T')[0];
-          d.setDate(d.getDate() - 30);
-          document.getElementById('custS').value = d.toISOString().split('T')[0];
+          document.getElementById('custE').value = todayEtKey();
+          document.getElementById('custS').value = etShiftKey(todayEtKey(), -30);
         }
       } else {
         picker.style.display = 'none';
@@ -4027,46 +4022,78 @@
       loadDash();
     }
 
-    function getPeriodRanges(p) {
-      const now = new Date();
-      const sod = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      let cs, ce, ps, pe;
-      if (p === 'today') {
-        cs = sod(now); ce = now;
-        ps = new Date(cs); ps.setDate(ps.getDate() - 1);
-        pe = new Date(sod(now)); pe.setDate(pe.getDate() - 1); pe.setHours(23, 59, 59);
-      } else if (p === 'week') {
-        const dow = now.getDay() || 7;
-        cs = sod(now); cs.setDate(now.getDate() - dow + 1);
-        ce = now;
-        ps = new Date(cs); ps.setDate(ps.getDate() - 7);
-        pe = new Date(ce); pe.setDate(pe.getDate() - 7);
-      } else if (p === 'month') {
-        cs = new Date(now.getFullYear(), now.getMonth(), 1);
-        ce = now;
-        ps = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        pe = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate(), 23, 59, 59);
-      } else if (p === 'rolling60') {
-        cs = new Date(now); cs.setDate(cs.getDate() - 60);
-        ce = now;
-        ps = new Date(cs); ps.setDate(ps.getDate() - 60);
-        pe = new Date(cs); // Start of current becomes end of previous
-      } else if (p === 'custom') {
-        const sValue = document.getElementById('custS').value;
-        const eValue = document.getElementById('custE').value;
-        cs = sValue ? new Date(sValue + 'T00:00:00') : new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
-        ce = eValue ? new Date(eValue + 'T23:59:59') : now;
+    // Eastern calendar dates, not the phone's local midnight converted with toISOString.
+    // After 7pm or 8pm ET that conversion used to label "today" as tomorrow.
+    function etShiftKey(dateKey, days) {
+      const parts = String(dateKey || '').split('-').map(Number);
+      const dt = new Date(Date.UTC(parts[0], (parts[1] || 1) - 1, (parts[2] || 1) + (days || 0)));
+      const pad = n => String(n).padStart(2, '0');
+      return dt.getUTCFullYear() + '-' + pad(dt.getUTCMonth() + 1) + '-' + pad(dt.getUTCDate());
+    }
 
-        // Previous period = same duration before start date
-        const dur = ce.getTime() - cs.getTime();
-        ps = new Date(cs.getTime() - dur);
-        pe = new Date(cs.getTime());
-      } else { // Removed YTD logic
-        cs = sod(now); ce = now;
-        ps = new Date(cs); ps.setDate(ps.getDate() - 1);
-        pe = new Date(sod(now)); pe.setDate(pe.getDate() - 1); pe.setHours(23, 59, 59);
+    function etClock(now) {
+      const fmt = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit'
+      });
+      const map = {};
+      fmt.formatToParts(now || new Date()).forEach(p => { map[p.type] = p.value; });
+      const weekdays = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+      return {
+        key: map.year + '-' + map.month + '-' + map.day,
+        y: +map.year,
+        m: +map.month,
+        d: +map.day,
+        dow: weekdays[map.weekday] == null ? 0 : weekdays[map.weekday]
+      };
+    }
+
+    function etStamp(key) { return key + 'T12:00:00.000Z'; }
+
+    function getPeriodRanges(p, now) {
+      const clock = etClock(now);
+      const today = clock.key;
+      const pad = n => String(n).padStart(2, '0');
+      let cs = today, ce = today, ps = today, pe = today;
+      if (p === 'week') {
+        const isoDow = clock.dow === 0 ? 7 : clock.dow;
+        cs = etShiftKey(today, 1 - isoDow);
+        ce = today;
+        ps = etShiftKey(cs, -7);
+        pe = etShiftKey(ce, -7);
+      } else if (p === 'month') {
+        cs = clock.y + '-' + pad(clock.m) + '-01';
+        ce = today;
+        const prev = new Date(Date.UTC(clock.y, clock.m - 2, 1));
+        const py = prev.getUTCFullYear();
+        const pm = prev.getUTCMonth() + 1;
+        const last = new Date(Date.UTC(py, pm, 0)).getUTCDate();
+        const pd = Math.min(clock.d, last);
+        ps = py + '-' + pad(pm) + '-01';
+        pe = py + '-' + pad(pm) + '-' + pad(pd);
+      } else if (p === 'rolling60') {
+        cs = etShiftKey(today, -60);
+        ce = today;
+        ps = etShiftKey(cs, -60);
+        pe = etShiftKey(cs, -1);
+      } else if (p === 'custom') {
+        const sEl = document.getElementById('custS');
+        const eEl = document.getElementById('custE');
+        const sValue = sEl && sEl.value;
+        const eValue = eEl && eEl.value;
+        cs = /^\d{4}-\d{2}-\d{2}$/.test(sValue || '') ? sValue : etShiftKey(today, -30);
+        ce = /^\d{4}-\d{2}-\d{2}$/.test(eValue || '') ? eValue : today;
+        if (ce < cs) { const swap = cs; cs = ce; ce = swap; }
+        const durDays = Math.max(1, Math.round((Date.parse(ce + 'T12:00:00Z') - Date.parse(cs + 'T12:00:00Z')) / 86400000));
+        pe = etShiftKey(cs, -1);
+        ps = etShiftKey(cs, -durDays);
+      } else {
+        cs = today;
+        ce = today;
+        ps = etShiftKey(today, -1);
+        pe = ps;
       }
-      return { cs: cs.toISOString(), ce: ce.toISOString(), ps: ps.toISOString(), pe: pe.toISOString() };
+      return { cs: etStamp(cs), ce: etStamp(ce), ps: etStamp(ps), pe: etStamp(pe) };
     }
 
     function calcM(leads) {
@@ -4314,11 +4341,10 @@
         renderTodaysLeads();
       }
       const { cs, ce, ps, pe } = getPeriodRanges(curPeriod);
-      const ytdStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
       // Filter by sales_date (actual appointment/sale date) for all leads.
       const csDate = cs.split('T')[0]; const ceDate = ce.split('T')[0];
       const psDate = ps.split('T')[0]; const peDate = pe.split('T')[0];
-      const ytdStartDate = ytdStart.split('T')[0];
+      const ytdStartDate = todayEtKey().slice(0, 4) + '-01-01';
       const [
         { data: cur },
         { data: prv },
@@ -4351,7 +4377,7 @@
       calcCommissionsDue();
 
       // Install alerts
-      const todayStr = localDate(new Date());
+      const todayStr = todayEtKey();
       const { data: instsToday, error: instErr } = await sb.from('leads')
         .select('id')
         .eq('install_date', todayStr)
@@ -5682,6 +5708,9 @@
         if (row.plan && row.plan.step && row.plan.bucket !== 'done') logged = !!(await logFuTouch(row));
         openSmsComposer(phone, msg);
         if (logged && row.plan.group === 'confirm') markApptConfirmSent(row.id);
+        if (logged && row.plan.step) {
+          showSmsUndo(row.id, row.plan.step.key, row.plan.group === 'confirm' || row.plan.step.key === 'appt_confirm');
+        }
         refreshFuViews();
       } finally {
         _fuSending = false;
@@ -5692,6 +5721,39 @@
       if (!id) return;
       _apptConfirmTouches[id] = [{ step_key: 'appt_confirm' }];
       renderAppointments();
+    }
+
+    let smsUndo = null;
+    let smsUndoTimer = null;
+
+    function showSmsUndo(leadId, stepKey, confirm) {
+      smsUndo = { id: leadId, stepKey: stepKey, confirm: !!confirm };
+      const bar = document.getElementById('smsUndoBar');
+      const msg = document.getElementById('smsUndoMsg');
+      if (msg) msg.textContent = 'Text app opened. Undo if you did not send it.';
+      if (bar) bar.classList.add('show');
+      clearTimeout(smsUndoTimer);
+      smsUndoTimer = setTimeout(() => {
+        const el = document.getElementById('smsUndoBar');
+        if (el) el.classList.remove('show');
+        smsUndo = null;
+      }, 8000);
+    }
+
+    async function undoSentText() {
+      const undo = smsUndo;
+      smsUndo = null;
+      clearTimeout(smsUndoTimer);
+      const bar = document.getElementById('smsUndoBar');
+      if (bar) bar.classList.remove('show');
+      if (!undo || !undo.id) return;
+      try {
+        if (sb) await sb.from('followup_touches').delete().eq('lead_id', undo.id).eq('step_key', undo.stepKey);
+      } catch (e) {}
+      if (undo.confirm && _apptConfirmTouches) delete _apptConfirmTouches[undo.id];
+      try { renderAppointments(); } catch (e) {}
+      try { refreshFuViews(); } catch (e) {}
+      toast('Send undone', 'ok');
     }
 
     async function textAppointmentConfirm(id) {
@@ -6255,6 +6317,27 @@
       return null;
     }
 
+    // Blank stays blank. 0 stays 0. parseFloat(x) || null used to turn a typed $0 into no amount.
+    function optionalAmount(raw) {
+      if (raw == null) return null;
+      const s = String(raw).trim().replace(/[$,]/g, '');
+      if (s === '') return null;
+      const n = parseFloat(s);
+      return isFinite(n) ? n : null;
+    }
+
+    function paidBlocked(paid, raw) {
+      if (!paid || optionalAmount(raw) != null) return false;
+      toast('Enter a commission before marking paid. Use 0 if this sale pays nothing.', 'err');
+      return true;
+    }
+
+    function scheduleEditedMileage(previousDate, salesDate) {
+      const next = leadMileageDay({ appointment_at: editMileageApptAt, sales_date: salesDate });
+      if (previousDate) scheduleMileageRecalc(previousDate);
+      if (next && next !== previousDate) scheduleMileageRecalc(next);
+    }
+
     async function submitLead(type) {
       if (leadSaveInFlight) return false;
       leadSaveInFlight = true;
@@ -6267,6 +6350,7 @@
           phoneEl: document.getElementById('soldCustPhone')
         });
         if (!contact) return false;
+        if (paidBlocked(isPaid, document.getElementById('commAmt').value)) return false;
         const isCombo = document.getElementById('chkCombo').classList.contains('active');
         const isRehash = document.getElementById('chkRehash').classList.contains('active');
         const isSelfGen = document.getElementById('chkSelfGen').classList.contains('active');
@@ -6279,9 +6363,9 @@
           job_number: tagJobNum(document.getElementById('jobNum').value, _qcProduct),
           sales_date: document.getElementById('salesDate').value || null,
           install_date: document.getElementById('installDate').value || null,
-          commission_amount: parseFloat(document.getElementById('commAmt').value) || null,
-          retail_percentage: parseFloat(document.getElementById('retailPct').value) || null,
-          commission_percentage: parseFloat(document.getElementById('commPct').value) || null,
+          commission_amount: optionalAmount(document.getElementById('commAmt').value),
+          retail_percentage: optionalAmount(document.getElementById('retailPct').value),
+          commission_percentage: optionalAmount(document.getElementById('commPct').value),
           commission_paid: isPaid,
           notes: document.getElementById('soldNotes').value.trim() || null,
           followup_name: contact.name,
@@ -6493,27 +6577,18 @@
       if (range === 'custom') {
         picker.style.display = 'flex';
         if (!document.getElementById('histCustS').value) {
-          const d = new Date();
-          document.getElementById('histCustE').value = localDate(d);
-          d.setDate(d.getDate() - 30);
-          document.getElementById('histCustS').value = localDate(d);
+          document.getElementById('histCustE').value = todayEtKey();
+          document.getElementById('histCustS').value = etShiftKey(todayEtKey(), -30);
         }
       } else {
         picker.style.display = 'none';
       }
 
-      if (range === 'today') {
-        fromDate = localDate(now);
-        fromISO = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-      } else if (range === 'week') {
-        const dow = now.getDay() || 7;
-        const s = new Date(now); s.setDate(now.getDate() - dow + 1); s.setHours(0, 0, 0, 0);
-        fromDate = localDate(s);
-        fromISO = s.toISOString();
-      } else if (range === 'month') {
-        const s = new Date(now.getFullYear(), now.getMonth(), 1);
-        fromDate = localDate(s);
-        fromISO = s.toISOString();
+      if (range === 'today' || range === 'week' || range === 'month') {
+        const span = getPeriodRanges(range);
+        fromDate = span.cs.split('T')[0];
+        toDate = span.ce.split('T')[0];
+        fromISO = span.cs;
       } else if (range === 'custom') {
         fromDate = document.getElementById('histCustS').value;
         toDate = document.getElementById('histCustE').value;
@@ -6533,14 +6608,12 @@
       }
 
       if (range === 'install_today') {
-        query = query.eq('install_date', localDate(now)).neq('is_cancelled', true);
+        query = query.eq('install_date', todayEtKey()).neq('is_cancelled', true);
       } else if (range === 'no_install') {
         query = query.eq('status', 'sold').is('install_date', null).neq('is_cancelled', true).neq('commission_paid', true);
-      } else if (range === 'custom') {
-        if (fromDate) query = query.gte('sales_date', fromDate);
-        if (toDate) query = query.lte('sales_date', toDate);
       } else if (fromDate) {
         query = query.not('sales_date', 'is', null).gte('sales_date', fromDate);
+        if (toDate) query = query.lte('sales_date', toDate);
       }
 
       const { data: d, error } = await query;
@@ -6651,7 +6724,7 @@
         el.innerHTML = '<div class="empty"><div class="ei">📋</div><p>' + emptyMsg + '</p></div>';
         return;
       }
-      const todayStr = localDate(new Date());
+      const todayStr = todayEtKey();
 
       // Group by Job # so combo jobs (e.g. LeafFilter + Roof Line Lighting sold to the
       // same customer, sharing one Job #) show as linked with a combined total, even
@@ -6682,8 +6755,10 @@
         const displayDate = l.sales_date
           ? new Date(l.sales_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
           : '—';
-        const noteLine = escHtml(((l.notes || '').split('\n').map(s => s.trim()).filter(Boolean)[0]) || '');
-        const main = sold ? '$' + (parseFloat(l.sale_amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 0 }) : (l.not_sold_reasons?.label || noteLine || 'No reason');
+        const noteRaw = ((l.notes || '').split('\n').map(s => s.trim()).filter(Boolean)[0]) || '';
+        const noteLine = escHtml(noteRaw);
+        const notesHtml = escHtml(l.notes || '').replace(/\n/g, '<br>');
+        const main = sold ? '$' + (parseFloat(l.sale_amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 0 }) : escHtml(l.not_sold_reasons?.label || noteRaw || 'No reason');
         const tags = [];
         if (l.sale_type === 'combo') tags.push('<span style="font-size:9px;font-weight:700;background:#E0F4FF;color:#0077A8;border-radius:4px;padding:1px 5px">COMBO</span>');
         if (l.lead_type === 'rehash') tags.push('<span style="font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 5px">REHASH</span>');
@@ -6694,9 +6769,9 @@
         if (installToday) tags.push('<span style="font-size:9px;font-weight:700;background:#DCFCE7;color:#166534;border-radius:4px;padding:1px 5px">INSTALL TODAY</span>');
         if (linked) tags.push(`<span style="font-size:9px;font-weight:700;background:#EDE9FE;color:#5B21B6;border-radius:4px;padding:1px 5px">🔗 LINKED ×${linked.count}</span>`);
         const sub = [];
-        if (l.job_number) sub.push('Job #' + l.job_number);
+        if (l.job_number) sub.push('Job #' + escHtml(l.job_number));
         if (l.install_date) sub.push('Install ' + new Date(l.install_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-        if (l.commission_amount && !l.is_cancelled) sub.push('$' + parseFloat(l.commission_amount).toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' comm');
+        if (l.commission_amount != null && l.commission_amount !== '' && !l.is_cancelled) sub.push('$' + parseFloat(l.commission_amount).toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' comm');
         const installCheckStyle = "width:100%;background:linear-gradient(135deg,#F0FDF4,#DCFCE7);border:1.5px solid #86EFAC;color:#166534;border-radius:10px;padding:10px 12px;font-family:'Inter',sans-serif;font-size:12px;font-weight:800;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center";
         const installSmsHref = installComplete && custPhone.length >= 10
           ? buildSmsHref(custPhone, buildInstallCheckMsg(custName))
@@ -6723,11 +6798,11 @@
         ${sold && l.retail_percentage ? `<div style="font-size:11px;color:var(--text);margin-top:4px">Retail: <strong>${parseFloat(l.retail_percentage).toFixed(1)}%</strong> &nbsp; Comm: <strong>${parseFloat(l.commission_percentage || 0).toFixed(1)}%</strong></div>` : ''}
         ${l.customer_address ? `<div class="hcard-note">${mapsDirLink(l.customer_address)}</div>` : ''}
         ${l.followup_date && !skipFollowupText ? `<div style="font-size:9px;font-weight:700;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 6px;display:inline-block;margin-top:3px">📞 Follow-up: ${new Date(l.followup_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>` : ''}
-        ${sub.length ? `<div class="hcard-note">${sub.join(' · ')}</div>` : (l.notes ? `<div class="hcard-note">${l.notes}</div>` : '')}
+        ${sub.length ? `<div class="hcard-note">${sub.join(' · ')}</div>` : (noteLine ? `<div class="hcard-note">${noteLine}</div>` : '')}
         <div class="hcard-detail">
           ${sub.length ? sub.join(' &nbsp;·&nbsp; ') + '<br>' : ''}
-          ${linked ? `<div style="font-size:11px;font-weight:700;color:#5B21B6;margin:4px 0">🔗 Job #${jobNum} combined: $${linked.sale.toLocaleString('en-US', { maximumFractionDigits: 0 })} sale / $${linked.comm.toLocaleString('en-US', { maximumFractionDigits: 0 })} comm across ${linked.count} sales</div>` : ''}
-          ${l.notes ? '<strong>Notes:</strong> ' + l.notes + '<br>' : ''}
+          ${linked ? `<div style="font-size:11px;font-weight:700;color:#5B21B6;margin:4px 0">🔗 Job #${escHtml(jobNum)} combined: $${linked.sale.toLocaleString('en-US', { maximumFractionDigits: 0 })} sale / $${linked.comm.toLocaleString('en-US', { maximumFractionDigits: 0 })} comm across ${linked.count} sales</div>` : ''}
+          ${notesHtml ? '<strong>Notes:</strong> ' + notesHtml + '<br>' : ''}
           ${installComplete ? `<div style="margin:8px 0 4px">${installCheckControl}</div>` : ''}
           Tap to collapse
         </div>
@@ -6746,6 +6821,8 @@
     // LEAD EDIT SHEET
     // ─────────────────────────────────────────
     let editLeadId = null;
+    let editMileageDate = '';
+    let editMileageApptAt = '';
     let esIsPaid = false;
     let esCancelled = false;
     let esBtd = false;
@@ -6979,9 +7056,11 @@
       document.getElementById('esJobNum').value = l.job_number || '';
       document.getElementById('esSalesDate').value = l.sales_date || '';
       document.getElementById('esInstallDate').value = l.install_date || '';
-      document.getElementById('esCommAmt').value = l.commission_amount || '';
-      document.getElementById('esRetailPct').value = l.retail_percentage || '';
-      document.getElementById('esCommPct').value = l.commission_percentage || '';
+      document.getElementById('esCommAmt').value = l.commission_amount == null ? '' : l.commission_amount;
+      document.getElementById('esRetailPct').value = l.retail_percentage == null ? '' : l.retail_percentage;
+      document.getElementById('esCommPct').value = l.commission_percentage == null ? '' : l.commission_percentage;
+      editMileageDate = leadMileageDay(l);
+      editMileageApptAt = l.appointment_at || '';
       document.getElementById('esNotes').value =
         l.status === 'not_sold' ? stripLeadingQuoteRefNotes(l.notes || '') : (l.notes || '');
       esIsPaid = l.commission_paid || false;
@@ -7171,9 +7250,10 @@
         payload.job_number = tagJobNum(document.getElementById('esJobNum').value, esProduct);
         payload.sales_date = document.getElementById('esSalesDate').value || null;
         payload.install_date = document.getElementById('esInstallDate').value || null;
-        payload.commission_amount = parseFloat(document.getElementById('esCommAmt').value) || null;
-        payload.retail_percentage = parseFloat(document.getElementById('esRetailPct').value) || null;
-        payload.commission_percentage = parseFloat(document.getElementById('esCommPct').value) || null;
+        if (paidBlocked(esIsPaid, document.getElementById('esCommAmt').value)) return;
+        payload.commission_amount = optionalAmount(document.getElementById('esCommAmt').value);
+        payload.retail_percentage = optionalAmount(document.getElementById('esRetailPct').value);
+        payload.commission_percentage = optionalAmount(document.getElementById('esCommPct').value);
         payload.commission_paid = esIsPaid;
         payload.is_cancelled = esCancelled;
         payload.is_btd = esBtd;
@@ -7267,6 +7347,7 @@
         toast('Lead updated ✓', 'ok');
         document.getElementById('editOverlay').classList.remove('open');
         if (esCustomerAddress) saveLocationForLead(editLeadId, esCustomerAddress);
+        scheduleEditedMileage(editMileageDate, payload.sales_date);
         editLeadId = null;
         if (document.getElementById('n-hist').classList.contains('active')) {
           const isFu = document.getElementById('histFuSection') && document.getElementById('histFuSection').style.display !== 'none';
@@ -7296,6 +7377,7 @@
       toast('Lead updated ✓', 'ok');
       document.getElementById('editOverlay').classList.remove('open');
       if (esCustomerAddress) saveLocationForLead(editLeadId, esCustomerAddress);
+      scheduleEditedMileage(editMileageDate, payload.sales_date);
       editLeadId = null;
       // Refresh whichever tab is currently active
       if (document.getElementById('n-comm').classList.contains('active')) {
@@ -7334,8 +7416,10 @@
       if (!editLeadId) return;
       const confirmed = await confirmDeleteLead();
       if (!confirmed) return;
+      const mileageDate = editMileageDate;
       const { error } = await sb.from('leads').delete().eq('id', editLeadId);
       if (error) { toast('Error deleting', 'err'); return; }
+      if (mileageDate) scheduleMileageRecalc(mileageDate);
       toast('Lead deleted', 'ok');
       document.getElementById('editOverlay').classList.remove('open');
       editLeadId = null;
@@ -7444,6 +7528,51 @@
       return '#1565c0';
     }
 
+    let commView = 'all';
+
+    function commissionMissing(lead) {
+      return !!(lead && lead.status !== 'not_sold' && !lead.is_cancelled && optionalAmount(lead.commission_amount) == null);
+    }
+
+    // A LeafFilter + lighting pair that shares one job number is a combo, not a mistake.
+    // Anything else that repeats a job number needs a look.
+    function commDuplicateIds(leads) {
+      const groups = {};
+      (leads || []).forEach(l => {
+        if (!l || l.is_cancelled || l.status === 'not_sold' || l.status === 'pending') return;
+        const key = baseJobNum(l.job_number);
+        if (!key) return;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(l);
+      });
+      const ids = new Set();
+      Object.keys(groups).forEach(key => {
+        const rows = groups[key];
+        if (rows.length < 2) return;
+        const products = {};
+        rows.forEach(r => { products[leadProductKey(r.product)] = true; });
+        const cleanCombo = rows.length === 2 && products.roofline && products.leaffilter;
+        if (cleanCombo) return;
+        rows.forEach(r => ids.add(r.id));
+      });
+      return ids;
+    }
+
+    function setCommView(view) {
+      commView = view || 'all';
+      loadComm();
+    }
+
+    function renderCommChips(attention, missing, duplicate) {
+      const box = document.getElementById('commAttention');
+      if (!box) return;
+      const chip = (view, label, count) => {
+        const on = commView === view;
+        return '<button type="button" class="appt-action" onclick="setCommView(\'' + view + '\')" style="border:1.5px solid ' + (on ? '#166534' : 'var(--border)') + ';background:' + (on ? '#F0FDF4' : '#fff') + ';color:' + (on ? '#166534' : 'var(--text)') + '">' + label + ' (' + count + ')</button>';
+      };
+      box.innerHTML = chip('attention', 'Needs attention', attention) + chip('missing', 'Missing commission', missing) + chip('duplicate', 'Duplicate job #', duplicate);
+    }
+
     async function loadComm() {
       // Restore saved goal
       const savedGoal = parseFloat(localStorage.getItem('commGoal') || '5000');
@@ -7454,7 +7583,7 @@
 
       // Fetch all unpaid sold leads with install dates — exclude cancelled.
       // is_funded is optional until the additive migration is applied.
-      const commBaseCols = 'id,job_number,install_date,sales_date,commission_amount,commission_paid,sale_amount,is_cancelled,is_btd,pay_push_weeks';
+      const commBaseCols = 'id,job_number,install_date,sales_date,commission_amount,commission_paid,sale_amount,is_cancelled,is_btd,pay_push_weeks,product';
       const commQuery = (cols) => sb
         .from('leads')
         .select(cols)
@@ -7469,8 +7598,22 @@
       const error = commRes.error;
 
       if (error) { el.innerHTML = '<p style="color:var(--red);padding:12px">Error loading</p>'; return; }
-      if (!leads || !leads.length) {
-        el.innerHTML = '<div class="empty"><div class="ei">💰</div><p>No jobs with install dates yet.<br>Add install dates when logging or editing a sale.</p></div>';
+      let roster = leads || [];
+      try {
+        const extra = await sb.from('leads').select('id,job_number,product,status,is_cancelled,commission_amount').eq('status', 'sold');
+        if (extra && !extra.error && extra.data) roster = extra.data;
+      } catch (e) {}
+      const dupes = commDuplicateIds(roster);
+      const due = leads || [];
+      const missingIds = new Set(due.filter(commissionMissing).map(l => l.id));
+      const attentionIds = new Set(due.filter(l => missingIds.has(l.id) || dupes.has(l.id)).map(l => l.id));
+      renderCommChips(attentionIds.size, missingIds.size, due.filter(l => dupes.has(l.id)).length);
+      let visible = due;
+      if (commView === 'missing') visible = due.filter(l => missingIds.has(l.id));
+      else if (commView === 'duplicate') visible = due.filter(l => dupes.has(l.id));
+      else if (commView === 'attention') visible = due.filter(l => attentionIds.has(l.id));
+      if (!visible.length) {
+        el.innerHTML = '<div class="empty"><div class="ei">💰</div><p>' + (due.length ? 'Nothing in this filter.' : 'No jobs with install dates yet.<br>Add install dates when logging or editing a sale.') + '</p></div>';
         return;
       }
 
@@ -7478,7 +7621,7 @@
       // manually pushed to the next pay cycle (pay_push_weeks) — that shifts which
       // week bucket / pay date it counts under without touching its real install date.
       const weeks = {};
-      leads.forEach(l => {
+      visible.forEach(l => {
         const pushWeeks = l.pay_push_weeks || 0;
         const effDate = pushWeeks > 0 ? addDaysToDateStr(l.install_date, pushWeeks * 7) : l.install_date;
         const w = weekKey(effDate);
@@ -7539,9 +7682,9 @@
             ? `<div style="font-size:9px;font-weight:700;color:#9333EA;margin-top:2px">⏭️ Pushed +${pushWeeks} cycle${pushWeeks > 1 ? 's' : ''} &nbsp;<span onclick="pushCommCycle('${j.id}',${pushWeeks},'${j.install_date}')" style="text-decoration:underline;cursor:pointer;color:#9333EA;font-weight:700">push again</span> &nbsp;<span onclick="resetCommPush('${j.id}')" style="text-decoration:underline;cursor:pointer;color:var(--muted);font-weight:600">undo</span></div>`
             : `<div style="margin-top:2px"><span onclick="pushCommCycle('${j.id}',${pushWeeks},'${j.install_date}')" style="font-size:9px;font-weight:700;color:#9333EA;text-decoration:underline;cursor:pointer">⏭️ Push to next cycle</span></div>`}
         </span>
-        <span style="font-size:13px;font-weight:700;text-align:right;color:${fundedColor || (j.commission_amount ? 'var(--text)' : 'var(--muted)')}">${fmtMoney(j.commission_amount)}</span>
+        <span style="font-size:13px;font-weight:700;text-align:right;color:${fundedColor || (j.commission_amount != null && j.commission_amount !== '' ? 'var(--text)' : 'var(--muted)')}">${fmtMoney(j.commission_amount)}${missingIds.has(j.id) ? '<div style="font-size:10px;font-weight:800;color:#B91C1C">Missing</div>' : ''}${dupes.has(j.id) ? '<div style="font-size:10px;font-weight:800;color:#92400E">Duplicate job #</div>' : ''}</span>
         <div style="display:flex;justify-content:center">
-          <div onclick="toggleCommPaid('${j.id}',${!j.commission_paid})" style="width:20px;height:20px;border-radius:5px;border:2px solid ${j.commission_paid ? 'var(--green)' : 'var(--border)'};background:${j.commission_paid ? 'var(--green)' : '#fff'};cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0">
+          <div onclick="toggleCommPaid('${j.id}',${!j.commission_paid}, ${j.commission_amount == null ? 'null' : Number(j.commission_amount)})" style="width:44px;height:44px;border-radius:10px;border:2px solid ${j.commission_paid ? 'var(--green)' : 'var(--border)'};background:${j.commission_paid ? 'var(--green)' : '#fff'};cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0">
             ${j.commission_paid ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
           </div>
         </div>
@@ -7557,7 +7700,11 @@
       el.innerHTML = html;
     }
 
-    async function toggleCommPaid(id, newVal) {
+    async function toggleCommPaid(id, newVal, amount) {
+      if (newVal && optionalAmount(amount) == null) {
+        toast('Enter a commission before marking paid. Use 0 if this sale pays nothing.', 'err');
+        return;
+      }
       const { error } = await sb.from('leads').update({ commission_paid: newVal }).eq('id', id);
       if (error) { toast('Error updating', 'err'); return; }
       toast(newVal ? 'Marked paid ✓' : 'Marked unpaid', 'ok');
@@ -7746,7 +7893,41 @@
       if (chev) chev.textContent = open ? '▶' : '▼';
     }
 
+    const LAZY_SRC = {
+      chart: 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+      jspdf: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+      autotable: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js',
+      qrcode: 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'
+    };
+    const lazyScriptPromises = {};
+    function loadScriptOnce(src) {
+      if (lazyScriptPromises[src]) return lazyScriptPromises[src];
+      lazyScriptPromises[src] = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[src="' + src + '"]');
+        if (existing && existing.dataset.loaded === '1') { resolve(); return; }
+        const s = existing || document.createElement('script');
+        s.src = src;
+        s.onload = () => { s.dataset.loaded = '1'; resolve(); };
+        s.onerror = () => reject(new Error('Could not load a helper script'));
+        if (!existing) document.head.appendChild(s);
+      });
+      return lazyScriptPromises[src];
+    }
+    async function ensurePdfLibs() {
+      await loadScriptOnce(LAZY_SRC.jspdf);
+      await loadScriptOnce(LAZY_SRC.autotable);
+    }
+    async function ensureQrLib() {
+      if (window.QRCode) return;
+      await loadScriptOnce(LAZY_SRC.qrcode);
+    }
+    async function ensureChartLib() {
+      if (window.Chart) return;
+      await loadScriptOnce(LAZY_SRC.chart);
+    }
+
     async function exportCommPDF() {
+      try { await ensurePdfLibs(); } catch (e) { toast('Could not load the PDF tool', 'err'); return; }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
@@ -8056,6 +8237,7 @@
     function savePriceList() {
       PRICE_LIST = _localPriceList;
       localStorage.setItem(qcPriceListKey(), JSON.stringify(PRICE_LIST));
+      syncSettingsToSupabase();
       toast('Price list updated ✓');
       closePriceListEditor();
       renderQCItems();
@@ -8564,7 +8746,7 @@
       document.getElementById('soldNotes').value = '';
       document.getElementById('jobNum').value = '';
       document.getElementById('saleAmt').value = '';
-      const today = localDate(new Date());
+      const today = todayEtKey();
       document.getElementById('salesDate').value = today;
       document.getElementById('installDate').value = '';
       isPaid = false;
@@ -8632,10 +8814,11 @@
         if (!soldAt || soldAt <= 0) { toast('Enter a sale price in "Sold At $"', 'err'); return; }
         document.getElementById('saleAmt').value = soldAt.toFixed(2);
         
-        const commAmtVal = parseFloat(document.getElementById('commAmt').value);
-        if (isNaN(commAmtVal)) {
-           const commTotal = parseFloat(document.getElementById('qcComm').textContent.replace(/[$,]/g, '')) || 0;
-           document.getElementById('commAmt').value = commTotal.toFixed(2);
+        const commAmtVal = optionalAmount(document.getElementById('commAmt').value);
+        const quotedRetail = parseFloat(document.getElementById('qcRetailHidden') && document.getElementById('qcRetailHidden').value) || 0;
+        if (commAmtVal == null && quotedRetail > 0) {
+           const commTotal = optionalAmount(document.getElementById('qcComm').textContent);
+           if (commTotal != null) document.getElementById('commAmt').value = commTotal.toFixed(2);
         }
 
         try {
@@ -8970,6 +9153,7 @@
           missedList.innerHTML = missed.map(apptRowHtml).join('');
         }
       }
+      renderNeedsResult(missed);
 
       const dash = document.getElementById('dashApptCard');
       if (dash) {
@@ -9005,15 +9189,66 @@
       renderActiveApptBar();
     }
 
+    function apptPhoneHref(phone) {
+      const d = String(phone || '').replace(/\D/g, '');
+      if (d.length < 10) return '';
+      return 'tel:' + d;
+    }
+
+    function apptDirectionsHref(address) {
+      const addr = String(address || '').trim();
+      if (!addr) return '';
+      return 'https://maps.apple.com/?daddr=' + encodeURIComponent(addr);
+    }
+
     function dashUpcomingActionsHtml(appt, state) {
-      const quote = '<button type="button" onclick="startAppointment(\'' + appt.id + '\')" style="background:#fff;color:#166534;border:1.5px solid #86EFAC;border-radius:8px;padding:6px 8px;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Quote</button>';
+      const quote = '<button type="button" class="appt-action" onclick="startAppointment(\'' + appt.id + '\')" style="background:#fff;color:#166534;border:1.5px solid #86EFAC">Quote</button>';
       let extra = '';
       if (state === 'text' && _fuDoNotTextReady) {
-        extra = '<button type="button" data-confirm-action="text" onclick="textAppointmentConfirm(\'' + appt.id + '\')" style="background:#fff;color:#1D4ED8;border:1.5px solid #BFDBFE;border-radius:8px;padding:6px 8px;font-family:\'Inter\',sans-serif;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">Text</button>';
+        extra = '<button type="button" class="appt-action" data-confirm-action="text" onclick="textAppointmentConfirm(\'' + appt.id + '\')" style="background:#fff;color:#1D4ED8;border:1.5px solid #BFDBFE">Text</button>';
       } else if (state === 'sent') {
-        extra = '<div data-confirm-action="sent" style="font-size:10px;font-weight:800;color:#166534;text-align:center;line-height:1.1;padding:1px 0">Sent ✓</div>';
+        extra = '<div data-confirm-action="sent" class="appt-action" style="color:#166534;border:1.5px solid #86EFAC;background:#F0FDF4">Sent ✓</div>';
       }
-      return '<div style="display:flex;flex-direction:column;align-items:stretch;gap:4px;flex-shrink:0">' + quote + extra + '</div>';
+      const callHref = apptPhoneHref(appt.customer_phone);
+      const dirHref = apptDirectionsHref(appt.customer_address);
+      const call = callHref ? '<a class="appt-action" href="' + callHref + '" style="background:#fff;color:#166534;border:1.5px solid #86EFAC">Call</a>' : '';
+      const directions = dirHref ? '<a class="appt-action" href="' + dirHref + '" target="_blank" rel="noopener noreferrer" style="background:#fff;color:#1D4ED8;border:1.5px solid #BFDBFE">Directions</a>' : '';
+      return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;flex-shrink:0;min-width:148px">' + quote + extra + call + directions + '</div>';
+    }
+
+    function renderNeedsResult(missed) {
+      const el = document.getElementById('dashNeedsResult');
+      if (!el) return;
+      const rows = missed || [];
+      if (!rows.length) {
+        el.style.display = 'none';
+        el.innerHTML = '';
+        return;
+      }
+      const body = rows.map(a => {
+        return '<div style="padding:8px 0;border-top:1px solid #FDE68A">'
+          + '<div style="font-size:12px;font-weight:800;color:#92400E">' + escHtml(apptWhenLabel(a.appointment_at)) + '</div>'
+          + '<div style="font-size:16px;font-weight:800;color:#1E1B4B">' + escHtml(a.customer_name || 'No name') + '</div>'
+          + '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">'
+          + '<button type="button" class="appt-action" onclick="resultAppointment(\'' + a.id + '\',\'sold\')" style="background:#166534;color:#fff;border:none">Sold</button>'
+          + '<button type="button" class="appt-action" onclick="resultAppointment(\'' + a.id + '\',\'not_sold\')" style="background:#fff;color:#B91C1C;border:1.5px solid #FECACA">No sale</button>'
+          + '<button type="button" class="appt-action" onclick="resultAppointment(\'' + a.id + '\',\'noshow\')" style="background:#fff;color:#92400E;border:1.5px solid #FCD34D">No show</button>'
+          + '</div></div>';
+      }).join('');
+      el.style.display = 'block';
+      el.innerHTML = '<div style="background:#FFFBEB;border:2px solid #F59E0B;border-radius:14px;padding:12px 12px 8px">'
+        + '<div style="font-size:16px;font-weight:900;color:#92400E">Needs result (' + rows.length + ')</div>'
+        + '<div style="font-size:12px;color:#92400E;margin-bottom:4px">Past appointments still waiting on Sold, No sale, or No show.</div>'
+        + body + '</div>';
+    }
+
+    function resultAppointment(id, how) {
+      if (how === 'noshow') {
+        markAppointmentNoShow(id);
+        return;
+      }
+      startAppointment(id);
+      if (how === 'not_sold') ccSetOutcome('not_sold');
     }
 
     async function loadAppointments() {
@@ -9400,10 +9635,38 @@
       
       // Auto-update Log Outcome sold inputs
       const qcSold = document.getElementById('qcSoldAt').value;
-      if(qcSold) {
-        document.getElementById('ccNotLeftAt').value = qcSold;
-        document.getElementById('commAmt').value = document.getElementById('qcComm').textContent.replace(/[$,]/g, '') || 0;
+      const commAmtEl = document.getElementById('commAmt');
+      const retailPctEl = document.getElementById('retailPct');
+      const commPctEl = document.getElementById('commPct');
+      if (qcSold && retail > 0) {
+        const leftAt = document.getElementById('ccNotLeftAt');
+        if (leftAt) leftAt.value = qcSold;
+        if (commAmtEl) commAmtEl.value = document.getElementById('qcComm').textContent.replace(/[$,]/g, '');
+      } else {
+        // No priced lines: do not copy the previous customer's commission or retail %.
+        if (commAmtEl) commAmtEl.value = '';
+        if (retailPctEl) retailPctEl.value = '';
+        if (commPctEl) commPctEl.value = '';
+        const shown = document.getElementById('qcComm');
+        if (shown) shown.textContent = '$0.00';
+        const hiddenRetail = document.getElementById('qcRetailHidden');
+        if (hiddenRetail && !(retail > 0)) hiddenRetail.value = '';
       }
+    }
+
+    function startNewQuote() {
+      activeAppointment = null;
+      ccResetLogPanel();
+      renderQCItems();
+      ['retailPct', 'commPct', 'commAmt'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      const shown = document.getElementById('qcComm');
+      if (shown) shown.textContent = '$0.00';
+      calcQuote();
+      renderAppointments();
+      toast('New quote — previous customer cleared', 'ok');
     }
 
     async function saveQuoteToLead() {
@@ -9550,7 +9813,7 @@
       ].filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n');
     }
 
-    function openBizCard() {
+    async function openBizCard() {
       const first  = (document.getElementById('profFirst')?.value  || '').trim();
       const last   = (document.getElementById('profLast')?.value   || '').trim();
       const phone  = (document.getElementById('profPhone')?.value  || '').trim();
@@ -9575,6 +9838,7 @@
 
       const container = document.getElementById('bcQrContainer');
       container.innerHTML = '';
+      try { await ensureQrLib(); } catch (e) { toast('Could not load the QR tool', 'err'); return; }
       new QRCode(container, {
         text: vcard,
         width: 200,
@@ -9651,6 +9915,13 @@
         if (data.admin_in_opening != null) localStorage.setItem('cc_admin_in_opening', data.admin_in_opening ? 'true' : 'false');
         if (data.overage_pct_leaffilter != null) localStorage.setItem('cc_overage_pct_leaffilter', String(data.overage_pct_leaffilter));
         if (data.overage_pct_roofline != null) localStorage.setItem('cc_overage_pct_roofline', String(data.overage_pct_roofline));
+        if (Array.isArray(data.price_list_leaffilter) && data.price_list_leaffilter.length) {
+          localStorage.setItem('cc_price_list', JSON.stringify(data.price_list_leaffilter));
+        }
+        if (Array.isArray(data.price_list_roofline) && data.price_list_roofline.length) {
+          localStorage.setItem('cc_price_list_roofline', JSON.stringify(data.price_list_roofline));
+        }
+        try { qcLoadPriceList(); } catch (e) {}
         const migrated = adoptOpeningPctWhenOverageUntouched(data.opening_price_pct);
         if (migrated) {
           localStorage.setItem('cc_opening_retired', '1');
@@ -9667,28 +9938,45 @@
         const { data: { session } } = await sb.auth.getSession();
         if (!session) return;
 
+        // Only send values this phone actually has. Empty local storage must not
+        // write the 40% overage default, or any other default, over the saved row.
         const row = {
           id: session.user.id,
           user_id: session.user.id,
-          nvpil: parseFloat(localStorage.getItem('bl_nvpil')) || 2000,
-          slg: parseFloat(localStorage.getItem('bl_slg')) || 55,
-          ntg: parseFloat(localStorage.getItem('bl_ntg')) || 80,
-          cr: parseFloat(localStorage.getItem('bl_cr')) || 50,
-          daily_sales: parseFloat(localStorage.getItem('bl_dailySales')) || 2,
-          weekly_rev: parseFloat(localStorage.getItem('bl_weeklyRev')) || 5000,
-          comm_goal: parseFloat(localStorage.getItem('commGoal')) || 5000,
-          opening_price_pct: localStorage.getItem('cc_opening_retired') === '1'
-            ? null
-            : (parseFloat(localStorage.getItem('cc_opening_pct')) || 0),
-          admin_default: localStorage.getItem('cc_admin_default') !== 'false',
-          admin_in_opening: localStorage.getItem('cc_admin_in_opening') === 'true',
-          overage_pct_leaffilter: overagePctFor('leaffilter'),
-          overage_pct_roofline: overagePctFor('roofline'),
           updated_at: new Date().toISOString()
         };
-        // New overage columns may not be migrated yet. Drop whichever the
-        // database rejects and save the rest, leaving the phone on the defaults.
-        const optional = ['overage_pct_leaffilter', 'overage_pct_roofline'];
+        const putStored = (col, key) => {
+          const raw = localStorage.getItem(key);
+          if (raw == null || String(raw).trim() === '') return;
+          const n = parseFloat(raw);
+          if (isFinite(n)) row[col] = n;
+        };
+        putStored('nvpil', 'bl_nvpil');
+        putStored('slg', 'bl_slg');
+        putStored('ntg', 'bl_ntg');
+        putStored('cr', 'bl_cr');
+        putStored('daily_sales', 'bl_dailySales');
+        putStored('weekly_rev', 'bl_weeklyRev');
+        putStored('comm_goal', 'commGoal');
+        if (localStorage.getItem('cc_opening_retired') === '1') row.opening_price_pct = null;
+        else putStored('opening_price_pct', 'cc_opening_pct');
+        if (localStorage.getItem('cc_admin_default') != null) row.admin_default = localStorage.getItem('cc_admin_default') !== 'false';
+        if (localStorage.getItem('cc_admin_in_opening') != null) row.admin_in_opening = localStorage.getItem('cc_admin_in_opening') === 'true';
+        if (localStorage.getItem(overageStorageKey('leaffilter')) != null) row.overage_pct_leaffilter = overagePctFor('leaffilter');
+        if (localStorage.getItem(overageStorageKey('roofline')) != null) row.overage_pct_roofline = overagePctFor('roofline');
+        const putList = (col, key) => {
+          const raw = localStorage.getItem(key);
+          if (!raw) return;
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length) row[col] = parsed;
+          } catch (e) {}
+        };
+        putList('price_list_leaffilter', 'cc_price_list');
+        putList('price_list_roofline', 'cc_price_list_roofline');
+        // New columns may not be migrated yet. Drop whichever the database
+        // rejects and save the rest. Do not fill the gap with defaults.
+        const optional = ['overage_pct_leaffilter', 'overage_pct_roofline', 'price_list_leaffilter', 'price_list_roofline'];
         let payload = row;
         let result = await sb.from('app_settings').upsert(payload);
         for (let n = 0; result && result.error && n < optional.length; n++) {
@@ -9932,8 +10220,8 @@
           return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,.5);border-radius:9px;margin-bottom:6px;border:1.5px solid #E0E7FF;cursor:pointer" onclick="openLeadEdit('${l.dbId}')">
             <div style="font-size:18px">${ico}</div>
             <div style="flex:1;min-width:0">
-              <div style="font-size:12px;font-weight:700;color:#3730A3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.name}</div>
-              <div style="font-size:10px;color:#6366F1">${t}${addrShort ? ' · ' + addrShort : ''}</div>
+              <div style="font-size:12px;font-weight:700;color:#3730A3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(l.name)}</div>
+              <div style="font-size:10px;color:#6366F1">${escHtml(t)}${addrShort ? ' · ' + escHtml(addrShort) : ''}</div>
             </div>
             <div style="font-size:10px;color:#6366F1;font-weight:700;white-space:nowrap">✏️ ${label}</div>
           </div>`;
@@ -9941,8 +10229,8 @@
         return `<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:#fff;border-radius:9px;margin-bottom:6px;box-shadow:0 1px 4px rgba(99,102,241,.12);border:1.5px solid #C7D2FE">
           <button onclick="cancelCalendarLead('${l.leadId}')" style="flex-shrink:0;background:#F3F4F6;border:1.5px solid #D1D5DB;color:#6B7280;border-radius:8px;padding:5px 8px;font-family:'Inter',sans-serif;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap">✗ Cancel</button>
           <div style="flex:1;min-width:0;cursor:pointer" onclick="openLeadFromCalendar('${l.leadId}')">
-            <div style="font-size:13px;font-weight:800;color:#1E1B4B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.name}</div>
-            <div style="font-size:10px;color:#4338CA">${t}${addrShort ? ' · ' + addrShort : ''}</div>
+            <div style="font-size:13px;font-weight:800;color:#1E1B4B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(l.name)}</div>
+            <div style="font-size:10px;color:#4338CA">${escHtml(t)}${addrShort ? ' · ' + escHtml(addrShort) : ''}</div>
           </div>
           <div style="font-size:12px;color:#6366F1;font-weight:800;white-space:nowrap;cursor:pointer" onclick="openLeadFromCalendar('${l.leadId}')">Quote →</div>
         </div>`;
@@ -10324,7 +10612,16 @@
       if (lead.drove_there === true) return 'No show';
       if (notes.includes('no show')) return 'No show';
       if (lead.status === 'sold') return 'Sold';
+      if (lead.status === 'pending') return 'Needs result';
       return 'Not sold';
+    }
+
+    function mileageRoutableStops(stops) {
+      return (stops || []).filter(s => String(s && s.address || '').trim());
+    }
+
+    function mileageLegUserTyped(prev) {
+      return !!(prev && prev.miles_manual && !prev.lookup_failed && prev.miles != null && prev.miles !== '');
     }
 
     function mileageDefaultInclude(lead) {
@@ -10493,9 +10790,10 @@
     }
 
     async function mileageBuildLegs(home, stops, previousLegs, force) {
-      if (!stops.length) return [];
+      const routed = mileageRoutableStops(stops);
+      if (!routed.length) return [];
       const points = [{ id: 'home', name: 'Home', address: home }]
-        .concat(stops.map(s => ({ id: s.lead_id || s.id, name: s.name || 'Stop', address: s.address || '' })))
+        .concat(routed.map(s => ({ id: s.lead_id || s.id, name: s.name || 'Stop', address: s.address || '' })))
         .concat([{ id: 'home', name: 'Home', address: home }]);
       const prevByKey = {};
       (previousLegs || []).forEach(leg => { if (leg && leg.key) prevByKey[leg.key] = leg; });
@@ -10517,7 +10815,7 @@
           lookup_failed: false,
           needsLookup: true
         };
-        if (!force && prev && prev.miles_manual && prev.miles != null && prev.miles !== '') {
+        if (!force && mileageLegUserTyped(prev)) {
           shell.miles = mileageRound1(prev.miles);
           shell.miles_manual = true;
           shell.needsLookup = false;
@@ -10561,7 +10859,7 @@
           leg.miles_manual = false;
         } else if (prev && prev.miles != null && prev.miles !== '') {
           leg.miles = mileageRound1(prev.miles);
-          leg.miles_manual = true;
+          leg.miles_manual = mileageLegUserTyped(prev);
           leg.lookup_failed = true;
         } else {
           leg.miles = null;
@@ -10593,7 +10891,18 @@
         if (appt.error) return appt;
         const created = await sb.from('leads').select(cols).in('status', ['sold', 'not_sold']).gte('created_at', start).lt('created_at', end);
         if (created.error) return created;
-        return { data: [].concat(sales.data || [], appt.data || [], created.data || []), error: null };
+        let pendingRows = [];
+        if (dateKey <= todayEtKey()) {
+          const pending = await sb.from('leads').select(cols).eq('status', 'pending').gte('appointment_at', start).lt('appointment_at', end);
+          if (!pending.error && pending.data) {
+            pendingRows = pending.data.filter(row => {
+              if (dateKey < todayEtKey()) return true;
+              const at = row && row.appointment_at ? new Date(row.appointment_at).getTime() : 0;
+              return at > 0 && at <= Date.now();
+            });
+          }
+        }
+        return { data: [].concat(sales.data || [], appt.data || [], created.data || [], pendingRows), error: null };
       }
       let result = await run(withFlag);
       if (result.error && /drove_there/i.test(result.error.message || '')) result = await run(noFlag);
@@ -10691,7 +11000,7 @@
           }
           trips = recomputed;
         }
-        const routeStops = stops.filter(s => s.included);
+        const routeStops = mileageRoutableStops(stops.filter(s => s.included));
         const legs = await mileageBuildLegs(home, routeStops, (existing && existing.legs) || [], force);
         const total = mileageSumAll(legs, trips);
         if (!existing && !stops.length && !trips.length && !force) {
@@ -10847,7 +11156,8 @@
         mileageState.drift = !mileageState.error && mileageDayDrifted(mileageState.log, mileageState.leads);
         mileageFillMeta(mileageState.log);
         renderMileage();
-        if (!mileageState.log && mileageState.leads.length && !logResult.error && !leadResult.error) {
+        const failedLegs = mileageState.log && Array.isArray(mileageState.log.legs) && mileageState.log.legs.some(leg => leg && leg.lookup_failed);
+        if ((!mileageState.log && mileageState.leads.length && !logResult.error && !leadResult.error) || failedLegs) {
           mileageState.busy = true;
           renderMileage();
           enqueueMileage(() => refreshMileageDay(dateKey, { force: false }));
@@ -10923,8 +11233,10 @@
       html += '<div style="font-size:13px;font-weight:800;margin-top:4px">Home</div>';
       html += '<div style="font-size:12px;color:var(--muted)">' + mapsDirLink(home) + '</div>';
       const included = stops.filter(s => s.included);
-      if (!included.length) html += '<div style="font-size:12px;color:var(--muted);margin-top:8px">No stops in the route. Add one below, or add a manual trip.</div>';
-      included.forEach((stop, i) => {
+      const driving = mileageRoutableStops(included);
+      const noAddress = included.filter(s => !String(s.address || '').trim());
+      if (!driving.length) html += '<div style="font-size:12px;color:var(--muted);margin-top:8px">No stops with an address in the route. Add one below, or add a manual trip.</div>';
+      driving.forEach((stop, i) => {
         html += mileageLegHtml(legs[i], i);
         html += '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">';
         html += '<div style="min-width:0"><div style="font-size:14px;font-weight:800">' + escHtml(stop.name || 'Stop') + '</div>';
@@ -10933,8 +11245,17 @@
         html += '<button type="button" onclick="mileageToggleStop(\'' + stop.lead_id + '\')" style="flex-shrink:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:6px 8px;font-family:Inter,sans-serif;font-size:11px;font-weight:700;cursor:pointer">Leave out</button>';
         html += '</div>';
       });
-      if (included.length) {
-        html += mileageLegHtml(legs[included.length], included.length);
+      if (noAddress.length) {
+        html += '<div style="margin-top:8px;padding:8px;border-radius:10px;background:#FFFBEB;border:1px solid #FDE68A">';
+        html += '<div style="font-size:12px;font-weight:800;color:#92400E">No address — skipped</div>';
+        html += '<div style="font-size:11px;color:#92400E;line-height:1.35">These stops are left out of the miles so the stops before and after still connect.</div>';
+        noAddress.forEach(stop => {
+          html += '<div style="font-size:13px;font-weight:800;margin-top:6px">' + escHtml(stop.name || 'Stop') + '</div>';
+        });
+        html += '</div>';
+      }
+      if (driving.length) {
+        html += mileageLegHtml(legs[driving.length], driving.length);
         html += '<div style="font-size:14px;font-weight:800">Home</div>';
         html += '<div style="font-size:12px;color:var(--muted)">' + mapsDirLink(home) + '</div>';
       }

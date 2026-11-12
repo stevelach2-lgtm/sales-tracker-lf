@@ -1,0 +1,23 @@
+{
+  "name": "LeafFilter Sales Tracker",
+  "short_name": "LF Sales",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F0F7F3",
+  "theme_color": "#00853E",
+  "icons": [
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "1024x1015",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
