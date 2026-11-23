@@ -2651,7 +2651,7 @@
             <span id="smsIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
           </div>
           <div id="smsConfigSection" style="display:none">
-            <div class="s-sub" style="margin-bottom:10px">Edit every follow-up text, including the appointment confirmation. Saved to your account. Use [Name] or [First name] for the customer's first name, [RepName] for yours, [Product] for LeafFilter or permanent lighting on follow-ups, and [Referral link] for the link below. On the confirmation, [Product] is the visit type and drops out when no product is set. [today/tomorrow], [time], and [address] fill from the appointment.</div>
+            <div class="s-sub" style="margin-bottom:10px">Edit every follow-up text, including the appointment confirmation. Saved to your account. Use [Name] or [First name] for the customer's first name, [RepName] for yours, [Product] for LeafFilter or permanent lighting on follow-ups, and [Referral link] for the link below. The confirmation is offered only for Lighting appointments. On that text, [Product] is the visit type. [today/tomorrow], [time], and [address] fill from the appointment.</div>
             <label class="fl">Referral app link</label>
             <input type="url" class="fi" id="fuReferralLink" value="https://gtrfl.us/TNCz3q" placeholder="https://gtrfl.us/TNCz3q" style="margin-bottom:8px;font-size:12px">
             <button type="button" onclick="saveReferralLinkSetting()" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#fff;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:12px">Save referral link</button>
@@ -4860,8 +4860,17 @@
       return out;
     }
 
+    // Confirmation texts are for Lighting only. LeafFilter and a lead with no
+    // product set are not offered one. A combo is two rows that share a job
+    // number, one roofline and one leaffilter. The roofline row gets the single
+    // confirmation; the LeafFilter row does not get a second one.
+    function fuLightingConfirm(lead) {
+      return !!(lead && lead.product === 'roofline');
+    }
+
     function fuConfirmPlan(lead, touches, today, blocked, names) {
       if (!lead || lead.status !== 'pending' || lead.is_cancelled) return null;
+      if (!fuLightingConfirm(lead)) return null;
       if (lead.followup_stopped_reason === 'Do not text') {
         return { bucket: 'done', group: 'confirm', stoppedReason: 'Do not text' };
       }
@@ -4887,6 +4896,7 @@
 
     function fuApptConfirmState(lead, touches, today, blocked, names) {
       if (!lead || lead.status !== 'pending' || lead.is_cancelled) return '';
+      if (!fuLightingConfirm(lead)) return '';
       if (leadSmsSuppressed(lead, blocked || {})) return '';
       if (fuNameSuppressed(lead, names)) return '';
       if (!fuConfirmPhone(lead)) return '';
@@ -5736,7 +5746,7 @@
 
     async function textAppointmentConfirm(id) {
       const appt = (pendingAppointments || []).find(a => a.id === id);
-      if (!appt) return;
+      if (!appt || !fuLightingConfirm(appt)) return;
       const cached = (_fuCache || []).find(r => r.id === id && r.plan && r.plan.group === 'confirm' && r.plan.bucket !== 'done');
       const row = cached || fuView(appt, _apptConfirmTouches[id] || [], todayEtKey());
       if (!row || !row.plan || row.plan.group !== 'confirm' || row.plan.bucket === 'done') return;
@@ -8259,7 +8269,7 @@
       confirmTitle.textContent = 'Appointment confirmation';
       const confirmHint = document.createElement('div');
       confirmHint.style.cssText = 'font-size:11px;color:var(--muted);line-height:1.4;margin-bottom:8px';
-      confirmHint.textContent = 'Sent for a pending appointment today or tomorrow. [Product] becomes "LeafFilter gutter guard" or "roofline lighting", and drops out when the lead has no product yet. [today/tomorrow], [time], and [address] fill from the appointment.';
+      confirmHint.textContent = 'Offered only for a pending Lighting appointment today or tomorrow. LeafFilter leads and leads with no product do not get this text. Do not text and the 8 AM–9 PM hold still apply. [Product] becomes "roofline lighting". [today/tomorrow], [time], and [address] fill from the appointment.';
       const confirmLabel = document.createElement('label');
       confirmLabel.style.cssText = 'font-size:10px;font-weight:700;color:var(--muted);display:block;margin:0 0 4px';
       confirmLabel.textContent = 'Confirmation text';
