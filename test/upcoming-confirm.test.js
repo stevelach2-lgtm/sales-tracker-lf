@@ -52,20 +52,43 @@ function makeSb(handlers) {
   };
 }
 
-test('dashboard Upcoming puts a confirmation Text button under Quote', async () => {
+test('dashboard Upcoming offers confirmation Text only for lighting', async () => {
   const today = window.todayEtKey();
   const at = (day, hm) => window.etLocalInputToIso(day + 'T' + hm);
   const appointments = [
     {
-      id: 'joan',
+      id: 'lighting',
       status: 'pending',
-      customer_name: 'Joan Connor',
+      customer_name: 'Linda Lighting',
       customer_phone: '(215) 362-4042',
       customer_address: '12 Oak Street, Doylestown, PA',
       appointment_at: at(today, '11:00'),
-      product: 'leaffilter',
+      product: 'roofline',
+      job_number: '100 LTG',
       is_cancelled: false,
       followup_stopped_reason: null
+    },
+    {
+      id: 'gutters',
+      status: 'pending',
+      customer_name: 'Joan LeafFilter',
+      customer_phone: '(215) 555-0148',
+      customer_address: '14 Oak Street, Doylestown, PA',
+      appointment_at: at(today, '11:30'),
+      product: 'leaffilter',
+      job_number: '100',
+      is_cancelled: false,
+      followup_stopped_reason: null
+    },
+    {
+      id: 'blank',
+      status: 'pending',
+      customer_name: 'No Product',
+      customer_phone: '5555550160',
+      customer_address: '15 Oak Street',
+      appointment_at: at(today, '11:45'),
+      product: null,
+      is_cancelled: false
     },
     {
       id: 'nophone',
@@ -74,7 +97,7 @@ test('dashboard Upcoming puts a confirmation Text button under Quote', async () 
       customer_phone: '',
       customer_address: '1 Blank St',
       appointment_at: at(today, '12:00'),
-      product: null,
+      product: 'roofline',
       is_cancelled: false
     },
     {
@@ -84,7 +107,7 @@ test('dashboard Upcoming puts a confirmation Text button under Quote', async () 
       customer_phone: '5555550199',
       customer_address: '2 Stop St',
       appointment_at: at(today, '13:00'),
-      product: 'leaffilter',
+      product: 'roofline',
       is_cancelled: false,
       followup_stopped_reason: 'Do not text'
     },
@@ -105,7 +128,7 @@ test('dashboard Upcoming puts a confirmation Text button under Quote', async () 
       customer_phone: '5555550188',
       customer_address: '3 Later St',
       appointment_at: at(window.fuAddDays(today, 3), '09:00'),
-      product: null,
+      product: 'roofline',
       is_cancelled: false
     },
     {
@@ -115,7 +138,7 @@ test('dashboard Upcoming puts a confirmation Text button under Quote', async () 
       customer_phone: '5555550177',
       customer_address: '4 Sent St',
       appointment_at: at(today, '15:00'),
-      product: 'leaffilter',
+      product: 'roofline',
       is_cancelled: false
     }
   ];
@@ -133,13 +156,16 @@ test('dashboard Upcoming puts a confirmation Text button under Quote', async () 
   const row = (id) => card.querySelector('button[onclick*="' + id + '"]')
     ? card.querySelector('button[onclick*="startAppointment(\'' + id + '\')"]').parentElement.parentElement
     : null;
-  const joan = row('joan');
-  const quote = joan.querySelector('button[onclick*="startAppointment"]');
-  const text = joan.querySelector('[data-confirm-action="text"]');
+  const lighting = row('lighting');
+  const quote = lighting.querySelector('button[onclick*="startAppointment"]');
+  const text = lighting.querySelector('[data-confirm-action="text"]');
   assert.equal(quote.textContent, 'Quote');
   assert.equal(text.textContent, 'Text');
   assert.equal(quote.parentElement, text.parentElement);
   assert.equal(quote.nextElementSibling, text);
+  assert.equal(row('gutters').querySelector('button[onclick*="startAppointment"]').textContent, 'Quote');
+  assert.equal(row('gutters').querySelector('[data-confirm-action]'), null);
+  assert.equal(row('blank').querySelector('[data-confirm-action]'), null);
   assert.equal(row('nophone').querySelector('[data-confirm-action]'), null);
   assert.equal(row('dnt').querySelector('[data-confirm-action]'), null);
   assert.equal(row('later').querySelector('[data-confirm-action]'), null);
@@ -148,20 +174,36 @@ test('dashboard Upcoming puts a confirmation Text button under Quote', async () 
   assert.equal(row('sent').querySelector('[data-confirm-action="text"]'), null);
   assert.equal(document.getElementById('apptList').querySelector('[data-confirm-action]'), null);
 
-  await window.textAppointmentConfirm('joan');
+  const nextLighting = window.nextUpHtml(appointments[0], appointments);
+  const nextGutters = window.nextUpHtml(appointments[1], appointments);
+  const nextBlank = window.nextUpHtml(appointments[2], appointments);
+  assert.equal(nextLighting.includes('textAppointmentConfirm(\'lighting\')'), true);
+  assert.equal(nextLighting.includes('Not confirmed yet'), true);
+  assert.equal(nextGutters.includes('textAppointmentConfirm'), false);
+  assert.equal(nextGutters.includes('Not confirmed yet'), false);
+  assert.equal(nextBlank.includes('textAppointmentConfirm'), false);
+
+  await window.textAppointmentConfirm('gutters');
+  await window.textAppointmentConfirm('blank');
+  assert.equal(inserts.length, 0);
+  assert.equal(opened.length, 0);
+
+  await window.textAppointmentConfirm('lighting');
   assert.equal(inserts.length, 1);
   assert.equal(inserts[0].table, 'followup_touches');
-  assert.equal(inserts[0].payload.lead_id, 'joan');
+  assert.equal(inserts[0].payload.lead_id, 'lighting');
   assert.equal(inserts[0].payload.step_key, 'appt_confirm');
   assert.equal(inserts[0].payload.step_num, 1);
   assert.equal(opened.length, 1);
   assert.equal(opened[0].phone.replace(/\D/g, '').endsWith('2153624042'), true);
-  assert.match(opened[0].msg, /LeafFilter gutter guard/);
+  assert.match(opened[0].msg, /roofline lighting/);
   assert.match(opened[0].msg, /today at 11:00 AM/);
   assert.match(opened[0].msg, /12 Oak Street/);
   assert.equal(opened[0].msg.includes('[Product]'), false);
-  assert.equal(row('joan').querySelector('[data-confirm-action="sent"]').textContent, 'Sent ✓');
-  assert.equal(row('joan').querySelector('[data-confirm-action="text"]'), null);
+  assert.equal(opened[0].msg.includes('gutter'), false);
+  assert.equal(row('lighting').querySelector('[data-confirm-action="sent"]').textContent, 'Sent ✓');
+  assert.equal(row('lighting').querySelector('[data-confirm-action="text"]'), null);
+  assert.equal(row('gutters').querySelector('[data-confirm-action]'), null);
   assert.equal(row('tomorrow').querySelector('[data-confirm-action="text"]').textContent, 'Text');
 });
 
@@ -174,7 +216,7 @@ test('Upcoming hides Text when the same phone is do-not-text on another lead', a
     customer_phone: '(215) 362-4042',
     customer_address: '12 Oak Street, Doylestown, PA',
     appointment_at: window.etLocalInputToIso(today + 'T11:00'),
-    product: 'leaffilter',
+    product: 'roofline',
     is_cancelled: false,
     followup_stopped_reason: null
   };

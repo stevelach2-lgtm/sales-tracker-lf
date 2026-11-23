@@ -41,6 +41,7 @@ const names = [
   'fuConfirmProductLabel',
   'fillConfirmProduct',
   'fuConfirmPhone',
+  'fuLightingConfirm',
   'fuPhoneKey',
   'fuIsDoNotText',
   'fuCustomerNameKey',
@@ -159,7 +160,7 @@ test('pending appointments today or tomorrow are due once, and only with a phone
   assert.equal(tomorrow.timeLabel, '11:00 AM');
   assert.equal(tomorrow.date, '2026-10-30');
 
-  const today = fuConfirmPlan(lead({ appointment_at: '2026-10-29T19:00:00.000Z' }), [], '2026-10-29');
+  const today = fuConfirmPlan(lead({ product: 'roofline', appointment_at: '2026-10-29T19:00:00.000Z' }), [], '2026-10-29');
   assert.equal(today.dayWord, 'today');
   assert.equal(today.timeLabel, '3:00 PM');
 
@@ -175,16 +176,24 @@ test('pending appointments today or tomorrow are due once, and only with a phone
   assert.equal(fuConfirmPlan(lead(), [{ step_key: 'appt_confirm', sent_on: '2026-10-29' }], '2026-10-29'), null);
 
   const stopped = fuConfirmPlan(lead({
+    product: 'roofline',
     followup_status: 'stopped',
     followup_stopped_reason: 'Do not text'
   }), [], '2026-10-29');
   assert.equal(stopped.bucket, 'done');
   assert.equal(stopped.stoppedReason, 'Do not text');
   assert.equal(stopped.group, 'confirm');
+  assert.equal(fuConfirmPlan(lead({
+    product: 'leaffilter',
+    followup_stopped_reason: 'Do not text'
+  }), [], '2026-10-29'), null);
 
-  const viaPlan = fuPlan(lead({ product: '' }), [], '2026-10-29');
+  const viaPlan = fuPlan(lead({ product: 'roofline' }), [], '2026-10-29');
   assert.equal(viaPlan.group, 'confirm');
   assert.equal(viaPlan.step.key, 'appt_confirm');
+  assert.equal(fuPlan(lead({ product: '' }), [], '2026-10-29'), null);
+  assert.equal(fuPlan(lead({ product: 'leaffilter' }), [], '2026-10-29'), null);
+  assert.equal(fuPlan(lead({ product: null }), [], '2026-10-29'), null);
 
   const referralSameDay = fuPlan({
     status: 'sold',
@@ -212,36 +221,67 @@ test('pending appointments today or tomorrow are due once, and only with a phone
   assert.equal(nosale.bucket, 'today');
 });
 
+test('confirmation text is offered only for a lighting lead', () => {
+  const today = '2026-10-29';
+  const lighting = lead({ product: 'roofline', job_number: '100 LTG' });
+  const gutters = lead({ product: 'leaffilter', job_number: '100', customer_phone: '5555550101' });
+  const blank = lead({ product: null });
+  const empty = lead({ product: '' });
+  assert.equal(fuApptConfirmState(lighting, [], today), 'text');
+  assert.equal(fuConfirmPlan(lighting, [], today).group, 'confirm');
+  assert.equal(fuApptConfirmState(gutters, [], today), '');
+  assert.equal(fuConfirmPlan(gutters, [], today), null);
+  assert.equal(fuApptConfirmState(blank, [], today), '');
+  assert.equal(fuConfirmPlan(blank, [], today), null);
+  assert.equal(fuApptConfirmState(empty, [], today), '');
+  assert.equal(fuConfirmPlan(empty, [], today), null);
+  assert.equal(fuApptConfirmState(lead({
+    product: 'leaffilter',
+    job_number: '100'
+  }), [{ step_key: 'appt_confirm' }], today), '');
+});
+
 test('upcoming card confirmation matches Text today eligibility', () => {
   const todayAppt = { appointment_at: '2026-11-02T16:00:00.000Z' };
-  const due = fuApptConfirmState(lead(Object.assign({ product: null }, todayAppt)), [], '2026-11-02');
+  const lightingToday = Object.assign({ product: 'roofline' }, todayAppt);
+  const due = fuApptConfirmState(lead(lightingToday), [], '2026-11-02');
   assert.equal(due, 'text');
+  assert.equal(fuApptConfirmState(lead(Object.assign({ product: 'leaffilter' }, todayAppt)), [], '2026-11-02'), '');
+  assert.equal(fuApptConfirmState(lead(Object.assign({ product: null }, todayAppt)), [], '2026-11-02'), '');
+  assert.equal(fuApptConfirmState(lead(Object.assign({ product: '' }, todayAppt)), [], '2026-11-02'), '');
   assert.equal(fuApptConfirmState(lead({
     appointment_at: '2026-11-03T15:00:00.000Z',
     product: 'roofline'
   }), [], '2026-11-02'), 'text');
   assert.equal(fuApptConfirmState(lead({
-    appointment_at: '2026-11-04T15:00:00.000Z'
+    appointment_at: '2026-11-04T15:00:00.000Z',
+    product: 'roofline'
   }), [], '2026-11-02'), '');
-  assert.equal(fuApptConfirmState(lead(Object.assign({ customer_phone: '' }, todayAppt)), [], '2026-11-02'), '');
+  assert.equal(fuApptConfirmState(lead(Object.assign({ product: 'roofline', customer_phone: '' }, todayAppt)), [], '2026-11-02'), '');
   assert.equal(fuApptConfirmState(lead(Object.assign({
+    product: 'roofline',
     customer_phone: '',
     followup_phone: '5555550100'
   }, todayAppt)), [], '2026-11-02'), '');
   assert.equal(fuApptConfirmState(lead(Object.assign({
+    product: 'roofline',
     followup_stopped_reason: 'Do not text'
   }, todayAppt)), [], '2026-11-02'), '');
-  assert.equal(fuApptConfirmState(lead(todayAppt), [], '2026-11-02', { '5555550100': true }), '');
-  assert.equal(fuApptConfirmState(lead(Object.assign({ is_cancelled: true }, todayAppt)), [], '2026-11-02'), '');
-  assert.equal(fuApptConfirmState(lead(Object.assign({ status: 'not_sold' }, todayAppt)), [], '2026-11-02'), '');
-  assert.equal(fuApptConfirmState(lead(todayAppt), [{ step_key: 'appt_confirm' }], '2026-11-02'), 'sent');
+  assert.equal(fuApptConfirmState(lead(lightingToday), [], '2026-11-02', { '5555550100': true }), '');
+  assert.equal(fuApptConfirmState(lead(Object.assign({ product: 'roofline', is_cancelled: true }, todayAppt)), [], '2026-11-02'), '');
+  assert.equal(fuApptConfirmState(lead(Object.assign({ product: 'roofline', status: 'not_sold' }, todayAppt)), [], '2026-11-02'), '');
+  assert.equal(fuApptConfirmState(lead(lightingToday), [{ step_key: 'appt_confirm' }], '2026-11-02'), 'sent');
+  assert.equal(fuApptConfirmState(lead(Object.assign({ product: 'leaffilter' }, todayAppt)), [{ step_key: 'appt_confirm' }], '2026-11-02'), '');
   assert.equal(fuApptConfirmState(lead(Object.assign({
+    product: 'roofline',
     followup_stopped_reason: 'Do not text'
   }, todayAppt)), [{ step_key: 'appt_confirm' }], '2026-11-02'), '');
 
-  const plan = fuConfirmPlan(lead(Object.assign({ product: null }, todayAppt)), [], '2026-11-02');
+  const plan = fuConfirmPlan(lead(lightingToday), [], '2026-11-02');
   assert.equal(plan.group, 'confirm');
   assert.equal(plan.bucket, 'today');
+  assert.equal(fuConfirmPlan(lead(Object.assign({ product: null }, todayAppt)), [], '2026-11-02'), null);
+  assert.equal(fuConfirmPlan(lead(Object.assign({ product: 'leaffilter' }, todayAppt)), [], '2026-11-02'), null);
   assert.equal(html.includes('fuTextTodayShown(due)'), true);
   assert.equal(html.includes('textAppointmentConfirm('), true);
   assert.equal(html.includes("markApptConfirmSent(row.id)"), true);
@@ -312,16 +352,19 @@ test('a do-not-text phone or a phoneless name gets no confirmation plan', () => 
     phoneless: { 'linda coleman': true },
     all: { 'linda coleman': true, 'pat phone': true }
   };
-  assert.equal(fuConfirmPlan(lead(), [], '2026-10-29', { '5555550100': true }), null);
-  assert.equal(fuConfirmPlan(lead({ customer_phone: '5555550199' }), [], '2026-10-29', {}, names), null);
+  assert.equal(fuConfirmPlan(lead({ product: 'roofline' }), [], '2026-10-29', { '5555550100': true }), null);
+  assert.equal(fuConfirmPlan(lead({ product: 'roofline', customer_phone: '5555550199' }), [], '2026-10-29', {}, names), null);
   const self = fuConfirmPlan(lead({
+    product: 'roofline',
     followup_status: 'stopped',
     followup_stopped_reason: 'Do not text'
   }), [], '2026-10-29', { '5555550100': true }, names);
   assert.equal(self.bucket, 'done');
   assert.equal(self.stoppedReason, 'Do not text');
-  assert.equal(fuApptConfirmState(lead(), [], '2026-10-29', {}, names), '');
-  const kept = fuConfirmPlan(lead({ customer_name: 'Pat Phone', customer_phone: '5555550166' }), [], '2026-10-29', {}, names);
+  assert.equal(fuApptConfirmState(lead({ product: 'roofline' }), [], '2026-10-29', {}, names), '');
+  assert.equal(fuApptConfirmState(lead({ product: 'leaffilter' }), [], '2026-10-29', {}, names), '');
+  assert.equal(fuApptConfirmState(lead({ product: null }), [], '2026-10-29', {}, names), '');
+  const kept = fuConfirmPlan(lead({ product: 'roofline', customer_name: 'Pat Phone', customer_phone: '5555550166' }), [], '2026-10-29', {}, names);
   assert.equal(kept && kept.group, 'confirm');
   assert.equal(kept.bucket, 'today');
 });
