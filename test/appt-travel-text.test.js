@@ -96,7 +96,7 @@ async function loadDay(appointments, sentTouches, handlers) {
 }
 
 function restRow(id) {
-  return document.querySelector('#dashRestToday [data-rest-id="' + id + '"]');
+  return document.querySelector('#todayCard [data-today-id="' + id + '"]');
 }
 
 function freezeAt10amEt() {
@@ -164,7 +164,7 @@ describe('text any of today\'s pending appointments', { concurrency: false }, ()
     assert.equal(legacy.confirm.running_late, RUNNING_LATE);
   });
 
-  test('rest of today shows the first name, mockup badge, and a Text button while an earlier lead is still unresulted', async () => {
+  test('today card lists every pending lead, full name, and a Text button while an earlier lead is still unresulted', async () => {
     const appointments = [
       lead('earlier', '08:00', { customer_name: 'Earlier Unresulted', customer_phone: '5555550101', product: 'leaffilter' }),
       lead('nextone', '11:00', { customer_name: 'Next Person', customer_phone: '5555550111', product: null }),
@@ -178,8 +178,18 @@ describe('text any of today\'s pending appointments', { concurrency: false }, ()
     ];
     await loadDay(appointments, []);
 
-    const next = document.getElementById('dashNextUp');
+    const card = document.getElementById('todayCard');
+    assert.ok(card);
+    assert.match(card.textContent, /TODAY/);
+    assert.equal(card.textContent.includes('NEXT UP'), false);
+    assert.equal(card.textContent.includes('REST OF TODAY'), false);
+    assert.equal(document.getElementById('dashRestToday').textContent.trim(), '');
+    assert.match(card.textContent, /9 appointments/);
+    const next = restRow('nextone');
     assert.match(next.textContent, /Next Person/);
+    assert.equal(next.classList.contains('is-current'), true);
+    assert.match(next.textContent, /Checking weather/);
+    assert.equal(next.querySelector('.today-product'), null);
     const nextText = next.querySelector('[data-appt-text="open"]');
     assert.equal(nextText.textContent.trim(), 'Text');
     assert.match(nextText.getAttribute('onclick') || '', /openApptTextChooser\('nextone'\)/);
@@ -187,14 +197,23 @@ describe('text any of today\'s pending appointments', { concurrency: false }, ()
     assert.equal(nextText.classList.contains('appt-action'), true);
     const earlier = restRow('earlier');
     assert.ok(earlier);
-    assert.match(earlier.textContent, /Earlier/);
+    assert.match(earlier.textContent, /Earlier Unresulted/);
+    assert.match(earlier.textContent, /Needs result/);
+    assert.equal(earlier.querySelector('.today-product').textContent, 'LeafFilter');
+    assert.equal(/Checking weather/.test(earlier.textContent), false);
     assert.ok(earlier.querySelector('[data-appt-text="open"]'));
 
     const joan = restRow('joan');
     assert.ok(joan);
-    assert.match(joan.textContent, /Joan/);
-    assert.equal(joan.textContent.includes('Connor'), false);
+    assert.equal(joan.querySelector('.today-name').textContent, 'Joan Connor');
+    assert.equal(/Checking weather/.test(joan.textContent), false);
     assert.match(joan.textContent, /3:00 PM|15/);
+    assert.equal(joan.querySelector('a.appt-action').textContent.trim(), 'Navigate');
+    assert.match(joan.textContent, /Call/);
+    const more = joan.querySelector('.today-more');
+    assert.match(more.textContent, /Quote/);
+    assert.match(more.textContent, /Night mockup/);
+    assert.match(more.textContent, /Photo/);
     const badge = joan.querySelector('button.v2-badge');
     assert.ok(badge);
     assert.match(badge.getAttribute('onclick') || '', /openMockupFromLead\('joan'\)/);
@@ -210,7 +229,8 @@ describe('text any of today\'s pending appointments', { concurrency: false }, ()
     assert.match(pat.textContent, /Working on it|in progress|Mockup/i);
 
     const initial = restRow('initial');
-    assert.equal(initial.querySelector('.rest-today-name').textContent, 'A');
+    assert.equal(initial.querySelector('.today-name').textContent, 'A');
+    assert.equal(pat.querySelector('.today-product').textContent, 'Lighting');
     assert.ok(initial.querySelector('[data-appt-text="open"]'));
 
     assert.equal(restRow('nophone').querySelector('[data-appt-text="open"]'), null);
@@ -378,5 +398,68 @@ describe('text any of today\'s pending appointments', { concurrency: false }, ()
     document.querySelector('[data-appt-text="send"]').click();
     await new Promise(resolve => setTimeout(resolve, 0));
     assert.equal(ctx.opened[0].msg, 'Way Joan 10');
+  });
+
+  test('today appointments stay on today and a later day stays off the card', () => {
+    const today = window.todayEtKey();
+    const iso = (day, hm) => window.etLocalInputToIso(day + 'T' + hm);
+    const rows = window.todayAppointments([
+      { id: 'tomorrow', appointment_at: iso(window.fuAddDays(today, 1), '09:00'), status: 'pending' },
+      { id: 'afternoon', appointment_at: iso(today, '15:00'), status: 'pending' },
+      { id: 'yesterday', appointment_at: iso(window.fuAddDays(today, -1), '09:00'), status: 'pending' },
+      { id: 'morning', appointment_at: iso(today, '08:00'), status: 'pending' }
+    ]);
+    assert.deepEqual(rows.map(row => row.id), ['morning', 'afternoon']);
+    const now = new Date();
+    assert.equal(window.V2.needsResultMark(rows[0], now), true);
+    assert.equal(window.V2.currentDayAppointment(rows, now).id, 'afternoon');
+  });
+
+  test('preview today card shows four leads, the drive home, and Confirm still lives in the text chooser', () => {
+    window.renderV2Preview();
+    const card = document.getElementById('todayCard');
+    assert.ok(card);
+    const ids = ['preview-rita', 'preview-mary', 'preview-jon', 'preview-dana'];
+    ids.forEach(id => assert.ok(restRow(id), id));
+    assert.match(restRow('preview-rita').textContent, /Rita Alvarez/);
+    assert.match(restRow('preview-rita').textContent, /Needs result/);
+    assert.equal(restRow('preview-rita').querySelector('.today-product').textContent, 'Lighting');
+    assert.match(restRow('preview-rita').textContent, /14\.2 mi · 22 min with traffic from home/);
+    assert.match(restRow('preview-rita').textContent, /Leave by/);
+    assert.equal(restRow('preview-rita').querySelector('.today-weather'), null);
+
+    const mary = restRow('preview-mary');
+    assert.equal(mary.classList.contains('is-current'), true);
+    assert.equal(mary.querySelector('.today-name').textContent, 'Mary Sullivan');
+    assert.equal(mary.querySelector('.today-product').textContent, 'LeafFilter');
+    assert.match(mary.textContent, /18\.6 mi · 34 min with traffic from last stop/);
+    assert.match(mary.querySelector('.today-weather').textContent, /41°F · rain 60%/);
+    assert.match(decodeURIComponent(mary.querySelector('a.maps-link').getAttribute('href')), /100 State St/);
+    assert.equal(restRow('preview-jon').querySelector('.today-product'), null);
+    assert.equal(restRow('preview-jon').querySelector('.today-weather'), null);
+    assert.equal(restRow('preview-dana').querySelector('.today-product').textContent, 'Lighting');
+    assert.match(card.textContent, /4 appointments/);
+    assert.match(card.textContent, /70\.8 mi including home/);
+    assert.match(card.textContent, /home about/);
+    assert.match(document.body.textContent, /Earned this week/);
+    assert.match(document.getElementById('dashNeedsResult').textContent, /Needs result \(1\)/);
+    assert.match(document.getElementById('dashNeedsResult').textContent, /Pat Miles/);
+
+    restRow('preview-dana').querySelector('[data-appt-text="open"]').click();
+    const sheet = document.getElementById('apptTextSheet');
+    assert.ok(sheet);
+    assert.match(sheet.textContent, /Dana/);
+    assert.equal(sheet.querySelector('[data-appt-text="on-my-way"]').textContent.trim(), 'On my way');
+    assert.equal(sheet.querySelector('[data-appt-text="running-late"]').textContent.trim(), 'Running late');
+    assert.equal(sheet.querySelector('[data-appt-text="confirm"]').textContent.trim(), 'Confirm');
+    window.closeApptTextChooser();
+
+    const raw = fs.readFileSync(htmlPath, 'utf8');
+    const choice = raw.slice(raw.indexOf('function apptConfirmChoice'), raw.indexOf('function paintApptTextChooser'));
+    assert.match(choice, /fuApptConfirmState/);
+    assert.equal(choice.includes("product === 'roofline'"), false);
+    const paint = raw.slice(raw.indexOf('function paintApptTextChooser'), raw.indexOf('function openApptTextChooser'));
+    assert.match(paint, /apptConfirmChoice\(lead\)/);
+    assert.equal(paint.includes("product === 'roofline'"), false);
   });
 });

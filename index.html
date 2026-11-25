@@ -2187,6 +2187,30 @@
     .v2-actions .appt-action { flex: 1 1 72px; }
     .v2-badge { font-size: 11px; font-weight: 800; border: 1px solid #166534; color: #166534; background: #F0FDF4; border-radius: 999px; padding: 2px 8px; }
     .v2-flag { font-size: 12px; font-weight: 800; color: #92400E; margin-top: 4px; }
+    .today-summary { font-size: 14px; font-weight: 800; line-height: 1.35; margin-top: 6px; color: var(--text); }
+    .today-row { padding: 12px 0 6px; border-top: 1px solid var(--border); }
+    .today-row.is-current { background: #EEF2FF; margin: 8px -8px 0; padding: 10px 8px 8px; border-radius: 12px; border-top-color: transparent; }
+    .today-kicker-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .today-time { font-size: 13px; font-weight: 800; color: #3730A3; }
+    .today-needs { font-size: 11px; font-weight: 800; color: #92400E; background: #FEF3C7; border-radius: 999px; padding: 2px 8px; }
+    .today-now { font-size: 11px; font-weight: 800; color: #3730A3; background: #E0E7FF; border-radius: 999px; padding: 2px 8px; }
+    .today-who { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 2px; }
+    .today-name { font-size: 17px; font-weight: 900; line-height: 1.25; }
+    .today-product { font-size: 11px; font-weight: 800; border-radius: 999px; padding: 2px 8px; }
+    .today-product.lf { color: #166534; background: #F0FDF4; border: 1px solid #86EFAC; }
+    .today-product.ltg { color: #1E3A8A; background: #EFF6FF; border: 1px solid #BFDBFE; }
+    .today-addr { font-size: 13px; color: var(--muted); line-height: 1.35; margin-top: 2px; }
+    .today-addr .maps-link { white-space: normal; }
+    .today-leg, .today-leave { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.35; margin-top: 2px; }
+    .today-weather { font-size: 14px; font-weight: 800; margin-top: 4px; }
+    .today-actions { display: flex; gap: 6px; margin-top: 8px; align-items: stretch; }
+    .today-actions > .appt-action, .today-actions > .today-more { flex: 1 1 0; min-width: 0; }
+    .today-actions .appt-action { min-width: 0; padding: 8px 4px; font-size: 14px; }
+    .today-more { position: relative; }
+    .today-more > summary { list-style: none; width: 100%; }
+    .today-more > summary::-webkit-details-marker { display: none; }
+    .today-more-panel { position: absolute; right: 0; top: calc(100% + 4px); z-index: 6; background: #fff; border: 1.5px solid var(--border); border-radius: 12px; padding: 8px; box-shadow: var(--shadow); min-width: 180px; display: flex; flex-direction: column; gap: 6px; }
+    .today-more-panel .appt-action { width: 100%; min-width: 0; }
     .v2-range { min-height: 36px; border-radius: 999px; border: 1.5px solid var(--border); background: #fff; font-weight: 800; padding: 6px 12px; font-family: inherit; }
     .v2-range.active { background: var(--green); color: #fff; border-color: var(--green); }
     .v2-more { margin: 0 12px 16px; background: #fff; border-radius: 14px; border: 1.5px solid var(--border); padding: 10px 12px; }
@@ -2328,7 +2352,7 @@
         </div>
         <div id="dashNextUp" class="v2-wrap"></div>
         <div id="dashNeedsResult" style="display:none;margin:4px 12px 12px"></div>
-        <div id="dashRestToday" class="v2-wrap"></div>
+        <div id="dashRestToday" class="v2-wrap" style="display:none"></div>
         <div id="dashApptCard" style="display:none"></div>
         <div id="dashTextToday" style="margin:4px 10px 12px"></div>
         <!-- Installations Action Center -->
@@ -11906,9 +11930,8 @@
     // ─────────────────────────────────────────
     const MOCKUP_SMS_DEFAULT = "Hi [First name], here's how your home could look at night with permanent lighting. Steve, LeafFilter";
     let _condCache = {};
+    let _homeLeg = null;
     let _condTimer = null;
-    let _liveCoords = null;
-    let _liveAsked = false;
     let _mockupLead = null;
     let _mockupPending = null;
 
@@ -12020,19 +12043,6 @@
       }
     }
 
-    function upcomingList() {
-      const today = todayEtKey();
-      return (pendingAppointments || []).filter(a => apptDateKey(a.appointment_at) >= today)
-        .sort((a, b) => new Date(a.appointment_at) - new Date(b.appointment_at));
-    }
-
-    function nextUpAppointment(list) {
-      const now = Date.now();
-      const rows = list || upcomingList();
-      const still = rows.filter(a => new Date(a.appointment_at).getTime() + 60 * 60000 > now);
-      return still[0] || rows[0] || null;
-    }
-
     function leadTextsOff(lead) {
       if (!lead) return false;
       return leadSmsSuppressed(lead, _fuDoNotTextPhones || {}) || fuNameSuppressed(lead, _fuDoNotTextNames);
@@ -12079,7 +12089,7 @@
 
     function apptTextButtonHtml(lead) {
       if (!lead || !apptTravelTextEligible(lead)) return '';
-      return '<button type="button" class="appt-action" data-appt-text="open" onclick="openApptTextChooser(\'' + lead.id + '\')" style="background:#fff;color:#1D4ED8;border:1.5px solid #BFDBFE;flex:0 0 auto">Text</button>';
+      return '<button type="button" class="appt-action" data-appt-text="open" onclick="openApptTextChooser(\'' + lead.id + '\')" style="background:#fff;color:#1D4ED8;border:1.5px solid #BFDBFE">Text</button>';
     }
 
     function deliverCustomerSms(phone, msg) {
@@ -12120,6 +12130,14 @@
       return el;
     }
 
+    // Confirm is one decision for the chooser. A product limit (Lighting only)
+    // belongs in this function, not on each Today row, so the sheet and a
+    // later card share it. fuApptConfirmState is the check it calls today.
+    function apptConfirmChoice(lead) {
+      if (!lead) return '';
+      return fuApptConfirmState(lead, (_apptConfirmTouches && _apptConfirmTouches[lead.id]) || [], todayEtKey(), _fuDoNotTextPhones, _fuDoNotTextNames);
+    }
+
     function paintApptTextChooser() {
       const pick = _apptTextPick;
       const panel = document.getElementById('apptTextPanel');
@@ -12145,7 +12163,7 @@
           + '<button type="button" class="appt-action" onclick="openApptTextChooser(\'' + lead.id + '\')" style="width:100%;margin-top:8px;background:#fff;color:#374151;border:1.5px solid var(--border)">Back</button>';
         return;
       }
-      const state = fuApptConfirmState(lead, (_apptConfirmTouches && _apptConfirmTouches[lead.id]) || [], todayEtKey(), _fuDoNotTextPhones, _fuDoNotTextNames);
+      const state = apptConfirmChoice(lead);
       let confirmBtn = '';
       if (state === 'sent') {
         confirmBtn = '<button type="button" class="appt-action" data-appt-text="confirm-sent" disabled style="width:100%;background:#F0FDF4;color:#166534;border:1.5px solid #86EFAC">Confirm sent ✓</button>';
@@ -12208,88 +12226,187 @@
       if (!pick || !pick.id) return;
       const id = pick.id;
       const lead = (pendingAppointments || []).find(a => a.id === id);
-      const state = lead ? fuApptConfirmState(lead, (_apptConfirmTouches && _apptConfirmTouches[id]) || [], todayEtKey(), _fuDoNotTextPhones, _fuDoNotTextNames) : '';
+      const state = lead ? apptConfirmChoice(lead) : '';
       closeApptTextChooser();
       if (state !== 'text') return;
       await textAppointmentConfirm(id);
     }
 
-    function nextUpHtml(lead, list) {
-      const cond = _condCache[lead.id] && _condCache[lead.id].data;
-      const state = fuApptConfirmState(lead, _apptConfirmTouches[lead.id] || [], todayEtKey(), _fuDoNotTextPhones, _fuDoNotTextNames);
-      const when = formatApptTime(lead.appointment_at);
-      const weather = cond && cond.weather && cond.weather.summary
-        ? 'At ' + when + ': ' + cond.weather.summary
-        : (cond ? 'Weather unavailable' : 'Checking weather…');
-      const drive = cond && cond.drive
-        ? (cond.drive.summary + (cond.padMinutes ? ' + ' + cond.padReason.replace(/^\+/, '') : ''))
-        : '';
-      const leavePlan = (cond && cond.drive && window.V2) ? window.V2.leaveBy({
+    function todayAppointments(list) {
+      const today = todayEtKey();
+      const rows = list || pendingAppointments || [];
+      return rows.filter(a => a && apptDateKey(a.appointment_at) === today)
+        .slice()
+        .sort((a, b) => new Date(a.appointment_at) - new Date(b.appointment_at));
+    }
+
+    function todayProductLabel(product) {
+      if (window.V2 && window.V2.productTag) return window.V2.productTag(product);
+      if (product == null) return '';
+      const key = String(product).trim().toLowerCase();
+      if (key === 'roofline') return 'Lighting';
+      if (key === 'leaffilter') return 'LeafFilter';
+      return '';
+    }
+
+    function todayCurrent(rows) {
+      if (!window.V2 || !window.V2.currentDayAppointment) return null;
+      return window.V2.currentDayAppointment(rows, new Date());
+    }
+
+    function todayNeedsMark(lead) {
+      if (!window.V2 || !window.V2.needsResultMark) return false;
+      return window.V2.needsResultMark(lead, new Date());
+    }
+
+    function driveEntry(lead) {
+      if (!lead) return null;
+      return _condCache[lead.id] || null;
+    }
+
+    function homeLegFor(rows) {
+      const last = rows && rows.length ? rows[rows.length - 1] : null;
+      if (!last || !_homeLeg || _homeLeg.lastId !== last.id) return null;
+      return _homeLeg;
+    }
+
+    function milesLabel(n) {
+      const rounded = Math.round(Number(n) * 10) / 10;
+      return String(rounded);
+    }
+
+    function todaySummaryText(rows) {
+      const n = rows.length;
+      const noun = n === 1 ? 'appointment' : 'appointments';
+      const legMiles = rows.map(a => {
+        const entry = driveEntry(a);
+        const drive = entry && entry.data && entry.data.drive;
+        return drive && drive.miles != null ? drive.miles : null;
+      });
+      const home = homeLegFor(rows);
+      const homeMiles = home && home.miles != null ? home.miles : null;
+      const ready = window.V2 && window.V2.dayMilesReady && window.V2.dayMilesReady(legMiles, homeMiles);
+      const total = ready ? window.V2.sumDriveMiles(legMiles, homeMiles) : null;
+      const milesText = total == null ? 'miles …' : (milesLabel(total) + ' mi including home');
+      const homeText = home && home.homeAt ? ('home about ' + etTimeLabel(home.homeAt)) : 'home …';
+      return n + ' ' + noun + ' · ' + milesText + ' · ' + homeText;
+    }
+
+    function legFromLabel(entry, index) {
+      if (entry && entry.from === 'From last stop') return 'from last stop';
+      if (entry && entry.from === 'From home') return 'from home';
+      if (entry && entry.from) return String(entry.from).replace(/^From /, 'from ');
+      return index === 0 ? 'from home' : 'from last stop';
+    }
+
+    function todayLegLine(lead, index) {
+      const entry = driveEntry(lead);
+      const drive = entry && entry.data && entry.data.drive;
+      const from = legFromLabel(entry, index);
+      if (!drive || drive.miles == null || drive.minutes == null) return 'Drive ' + from + ' …';
+      const traffic = drive.traffic ? ' with traffic' : '';
+      return milesLabel(drive.miles) + ' mi · ' + drive.minutes + ' min' + traffic + ' ' + from;
+    }
+
+    function todayLeaveLine(lead) {
+      const entry = driveEntry(lead);
+      const drive = entry && entry.data && entry.data.drive;
+      if (!drive || !window.V2 || drive.minutes == null) return '';
+      const plan = window.V2.leaveBy({
         appointmentAt: lead.appointment_at,
-        driveMinutes: cond.drive.minutes,
-        severity: cond.severity || 'clear',
-        earliestLeaveAt: (_condCache[lead.id] && _condCache[lead.id].earliestLeaveAt) || null
-      }) : null;
-      const leave = leavePlan
-        ? (leavePlan.warning ? leavePlan.warning : ('Leave by ' + etTimeLabel(leavePlan.leaveAt)))
-        : (cond && cond.leaveAt ? 'Leave by ' + etTimeLabel(cond.leaveAt) : '');
-      const earliestNote = leavePlan && leavePlan.warning ? ('Earliest leave ' + etTimeLabel(leavePlan.leaveAt)) : '';
-      const from = (_condCache[lead.id] && _condCache[lead.id].from) || '';
-      const miles = cond && cond.drive && cond.drive.miles != null ? cond.drive.miles + ' mi' : '';
-      const updated = cond && cond.updatedAt ? 'Updated ' + etTimeLabel(cond.updatedAt) : '';
-      const route = cond && cond.routeWeather && cond.routeWeather.summary ? 'On the drive: ' + cond.routeWeather.summary : '';
+        driveMinutes: drive.minutes,
+        severity: (entry.data && entry.data.severity) || 'clear',
+        earliestLeaveAt: entry.earliestLeaveAt || null
+      });
+      if (!plan) return '';
+      if (plan.warning) return plan.warning;
+      return 'Leave by ' + etTimeLabel(plan.leaveAt);
+    }
+
+    function todayWeatherLine(lead) {
+      const entry = driveEntry(lead);
+      const cond = entry && entry.data;
+      const when = formatApptTime(lead.appointment_at);
+      if (cond && cond.weather && cond.weather.summary) return 'At ' + when + ': ' + cond.weather.summary;
+      if (cond) return 'Weather unavailable';
+      return 'Checking weather…';
+    }
+
+    function todayMoreHtml(lead, open) {
+      const quote = '<button type="button" class="appt-action" onclick="startAppointment(\'' + lead.id + '\')" style="background:#fff;color:#166534;border:1.5px solid #86EFAC">Quote</button>';
+      const failed = lead.mockup_status === 'failed' && lead.mockup_error
+        ? '<div class="v2-flag">' + escHtml(lead.mockup_error) + '</div><button type="button" class="appt-action" onclick="requestNightMockup(\'' + lead.id + '\')" style="background:#fff;border:1.5px solid #FCD34D">Try again</button>'
+        : '';
+      return '<details class="today-more" data-more-id="' + escHtml(lead.id) + '"' + (open ? ' open' : '') + '>'
+        + '<summary class="appt-action" style="background:#fff;color:#374151;border:1.5px solid var(--border)">More</summary>'
+        + '<div class="today-more-panel">' + quote + failed + nightButtonHtml(lead) + '</div>'
+        + '</details>';
+    }
+
+    function todayActionsHtml(lead, open) {
       const call = apptPhoneHref(lead.customer_phone);
       const dir = apptDirectionsHref(lead.customer_address);
-      const text = apptTextButtonHtml(lead);
-      return '<div class="v2-card" id="nextUpCard">'
-        + '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center">'
-        + '<div class="v2-kicker">NEXT UP · ' + escHtml(when) + ' ET</div>'
-        + mockupBadgeHtml(lead)
-        + '</div>'
-        + '<div class="v2-name">' + escHtml(lead.customer_name || 'No name') + '</div>'
-        + '<div class="v2-line">' + (lead.customer_address ? mapsDirLink(lead.customer_address) : '') + (miles ? ' · ' + escHtml(miles) : '') + '</div>'
-        + (from ? '<div class="v2-line">' + escHtml(from) + '</div>' : '')
-        + (state === 'text' ? '<div class="v2-flag">Not confirmed yet</div>' : '')
-        + '<div class="v2-strong">' + escHtml(weather) + '</div>'
-        + (route ? '<div class="v2-line">' + escHtml(route) + '</div>' : '')
-        + (leave ? '<div class="v2-strong">' + escHtml(leave) + '</div>' : '')
-        + (earliestNote ? '<div class="v2-line">' + escHtml(earliestNote) + '</div>' : '')
-        + (drive ? '<div class="v2-line">' + escHtml(drive) + (cond && cond.drive && cond.drive.traffic ? ' · Mapbox' : '') + '</div>' : '')
-        + (updated ? '<div class="v2-line">' + escHtml(updated) + '</div>' : '')
-        + (lead.mockup_status === 'failed' && lead.mockup_error ? '<div class="v2-flag">' + escHtml(lead.mockup_error) + '</div><button type="button" class="appt-action" onclick="requestNightMockup(\'' + lead.id + '\')" style="margin-top:6px;background:#fff;border:1.5px solid #FCD34D">Try again</button>' : '')
-        + '<div class="v2-actions">'
+      return '<div class="today-actions">'
         + (dir ? '<a class="appt-action" href="' + dir + '" target="_blank" rel="noopener noreferrer" style="background:var(--green);color:#fff;border:none">Navigate</a>' : '')
         + (call ? '<a class="appt-action" href="' + call + '" style="background:#fff;color:#166534;border:1.5px solid #86EFAC">Call</a>' : '')
-        + text
-        + '<button type="button" class="appt-action" onclick="startAppointment(\'' + lead.id + '\')" style="background:#fff;color:#166534;border:1.5px solid #86EFAC">Quote</button>'
-        + '</div>'
-        + nightButtonHtml(lead)
+        + apptTextButtonHtml(lead)
+        + todayMoreHtml(lead, open)
         + '</div>';
     }
 
-    function restOfTodayHtml(list, next) {
-      const today = todayEtKey();
-      const rows = (list || []).filter(a => a && next && a.id !== next.id && apptDateKey(a.appointment_at) === today);
-      if (!rows.length) return '';
-      const body = rows.map(a => {
-        const cond = _condCache[a.id] && _condCache[a.id].data;
-        const bits = [formatApptTime(a.appointment_at)];
-        if (cond && cond.weather && cond.weather.summary) bits.push(cond.weather.summary);
-        else if (!cond) bits.push('weather…');
-        if (cond && cond.drive && cond.drive.miles != null) bits.push(cond.drive.miles + ' mi');
-        const badge = window.V2 ? window.V2.mockupStatusLabel(a.mockup_status) : '';
-        if (badge && a.mockup_status !== 'ready') bits.push(badge);
-        const view = a.mockup_status === 'ready' ? ' ' + mockupBadgeHtml(a) : '';
-        return '<div class="rest-today-row" data-rest-id="' + escHtml(a.id) + '" style="padding:8px 0;border-top:1px solid var(--border)">'
-          + '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">'
-          + '<div style="min-width:0;flex:1">'
-          + '<div class="rest-today-name" style="font-size:16px;font-weight:800;color:var(--text);line-height:1.25">' + escHtml(restTodayName(a)) + '</div>'
-          + '<div class="v2-line">' + escHtml(bits.join(' · ')) + view + '</div>'
-          + '</div>'
-          + apptTextButtonHtml(a)
-          + '</div></div>';
-      }).join('');
-      return '<div class="v2-card"><div class="v2-kicker">REST OF TODAY (' + rows.length + ')</div>' + body + '</div>';
+    function todayRowHtml(lead, index, current, openMore) {
+      const on = !!(current && current.id === lead.id);
+      const product = todayProductLabel(lead.product);
+      const productHtml = product
+        ? '<span class="today-product ' + (product === 'Lighting' ? 'ltg' : 'lf') + '">' + escHtml(product) + '</span>'
+        : '';
+      const needs = todayNeedsMark(lead) ? '<span class="today-needs">Needs result</span>' : '';
+      const focus = on && window.V2
+        ? '<span class="today-now">' + escHtml(window.V2.dayFocusLabel(lead.appointment_at, new Date())) + '</span>'
+        : '';
+      const leave = todayLeaveLine(lead);
+      const name = String((lead && (lead.customer_name || lead.followup_name || lead.name)) || '').trim() || 'No name';
+      return '<div class="today-row' + (on ? ' is-current' : '') + '" data-today-id="' + escHtml(lead.id) + '">'
+        + '<div class="today-kicker-row">'
+        + '<span class="today-time">' + escHtml(formatApptTime(lead.appointment_at)) + '</span>'
+        + needs
+        + focus
+        + mockupBadgeHtml(lead)
+        + '</div>'
+        + '<div class="today-who"><span class="today-name">' + escHtml(name) + '</span>' + productHtml + '</div>'
+        + (lead.customer_address ? '<div class="today-addr">' + mapsDirLink(lead.customer_address) + '</div>' : '')
+        + '<div class="today-leg">' + escHtml(todayLegLine(lead, index)) + '</div>'
+        + (leave ? '<div class="today-leave">' + escHtml(leave) + '</div>' : '')
+        + (on ? '<div class="today-weather">' + escHtml(todayWeatherLine(lead)) + '</div>' : '')
+        + todayActionsHtml(lead, !!(openMore && openMore[lead.id]))
+        + '</div>';
+    }
+
+    function captureTodayMore() {
+      const ids = {};
+      document.querySelectorAll('#todayCard details[open][data-more-id]').forEach(el => {
+        ids[el.getAttribute('data-more-id')] = true;
+      });
+      return ids;
+    }
+
+    function todayCardHtml(rows, openMore) {
+      if (!rows.length) {
+        return '<div class="v2-card" id="todayCard"><div class="v2-kicker">TODAY</div><div class="v2-line">Nothing scheduled today.</div></div>';
+      }
+      const current = todayCurrent(rows);
+      const body = rows.map((row, index) => todayRowHtml(row, index, current, openMore)).join('');
+      return '<div class="v2-card" id="todayCard">'
+        + '<div class="v2-kicker">TODAY</div>'
+        + '<div class="today-summary" id="todaySummary">' + escHtml(todaySummaryText(rows)) + '</div>'
+        + body
+        + '</div>';
+    }
+
+    function paintTodayFromCache() {
+      const nextEl = document.getElementById('dashNextUp');
+      if (!nextEl) return;
+      nextEl.innerHTML = todayCardHtml(todayAppointments(), captureTodayMore());
     }
 
     function renderScheduleV2() {
@@ -12297,36 +12414,29 @@
       const restEl = document.getElementById('dashRestToday');
       if (!nextEl && !restEl) return;
       try {
-        const list = upcomingList();
-        const next = nextUpAppointment(list);
-        if (nextEl) {
-          nextEl.innerHTML = next ? nextUpHtml(next, list) : '<div class="v2-card"><div class="v2-kicker">NEXT UP</div><div class="v2-line">Nothing else scheduled.</div></div>';
-        }
-        if (restEl) restEl.innerHTML = restOfTodayHtml(list, next);
-        if (next && window.V2 && !window._v2Preview) refreshConditions(next, list);
+        const open = captureTodayMore();
+        const rows = todayAppointments();
+        if (nextEl) nextEl.innerHTML = todayCardHtml(rows, open);
+        if (restEl) restEl.innerHTML = '';
+        if (rows.length && window.V2 && !window._v2Preview) refreshTodayDrive(rows);
       } catch (err) {
         console.warn('schedule v2', err);
       }
     }
 
-    function cacheFresh(entry, lead) {
+    function plannedOriginKey(lead, list) {
+      const day = apptDateKey(lead.appointment_at);
+      const earlier = (list || []).filter(a => a && a.id !== lead.id && apptDateKey(a.appointment_at) === day && new Date(a.appointment_at) < new Date(lead.appointment_at));
+      if (!earlier.length) return 'home';
+      return 'stop:' + earlier[earlier.length - 1].id;
+    }
+
+    function cacheFresh(entry, lead, originKey) {
       if (!entry || !window.V2) return false;
+      if (originKey && entry.originKey !== originKey) return false;
       const hot = window.V2.withinLastMinutes(lead.appointment_at, new Date(), 90);
       const limit = hot ? 10 * 60 * 1000 : 30 * 60 * 1000;
       return Date.now() - entry.at < limit;
-    }
-
-    async function liveCoordsOnce() {
-      if (_liveCoords) return _liveCoords;
-      if (_liveAsked || !navigator.geolocation) return null;
-      _liveAsked = true;
-      return new Promise(resolve => {
-        navigator.geolocation.getCurrentPosition(
-          pos => { _liveCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude }; resolve(_liveCoords); },
-          () => resolve(null),
-          { enableHighAccuracy: false, timeout: 2500, maximumAge: 120000 }
-        );
-      });
     }
 
     async function ensureLeadCoords(lead) {
@@ -12343,22 +12453,9 @@
       return coords;
     }
 
-    function restOfTodayRows(list, next) {
-      const today = todayEtKey();
-      return (list || []).filter(a => a && next && a.id !== next.id && apptDateKey(a.appointment_at) === today);
-    }
-
-    function paintScheduleFromCache() {
-      const fresh = upcomingList();
-      const current = nextUpAppointment(fresh);
-      const nextEl = document.getElementById('dashNextUp');
-      const restEl = document.getElementById('dashRestToday');
-      if (nextEl && current) nextEl.innerHTML = nextUpHtml(current, fresh);
-      if (restEl) restEl.innerHTML = restOfTodayHtml(fresh, current);
-    }
-
-    async function fetchConditionsFor(lead, list, session, home, allowLive) {
-      if (!lead || cacheFresh(_condCache[lead.id], lead)) return _condCache[lead.id];
+    async function fetchConditionsFor(lead, list, session, home) {
+      const originKey = plannedOriginKey(lead, list);
+      if (!lead || cacheFresh(_condCache[lead.id], lead, originKey)) return _condCache[lead.id];
       const dest = await ensureLeadCoords(lead);
       const day = apptDateKey(lead.appointment_at);
       const earlier = (list || []).filter(a => a.id !== lead.id && apptDateKey(a.appointment_at) === day && new Date(a.appointment_at) < new Date(lead.appointment_at));
@@ -12368,11 +12465,7 @@
       if (earlier.length) {
         const prev = earlier[earlier.length - 1];
         const prevCoords = await ensureLeadCoords(prev);
-        const live = allowLive ? await liveCoordsOnce() : null;
-        if (live) {
-          origin = live;
-          from = 'From your location';
-        } else if (prevCoords) {
+        if (prevCoords) {
           origin = prevCoords;
           from = 'From last stop';
           earliestLeaveAt = new Date(new Date(prev.appointment_at).getTime() + 60 * 60000).toISOString();
@@ -12387,63 +12480,34 @@
         });
         data = res.ok ? await res.json() : { weather: null, drive: null, degraded: 'unavailable', updatedAt: new Date().toISOString() };
       }
-      _condCache[lead.id] = { at: Date.now(), from: from, earliestLeaveAt: earliestLeaveAt, data: data };
+      _condCache[lead.id] = { at: Date.now(), from: from, earliestLeaveAt: earliestLeaveAt, data: data, originKey: originKey };
       return _condCache[lead.id];
     }
 
-    async function refreshConditions(next, list) {
-      if (!next || !window.V2 || window._v2Preview) return;
-      const rows = list && list.length ? list : upcomingList();
-      const rest = restOfTodayRows(rows, next);
-      const needNext = !cacheFresh(_condCache[next.id], next);
-      const needRest = rest.some(row => !cacheFresh(_condCache[row.id], row));
-      if (needNext || needRest) {
-        try {
-          const session = await mileageSession();
-          if (!session) return;
-          const home = await mileageGeocode(mileageHomeAddress());
-          if (needNext) {
-            await fetchConditionsFor(next, rows, session, home, true);
-            paintScheduleFromCache();
-            refreshHomeBy(rows, home);
-          }
-          for (let i = 0; i < rest.length; i++) {
-            if (cacheFresh(_condCache[rest[i].id], rest[i])) continue;
-            try {
-              await fetchConditionsFor(rest[i], rows, session, home, false);
-              const restEl = document.getElementById('dashRestToday');
-              if (restEl) restEl.innerHTML = restOfTodayHtml(upcomingList(), nextUpAppointment(upcomingList()));
-            } catch (err) {
-              console.warn('rest conditions', err);
-            }
-          }
-        } catch (e) {
-          console.warn('conditions', e);
-        }
-      }
-      if (!_condTimer) {
-        _condTimer = setInterval(() => {
-          const page = document.getElementById('p-dash');
-          if (!page || !page.classList.contains('active') || window._v2Preview) return;
-          const againRows = upcomingList();
-          const again = nextUpAppointment(againRows);
-          if (again) refreshConditions(again, againRows);
-        }, 60000);
-      }
+    function startTodayDriveTimer() {
+      if (_condTimer) return;
+      _condTimer = setInterval(() => {
+        const page = document.getElementById('p-dash');
+        if (!page || !page.classList.contains('active') || window._v2Preview) return;
+        const rows = todayAppointments();
+        if (rows.length) refreshTodayDrive(rows);
+      }, 60000);
     }
 
-    async function refreshHomeBy(list, home) {
+    async function refreshHomeLeg(rows, home, session) {
       const el = document.getElementById('dashHomeBy');
-      if (!el || !window.V2 || !home) return;
-      const today = todayEtKey();
-      const todays = (list || []).filter(a => apptDateKey(a.appointment_at) === today)
-        .sort((a, b) => new Date(a.appointment_at) - new Date(b.appointment_at));
-      const last = todays[todays.length - 1];
-      if (!last) { el.textContent = 'Home by —'; return; }
+      const last = rows && rows.length ? rows[rows.length - 1] : null;
+      if (!last || !window.V2 || !home) {
+        if (el) el.textContent = 'Home by —';
+        _homeLeg = null;
+        return;
+      }
+      if (_homeLeg && _homeLeg.lastId === last.id && _homeLeg.miles != null && Date.now() - _homeLeg.at < 30 * 60 * 1000) {
+        if (el) el.textContent = _homeLeg.homeAt ? ('Home by about ' + etTimeLabel(_homeLeg.homeAt)) : 'Home by —';
+        return;
+      }
       const origin = await ensureLeadCoords(last);
-      if (!origin) return;
-      const session = await mileageSession();
-      if (!session) return;
+      if (!origin || !session) return;
       const depart = new Date(new Date(last.appointment_at).getTime() + 60 * 60000).toISOString();
       try {
         const res = await fetch('/api/conditions', {
@@ -12453,10 +12517,48 @@
         });
         if (!res.ok) return;
         const data = await res.json();
-        if (!data.drive) { el.textContent = 'Home by —'; return; }
+        if (!data.drive) {
+          if (el) el.textContent = 'Home by —';
+          return;
+        }
         const homeAt = window.V2.homeBy({ lastAppointmentAt: last.appointment_at, driveHomeMinutes: data.drive.minutes });
-        el.textContent = homeAt ? ('Home by about ' + etTimeLabel(homeAt)) : 'Home by —';
+        _homeLeg = { at: Date.now(), lastId: last.id, miles: data.drive.miles, minutes: data.drive.minutes, homeAt: homeAt };
+        if (el) el.textContent = homeAt ? ('Home by about ' + etTimeLabel(homeAt)) : 'Home by —';
       } catch (e) {}
+    }
+
+    let _todayDriveToken = 0;
+
+    async function refreshTodayDrive(rows) {
+      if (!rows || !rows.length || !window.V2 || window._v2Preview) return;
+      const token = ++_todayDriveToken;
+      const needLeg = rows.some(row => !cacheFresh(_condCache[row.id], row, plannedOriginKey(row, rows)));
+      const last = rows[rows.length - 1];
+      const homeFresh = _homeLeg && _homeLeg.lastId === last.id && _homeLeg.miles != null && Date.now() - _homeLeg.at < 30 * 60 * 1000;
+      startTodayDriveTimer();
+      if (!needLeg && homeFresh) return;
+      try {
+        const session = await mileageSession();
+        if (!session || token !== _todayDriveToken) return;
+        const home = await mileageGeocode(mileageHomeAddress());
+        if (!home || token !== _todayDriveToken) return;
+        for (let i = 0; i < rows.length; i++) {
+          if (token !== _todayDriveToken) return;
+          const key = plannedOriginKey(rows[i], rows);
+          if (cacheFresh(_condCache[rows[i].id], rows[i], key)) continue;
+          try {
+            await fetchConditionsFor(rows[i], rows, session, home);
+            paintTodayFromCache();
+          } catch (err) {
+            console.warn('today leg', err);
+          }
+        }
+        if (token !== _todayDriveToken) return;
+        await refreshHomeLeg(rows, home, session);
+        paintTodayFromCache();
+      } catch (e) {
+        console.warn('today drive', e);
+      }
     }
 
     function mockupPanelHtml(lead) {
@@ -12877,8 +12979,6 @@
           { date: '2026-11-10', miles: 210 },
           { date: '2026-11-11', miles: 160 }
         ]);
-        const home = document.getElementById('dashHomeBy');
-        if (home) home.textContent = 'Home by about 7:40 PM';
         const closeEl = document.getElementById('closeRateCard');
         if (closeEl && typeof renderCloseRateCard === 'function') {
           closeEl.innerHTML = renderCloseRateCard([
@@ -12890,19 +12990,43 @@
         }
       }
       const today = todayEtKey();
-      const at = (hour) => {
-        const local = today + 'T' + String(hour).padStart(2, '0') + ':00';
-        return etLocalInputToIso(local);
-      };
+      const shift = (minutes) => new Date(Date.now() + minutes * 60000).toISOString();
+      const sameDay = [shift(-150), shift(-20), shift(160), shift(280)].every(iso => apptDateKey(iso) === today);
+      const at = sameDay
+        ? shift
+        : (minutes) => etLocalInputToIso(today + 'T' + ({ '-150': '08:00', '-20': '11:00', '160': '14:00', '280': '16:30' }[String(minutes)]));
+      const leg = (from, minutes, miles, severity, weather) => ({
+        at: Date.now(),
+        from: from,
+        originKey: from === 'From home' ? 'home' : 'stop',
+        data: {
+          weather: weather || null,
+          drive: { minutes: minutes, miles: miles, traffic: true, summary: minutes + ' min with traffic' },
+          severity: severity,
+          updatedAt: new Date().toISOString()
+        }
+      });
       pendingAppointments = [
+        {
+          id: 'preview-rita',
+          status: 'pending',
+          customer_name: 'Rita Alvarez',
+          customer_address: '18 Elm St, Medford, NJ 08055',
+          customer_phone: '6095550101',
+          appointment_at: at(-150),
+          product: 'roofline',
+          lat: 39.90,
+          lng: -74.82,
+          mockup_status: null
+        },
         {
           id: 'preview-mary',
           status: 'pending',
-          customer_name: 'Mary S. (sample)',
+          customer_name: 'Mary Sullivan',
           customer_address: '100 State St, Media, PA',
           customer_phone: '6105550100',
-          appointment_at: at(11),
-          product: 'roofline',
+          appointment_at: at(-20),
+          product: 'leaffilter',
           lat: 39.92,
           lng: -75.39,
           mockup_status: 'ready',
@@ -12910,43 +13034,45 @@
           mockup_after_path: 'preview/after.jpg'
         },
         {
-          id: 'preview-later',
+          id: 'preview-jon',
           status: 'pending',
-          customer_name: 'Jon P. (sample)',
+          customer_name: 'Jon Parker',
           customer_address: '20 Oak Ave, Wayne, PA',
           customer_phone: '6105550199',
-          appointment_at: at(13),
-          product: 'leaffilter',
+          appointment_at: at(160),
+          product: null,
           lat: 40.04,
           lng: -75.38,
+          mockup_status: null
+        },
+        {
+          id: 'preview-dana',
+          status: 'pending',
+          customer_name: 'Dana Cole',
+          customer_address: '40 Pine Rd, Marlton, NJ',
+          customer_phone: '8565550144',
+          appointment_at: at(280),
+          product: 'roofline',
+          lat: 39.89,
+          lng: -74.92,
           mockup_status: 'in_progress'
         }
       ];
-      _condCache['preview-mary'] = {
-        at: Date.now(),
-        from: 'From home (Medford)',
-        data: {
-          weather: { summary: '41°F · rain 60%', warnings: ['Rain likely'], tempF: 41, rainChance: 60 },
-          drive: { minutes: 34, miles: 22, traffic: true, summary: '34 min with traffic' },
-          routeWeather: { summary: 'Rain likely', severity: 'rain' },
-          severity: 'rain',
-          padMinutes: 10,
-          padReason: '+10 min rain',
-          leaveAt: new Date(new Date(pendingAppointments[0].appointment_at).getTime() - 44 * 60000).toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      };
-      _condCache['preview-later'] = {
-        at: Date.now(),
-        from: 'From last stop',
-        data: {
-          weather: { summary: '44°F · rain', tempF: 44, rainChance: 55 },
-          drive: { minutes: 28, miles: 18, traffic: true, summary: '28 min with traffic' },
-          severity: 'rain',
-          padMinutes: 10,
-          padReason: '+10 min rain'
-        }
-      };
+      _condCache['preview-rita'] = leg('From home', 22, 14.2, 'clear', { summary: '48°F · cloudy', tempF: 48 });
+      _condCache['preview-rita'].originKey = 'home';
+      _condCache['preview-mary'] = leg('From last stop', 34, 18.6, 'rain', { summary: '41°F · rain 60%', tempF: 41, rainChance: 60 });
+      _condCache['preview-mary'].originKey = 'stop:preview-rita';
+      _condCache['preview-mary'].earliestLeaveAt = new Date(new Date(pendingAppointments[0].appointment_at).getTime() + 60 * 60000).toISOString();
+      _condCache['preview-jon'] = leg('From last stop', 26, 12.4, 'clear', null);
+      _condCache['preview-jon'].originKey = 'stop:preview-mary';
+      _condCache['preview-jon'].earliestLeaveAt = new Date(new Date(pendingAppointments[1].appointment_at).getTime() + 60 * 60000).toISOString();
+      _condCache['preview-dana'] = leg('From last stop', 19, 9.1, 'clear', null);
+      _condCache['preview-dana'].originKey = 'stop:preview-jon';
+      _condCache['preview-dana'].earliestLeaveAt = new Date(new Date(pendingAppointments[2].appointment_at).getTime() + 60 * 60000).toISOString();
+      const homeAt = window.V2 ? window.V2.homeBy({ lastAppointmentAt: pendingAppointments[3].appointment_at, driveHomeMinutes: 31 }) : null;
+      _homeLeg = { at: Date.now(), lastId: 'preview-dana', miles: 16.5, minutes: 31, homeAt: homeAt };
+      const homeEl = document.getElementById('dashHomeBy');
+      if (homeEl) homeEl.textContent = homeAt ? ('Home by about ' + etTimeLabel(homeAt)) : 'Home by —';
       renderAppointments();
       const needs = document.getElementById('dashNeedsResult');
       if (needs && hash !== '#next') {
@@ -12967,7 +13093,7 @@
       }
       if (hash === '#mockup') {
         window.smsWindowOpen = function () { return true; };
-        openMockupViewer(pendingAppointments[0], { before: previewHouse(false), after: previewHouse(true) });
+        openMockupViewer(pendingAppointments.find(a => a.id === 'preview-mary') || pendingAppointments[0], { before: previewHouse(false), after: previewHouse(true) });
       }
     }
 

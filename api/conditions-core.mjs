@@ -1,4 +1,4 @@
-// Builds the Next up weather and traffic answer. Coordinates only: no names or phones.
+// Builds one drive leg's weather and traffic answer. Coordinates only: no names or phones.
 // Mapbox is used when MAPBOX_TOKEN is set. Without it, drive time comes from OSRM
 // (no live traffic) or is omitted. Never throws for a missing token.
 
