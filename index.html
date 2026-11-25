@@ -2651,7 +2651,7 @@
             <span id="smsIcon" style="font-size:12px; transition:transform .3s; transform:rotate(0deg)">▼</span>
           </div>
           <div id="smsConfigSection" style="display:none">
-            <div class="s-sub" style="margin-bottom:10px">Edit every follow-up text, including the appointment confirmation. Saved to your account. Use [Name] or [First name] for the customer's first name, [RepName] for yours, [Product] for LeafFilter or permanent lighting on follow-ups, and [Referral link] for the link below. On the confirmation, [Product] is the visit type and drops out when no product is set. [today/tomorrow], [time], and [address] fill from the appointment.</div>
+            <div class="s-sub" style="margin-bottom:10px">Edit every follow-up text, including the appointment confirmation, On my way, and Running late. Saved to your account. Use [Name] or [First name] for the customer's first name, [RepName] for yours, [Product] for LeafFilter or permanent lighting on follow-ups, and [Referral link] for the link below. On the confirmation, [Product] is the visit type and drops out when no product is set. [today/tomorrow], [time], and [address] fill from the appointment. On my way and Running late use [minutes].</div>
             <label class="fl">Referral app link</label>
             <input type="url" class="fi" id="fuReferralLink" value="https://gtrfl.us/TNCz3q" placeholder="https://gtrfl.us/TNCz3q" style="margin-bottom:8px;font-size:12px">
             <button type="button" onclick="saveReferralLinkSetting()" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#fff;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:12px">Save referral link</button>
@@ -5004,6 +5004,14 @@
       });
     }
 
+    function fillApptTravel(tpl, lead, minutes) {
+      const name = (lead && (lead.customer_name || lead.followup_name || lead.name)) || '';
+      let text = fillFuMsg(String(tpl || ''), name, 'Steve', '', '');
+      const n = parseInt(minutes, 10);
+      const mins = n > 0 && n < 600 ? String(n) : '15';
+      return text.split('[minutes]').join(mins);
+    }
+
     function fuTouchLeadPatch(row) {
       const step = row && row.plan && row.plan.step;
       if (!step) return null;
@@ -5090,7 +5098,9 @@
           roofline: { referral_install: referralInstall, referral_reminder: referralReminder }
         },
         confirm: {
-          appt_confirm: "Hi [First name], this is Steve with LeafFilter, confirming your [Product] appointment [today/tomorrow] at [time] at [address]. If possible, please have all homeowners present. Looking forward to meeting you!"
+          appt_confirm: "Hi [First name], this is Steve with LeafFilter, confirming your [Product] appointment [today/tomorrow] at [time] at [address]. If possible, please have all homeowners present. Looking forward to meeting you!",
+          on_my_way: "Hi [First name], this is Steve with LeafFilter. I'm on my way and should be there in about [minutes] minutes. See you soon!",
+          running_late: "Hi [First name], this is Steve with LeafFilter. I'm running a little behind and will be there in about [minutes] minutes. Sorry for the wait, see you soon!"
         }
       };
     }
@@ -5144,11 +5154,17 @@
       Object.keys(out).forEach(group => {
         const sg = saved[group];
         if (group === 'confirm') {
-          let text = '';
-          if (typeof sg === 'string') text = sg;
-          else if (sg && typeof sg.appt_confirm === 'string') text = sg.appt_confirm;
-          else if (sg && sg.leaffilter && typeof sg.leaffilter.appt_confirm === 'string') text = sg.leaffilter.appt_confirm;
-          if (text.trim() && out.confirm) out.confirm.appt_confirm = text;
+          if (!out.confirm) return;
+          const take = (key) => {
+            if (typeof sg === 'string') return key === 'appt_confirm' ? sg : '';
+            if (sg && typeof sg[key] === 'string') return sg[key];
+            if (key === 'appt_confirm' && sg && sg.leaffilter && typeof sg.leaffilter.appt_confirm === 'string') return sg.leaffilter.appt_confirm;
+            return '';
+          };
+          ['appt_confirm', 'on_my_way', 'running_late'].forEach(key => {
+            const text = take(key);
+            if (text.trim()) out.confirm[key] = text;
+          });
           return;
         }
         if (!sg || typeof sg !== 'object') return;
@@ -5190,8 +5206,10 @@
     function fuTemplateText(group, product, stepKey) {
       if (group === 'confirm') {
         const block = FU_TEMPLATES && FU_TEMPLATES.confirm;
-        const direct = typeof block === 'string' ? block : (block && block[stepKey]);
-        if (typeof direct === 'string' && direct.trim()) return direct;
+        let direct = '';
+        if (typeof block === 'string') direct = stepKey === 'appt_confirm' || !stepKey ? block : '';
+        else if (block && typeof block[stepKey] === 'string') direct = block[stepKey];
+        if (direct.trim()) return direct;
         const confirmFallback = defaultFuTemplates().confirm;
         return (confirmFallback && confirmFallback[stepKey]) || '';
       }
@@ -8259,7 +8277,7 @@
       confirmTitle.textContent = 'Appointment confirmation';
       const confirmHint = document.createElement('div');
       confirmHint.style.cssText = 'font-size:11px;color:var(--muted);line-height:1.4;margin-bottom:8px';
-      confirmHint.textContent = 'Sent for a pending appointment today or tomorrow. [Product] becomes "LeafFilter gutter guard" or "roofline lighting", and drops out when the lead has no product yet. [today/tomorrow], [time], and [address] fill from the appointment.';
+      confirmHint.textContent = 'Confirmation is for a pending appointment today or tomorrow. [Product] becomes "LeafFilter gutter guard" or "roofline lighting", and drops out when the lead has no product yet. [today/tomorrow], [time], and [address] fill from the appointment. On my way and Running late use [First name] and [minutes]. They can be sent for any of today\'s appointments, including when the product is still blank.';
       const confirmLabel = document.createElement('label');
       confirmLabel.style.cssText = 'font-size:10px;font-weight:700;color:var(--muted);display:block;margin:0 0 4px';
       confirmLabel.textContent = 'Confirmation text';
@@ -8277,6 +8295,25 @@
       confirmBox.appendChild(confirmHint);
       confirmBox.appendChild(confirmLabel);
       confirmBox.appendChild(confirmTa);
+      const addTravelField = (id, label, key) => {
+        const lab = document.createElement('label');
+        lab.style.cssText = 'font-size:10px;font-weight:700;color:var(--muted);display:block;margin:10px 0 4px';
+        lab.textContent = label;
+        lab.setAttribute('for', id);
+        const ta = document.createElement('textarea');
+        ta.id = id;
+        ta.className = 'fi';
+        ta.style.cssText = 'font-size:12px;padding:8px;height:88px';
+        ta.value = (_localFuMsgs.confirm && _localFuMsgs.confirm[key]) || '';
+        ta.addEventListener('input', () => {
+          if (!_localFuMsgs.confirm || typeof _localFuMsgs.confirm !== 'object') _localFuMsgs.confirm = {};
+          _localFuMsgs.confirm[key] = ta.value;
+        });
+        confirmBox.appendChild(lab);
+        confirmBox.appendChild(ta);
+      };
+      addTravelField('fuOnMyWayTemplate', 'On my way', 'on_my_way');
+      addTravelField('fuRunningLateTemplate', 'Running late', 'running_late');
       container.appendChild(confirmBox);
       const stepNames = {
         day1: 'Day 1 — sorry I missed you', day2: 'Day 1', day7: 'Day 7', day30: 'Day 30', seasonal: 'Seasonal',
@@ -12028,6 +12065,155 @@
       return '<span class="v2-badge" style="border-color:#D1D5DB;color:#374151;background:#F9FAFB">' + escHtml(label) + '</span>';
     }
 
+    function restTodayName(lead) {
+      const full = String((lead && (lead.customer_name || lead.followup_name || lead.name)) || '').trim();
+      return smsFirstName(full) || full || 'No name';
+    }
+
+    function apptTravelTextEligible(lead) {
+      if (!lead || lead.is_cancelled) return false;
+      if (lead.status && lead.status !== 'pending') return false;
+      if (leadTextsOff(lead)) return false;
+      return fuConfirmPhone(lead);
+    }
+
+    function apptTextButtonHtml(lead) {
+      if (!lead || !apptTravelTextEligible(lead)) return '';
+      return '<button type="button" class="appt-action" data-appt-text="open" onclick="openApptTextChooser(\'' + lead.id + '\')" style="background:#fff;color:#1D4ED8;border:1.5px solid #BFDBFE;flex:0 0 auto">Text</button>';
+    }
+
+    function deliverCustomerSms(phone, msg) {
+      if (!msg) { toast('No message', 'err'); return; }
+      if (!smsWindowOpen()) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(msg).then(() => toast('Text after 8 AM — message copied', 'ok')).catch(() => toast('Text after 8 AM', 'err'));
+        } else {
+          toast('Text after 8 AM', 'err');
+        }
+        return;
+      }
+      openSmsComposer(phone, msg);
+    }
+
+    let _apptTextPick = null;
+
+    function closeApptTextChooser() {
+      const el = document.getElementById('apptTextSheet');
+      if (el) el.remove();
+      _apptTextPick = null;
+    }
+
+    function ensureApptTextSheet() {
+      let el = document.getElementById('apptTextSheet');
+      if (el) return el;
+      el = document.createElement('div');
+      el.id = 'apptTextSheet';
+      el.setAttribute('role', 'dialog');
+      el.setAttribute('aria-modal', 'true');
+      el.style.cssText = 'position:fixed;inset:0;z-index:10040;background:rgba(15,23,42,.45);display:flex;align-items:flex-end;justify-content:center';
+      el.addEventListener('click', (event) => { if (event.target === el) closeApptTextChooser(); });
+      const panel = document.createElement('div');
+      panel.id = 'apptTextPanel';
+      panel.style.cssText = 'width:100%;max-width:480px;background:#fff;border-radius:18px 18px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.18)';
+      el.appendChild(panel);
+      document.body.appendChild(el);
+      return el;
+    }
+
+    function paintApptTextChooser() {
+      const pick = _apptTextPick;
+      const panel = document.getElementById('apptTextPanel');
+      if (!pick || !panel) return;
+      const lead = (pendingAppointments || []).find(a => a.id === pick.id);
+      if (!lead) { closeApptTextChooser(); return; }
+      const name = restTodayName(lead);
+      if (pick.step === 'minutes') {
+        const mins = [10, 15, 20, 30];
+        const selected = apptTravelMinutes(pick.minutes);
+        panel.innerHTML = '<div style="font-size:17px;font-weight:900;margin-bottom:4px">How many minutes?</div>'
+          + '<div style="font-size:13px;color:var(--muted);margin-bottom:12px">' + escHtml(pick.kind === 'running_late' ? 'Running late' : 'On my way') + ' · ' + escHtml(name) + '</div>'
+          + '<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px">'
+          + mins.map(n => {
+            const on = n === selected;
+            return '<button type="button" class="appt-action" data-appt-minutes="' + n + '"'
+              + (on ? ' data-selected="true" aria-pressed="true"' : ' aria-pressed="false"')
+              + ' onclick="setApptTextMinutes(' + n + ')" style="width:100%;min-width:0;background:'
+              + (on ? '#1D4ED8' : '#fff') + ';color:' + (on ? '#fff' : '#1E3A8A') + ';border:1.5px solid #BFDBFE">' + n + '</button>';
+          }).join('')
+          + '</div>'
+          + '<button type="button" class="appt-action" data-appt-text="send" onclick="sendApptTravelText()" style="width:100%;background:#1D4ED8;color:#fff;border:none">Send</button>'
+          + '<button type="button" class="appt-action" onclick="openApptTextChooser(\'' + lead.id + '\')" style="width:100%;margin-top:8px;background:#fff;color:#374151;border:1.5px solid var(--border)">Back</button>';
+        return;
+      }
+      const state = fuApptConfirmState(lead, (_apptConfirmTouches && _apptConfirmTouches[lead.id]) || [], todayEtKey(), _fuDoNotTextPhones, _fuDoNotTextNames);
+      let confirmBtn = '';
+      if (state === 'sent') {
+        confirmBtn = '<button type="button" class="appt-action" data-appt-text="confirm-sent" disabled style="width:100%;background:#F0FDF4;color:#166534;border:1.5px solid #86EFAC">Confirm sent ✓</button>';
+      } else if (state === 'text') {
+        confirmBtn = '<button type="button" class="appt-action" data-appt-text="confirm" onclick="sendApptTextConfirm()" style="width:100%;background:#fff;color:#1D4ED8;border:1.5px solid #BFDBFE">Confirm</button>';
+      }
+      panel.innerHTML = '<div style="font-size:17px;font-weight:900;margin-bottom:12px">Text ' + escHtml(name) + '</div>'
+        + '<div style="display:flex;flex-direction:column;gap:8px">'
+        + '<button type="button" class="appt-action" data-appt-text="on-my-way" onclick="chooseApptTravel(\'on_my_way\')" style="width:100%;background:#fff;color:#1D4ED8;border:1.5px solid #BFDBFE">On my way</button>'
+        + '<button type="button" class="appt-action" data-appt-text="running-late" onclick="chooseApptTravel(\'running_late\')" style="width:100%;background:#fff;color:#1D4ED8;border:1.5px solid #BFDBFE">Running late</button>'
+        + confirmBtn
+        + '<button type="button" class="appt-action" onclick="closeApptTextChooser()" style="width:100%;background:#fff;color:#374151;border:1.5px solid var(--border)">Cancel</button>'
+        + '</div>';
+    }
+
+    function openApptTextChooser(id) {
+      const lead = (pendingAppointments || []).find(a => a.id === id);
+      if (!lead || !apptTravelTextEligible(lead)) return;
+      _apptTextPick = { id: id, step: 'choose', kind: '', minutes: 15 };
+      ensureApptTextSheet();
+      paintApptTextChooser();
+    }
+
+    function chooseApptTravel(kind) {
+      if (!_apptTextPick) return;
+      _apptTextPick.kind = kind === 'running_late' ? 'running_late' : 'on_my_way';
+      _apptTextPick.step = 'minutes';
+      _apptTextPick.minutes = apptTravelMinutes(_apptTextPick.minutes);
+      paintApptTextChooser();
+    }
+
+    function apptTravelMinutes(value) {
+      const n = parseInt(value, 10);
+      if (n === 10 || n === 15 || n === 20 || n === 30) return n;
+      return 15;
+    }
+
+    function setApptTextMinutes(n) {
+      if (!_apptTextPick) return;
+      _apptTextPick.minutes = apptTravelMinutes(n);
+      paintApptTextChooser();
+    }
+
+    function sendApptTravelText() {
+      const pick = _apptTextPick;
+      if (!pick || !pick.id) return;
+      const lead = (pendingAppointments || []).find(a => a.id === pick.id);
+      if (!lead || !apptTravelTextEligible(lead)) { closeApptTextChooser(); return; }
+      const key = pick.kind === 'running_late' ? 'running_late' : 'on_my_way';
+      const minutes = apptTravelMinutes(pick.minutes);
+      const tpl = fuTemplateText('confirm', lead.product, key);
+      const msg = fillApptTravel(tpl, lead, minutes);
+      const phone = String(lead.customer_phone || '').replace(/\D/g, '');
+      closeApptTextChooser();
+      deliverCustomerSms(phone, msg);
+    }
+
+    async function sendApptTextConfirm() {
+      const pick = _apptTextPick;
+      if (!pick || !pick.id) return;
+      const id = pick.id;
+      const lead = (pendingAppointments || []).find(a => a.id === id);
+      const state = lead ? fuApptConfirmState(lead, (_apptConfirmTouches && _apptConfirmTouches[id]) || [], todayEtKey(), _fuDoNotTextPhones, _fuDoNotTextNames) : '';
+      closeApptTextChooser();
+      if (state !== 'text') return;
+      await textAppointmentConfirm(id);
+    }
+
     function nextUpHtml(lead, list) {
       const cond = _condCache[lead.id] && _condCache[lead.id].data;
       const state = fuApptConfirmState(lead, _apptConfirmTouches[lead.id] || [], todayEtKey(), _fuDoNotTextPhones, _fuDoNotTextNames);
@@ -12054,9 +12240,7 @@
       const route = cond && cond.routeWeather && cond.routeWeather.summary ? 'On the drive: ' + cond.routeWeather.summary : '';
       const call = apptPhoneHref(lead.customer_phone);
       const dir = apptDirectionsHref(lead.customer_address);
-      const text = state === 'text'
-        ? '<button type="button" class="appt-action" onclick="textAppointmentConfirm(\'' + lead.id + '\')" style="background:#fff;color:#1D4ED8;border:1.5px solid #BFDBFE">Text</button>'
-        : (state === 'sent' ? '<div class="appt-action" style="color:#166534;border:1.5px solid #86EFAC;background:#F0FDF4">Sent ✓</div>' : '');
+      const text = apptTextButtonHtml(lead);
       return '<div class="v2-card" id="nextUpCard">'
         + '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center">'
         + '<div class="v2-kicker">NEXT UP · ' + escHtml(when) + ' ET</div>'
@@ -12096,7 +12280,14 @@
         const badge = window.V2 ? window.V2.mockupStatusLabel(a.mockup_status) : '';
         if (badge && a.mockup_status !== 'ready') bits.push(badge);
         const view = a.mockup_status === 'ready' ? ' ' + mockupBadgeHtml(a) : '';
-        return '<div class="v2-line" style="padding:6px 0;border-top:1px solid var(--border)">' + escHtml(bits.join(' · ')) + view + '</div>';
+        return '<div class="rest-today-row" data-rest-id="' + escHtml(a.id) + '" style="padding:8px 0;border-top:1px solid var(--border)">'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">'
+          + '<div style="min-width:0;flex:1">'
+          + '<div class="rest-today-name" style="font-size:16px;font-weight:800;color:var(--text);line-height:1.25">' + escHtml(restTodayName(a)) + '</div>'
+          + '<div class="v2-line">' + escHtml(bits.join(' · ')) + view + '</div>'
+          + '</div>'
+          + apptTextButtonHtml(a)
+          + '</div></div>';
       }).join('');
       return '<div class="v2-card"><div class="v2-kicker">REST OF TODAY (' + rows.length + ')</div>' + body + '</div>';
     }
