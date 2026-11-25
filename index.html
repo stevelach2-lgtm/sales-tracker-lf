@@ -12094,8 +12094,9 @@
         else if (!cond) bits.push('weather…');
         if (cond && cond.drive && cond.drive.miles != null) bits.push(cond.drive.miles + ' mi');
         const badge = window.V2 ? window.V2.mockupStatusLabel(a.mockup_status) : '';
-        if (badge) bits.push(badge);
-        return '<div class="v2-line" style="padding:6px 0;border-top:1px solid var(--border)">' + escHtml(bits.join(' · ')) + '</div>';
+        if (badge && a.mockup_status !== 'ready') bits.push(badge);
+        const view = a.mockup_status === 'ready' ? ' ' + mockupBadgeHtml(a) : '';
+        return '<div class="v2-line" style="padding:6px 0;border-top:1px solid var(--border)">' + escHtml(bits.join(' · ')) + view + '</div>';
       }).join('');
       return '<div class="v2-card"><div class="v2-kicker">REST OF TODAY (' + rows.length + ')</div>' + body + '</div>';
     }
@@ -12327,7 +12328,7 @@
           return;
         }
         if (body.status === 'failed') toast(body.error || "Couldn't make the mockup", 'err');
-        else if (body.status === 'requested') toast('Mockup requested', 'ok');
+        else if (body.status === 'requested') { toast('Mockup requested', 'ok'); watchMockup(leadId); }
         else toast(body.error || 'Could not request the mockup', 'err');
         const lead = (pendingAppointments || []).find(a => a.id === leadId);
         if (lead && body.status) {
@@ -12343,6 +12344,32 @@
       } catch (e) {
         toast('Could not request the mockup', 'err');
       }
+    }
+
+    // Poll the lead after a request so "Mockup ready" shows without a reload.
+    const _mockupWatch = {};
+    function watchMockup(leadId) {
+      if (!leadId || !sb || _mockupWatch[leadId]) return;
+      const started = Date.now();
+      _mockupWatch[leadId] = setInterval(async () => {
+        try {
+          const res = await sb.from('leads').select('id,mockup_status,mockup_after_path,mockup_error').eq('id', leadId).maybeSingle();
+          const row = res && res.data;
+          const done = row && (row.mockup_status === 'ready' || row.mockup_status === 'failed');
+          if (row) {
+            [ (pendingAppointments || []).find(a => a.id === leadId), window._editLead && window._editLead.id === leadId ? window._editLead : null ]
+              .forEach(l => { if (l) { l.mockup_status = row.mockup_status; l.mockup_after_path = row.mockup_after_path; l.mockup_error = row.mockup_error; } });
+            renderScheduleV2();
+            if (window._editLead && window._editLead.id === leadId) renderLeadMockup(window._editLead);
+          }
+          if (done || Date.now() - started > 4 * 60000) {
+            clearInterval(_mockupWatch[leadId]);
+            delete _mockupWatch[leadId];
+            if (row && row.mockup_status === 'ready') toast('Night mockup ready. Tap Mockup ready to view.', 'ok');
+            else if (row && row.mockup_status === 'failed') toast(row.mockup_error || "Couldn't make the mockup", 'err');
+          }
+        } catch (e) {}
+      }, 8000);
     }
 
     async function signedMockup(path) {
