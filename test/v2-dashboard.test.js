@@ -194,6 +194,37 @@ test('Text to customer opens Messages and copies the mockup image', () => {
   assert.equal(off > 0 && off < sms, true);
 });
 
+test('today keeps a past pending lead, tags it, and totals every leg plus the drive home', () => {
+  assert.equal(v2.productTag(null), '');
+  assert.equal(v2.productTag(''), '');
+  assert.equal(v2.productTag('roofline'), 'Lighting');
+  assert.equal(v2.productTag('leaffilter'), 'LeafFilter');
+  assert.equal(v2.productTag('ROOFLINE'), 'Lighting');
+  assert.equal(v2.productTag('unknown'), '');
+
+  const now = new Date('2026-11-25T16:00:00.000Z');
+  const past = { id: 'past', status: 'pending', appointment_at: '2026-11-25T13:00:00.000Z' };
+  const current = { id: 'now', status: 'pending', appointment_at: '2026-11-25T16:20:00.000Z' };
+  const later = { id: 'later', status: 'pending', appointment_at: '2026-11-25T19:00:00.000Z' };
+  const cancelled = { id: 'off', status: 'pending', is_cancelled: true, appointment_at: '2026-11-25T12:00:00.000Z' };
+  assert.equal(v2.visitStillOpen(past.appointment_at, now), false);
+  assert.equal(v2.needsResultMark(past, now), true);
+  assert.equal(v2.needsResultMark(current, now), false);
+  assert.equal(v2.needsResultMark(later, now), false);
+  assert.equal(v2.needsResultMark(cancelled, now), false);
+  assert.equal(v2.currentDayAppointment([past, cancelled, current, later], now).id, 'now');
+  assert.equal(v2.currentDayAppointment([past, cancelled], now), null);
+  assert.equal(v2.dayFocusLabel(current.appointment_at, now), 'Next');
+  assert.equal(v2.dayFocusLabel('2026-11-25T15:30:00.000Z', now), 'Now');
+
+  const legs = [14.2, 18.6, 12.4, 9.1];
+  assert.equal(v2.dayMilesReady(legs, 16.5), true);
+  assert.equal(v2.dayMilesReady(legs, null), false);
+  assert.equal(v2.dayMilesReady([14.2, null], 16.5), false);
+  assert.equal(v2.sumDriveMiles(legs, 16.5), 70.8);
+  assert.equal(v2.sumDriveMiles([], null), null);
+});
+
 test('the phone bundle does not contain the Mapbox token or mockup secrets', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   assert.equal(html.includes('MAPBOX_TOKEN'), false);
